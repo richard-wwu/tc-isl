@@ -99,7 +99,7 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
 	sc_copy->inter = isl_map_list_copy(sc->inter);
 	sc_copy->prefix = isl_multi_union_pw_aff_copy(sc->prefix);
 	if (!sc_copy->domain || !sc_copy->context || !sc_copy->intra ||
-	    !sc_copy->inter || !sc->prefix)
+	    !sc_copy->inter || !sc_copy->prefix)
 		return isl_schedule_constraints_free(sc_copy);
 
 	for (i = isl_edge_first; i <= isl_edge_last_sc; ++i) {
