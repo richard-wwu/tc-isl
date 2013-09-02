@@ -77,6 +77,10 @@ isl_schedule_constraints_set_conditional_validity(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_union_map *condition,
 	__isl_take isl_union_map *validity);
+__isl_export
+__isl_give isl_schedule_constraints *isl_schedule_constraints_set_prefix(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_take isl_multi_union_pw_aff *prefix);
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc);
 
@@ -103,6 +107,9 @@ __isl_give isl_union_map *isl_schedule_constraints_get_conditional_validity(
 __isl_export
 __isl_give isl_union_map *
 isl_schedule_constraints_get_conditional_validity_condition(
+	__isl_keep isl_schedule_constraints *sc);
+__isl_export
+__isl_give isl_multi_union_pw_aff *isl_schedule_constraints_get_prefix(
 	__isl_keep isl_schedule_constraints *sc);
 
 __isl_give isl_schedule_constraints *isl_schedule_constraints_apply(
