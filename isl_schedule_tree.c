@@ -2331,6 +2331,95 @@ static __isl_give isl_set *isolate_final(__isl_keep isl_set *isolate,
 	return isolate;
 }
 
+/* Combine the isolate options "isolate1" and "isolate2" of two nested bands
+ * into an isolate option for the merged band.
+ * "isolate1" and "isolate2" have already been embedded in the right space.
+ *
+ * If either of them is empty, then the combined option should be
+ * the other one (which may also be empty).
+ * Otherwise, the combined option is taken to be the intersection
+ * of the two options.  This may result in an empty isolate option
+ * if the two combined options conflict.
+ */
+static __isl_give isl_set *isolate_combine(__isl_take isl_set *isolate1,
+	__isl_take isl_set *isolate2)
+{
+	isl_bool empty;
+
+	empty = isl_set_is_empty(isolate1);
+	if (empty >= 0 && !empty)
+		empty = isl_set_is_empty(isolate2);
+	if (empty < 0)
+		goto error;
+	if (empty)
+		return isl_set_union(isolate1, isolate2);
+	return isl_set_intersect(isolate1, isolate2);
+error:
+	isl_set_free(isolate1);
+	isl_set_free(isolate2);
+	return NULL;
+}
+
+/* Combine the isolate options "isolate1" and "isolate2" of two nested bands
+ * into an isolate option for the merged band.
+ * Let A and B be the spaces of the two bands.
+ *
+ * "isolate1" is of the form
+ *
+ *	isolate[[outer] -> A]
+ *
+ * and needs to be transformed to
+ *
+ *	isolate[[outer] -> [A -> B]]
+ *
+ * The B space is first added as
+ *
+ *	[[outer] -> A] -> B
+ *
+ * after which the space is curried and wrapped with the "isolate" id.
+ *
+ * "isolate2" is of the form
+ *
+ *	isolate[[outer; A] -> B]
+ *
+ * and also needs to be transformed to
+ *
+ *	isolate[[outer] -> [A -> B]]
+ *
+ * This is accomplished by plugging in an identity function
+ * between the two spaces.
+ *
+ * After embedding the options in the right space, they are combined.
+ */
+static __isl_give isl_set *isolate_join(__isl_take isl_set *isolate1,
+	__isl_take isl_set *isolate2)
+{
+	isl_id *id;
+	isl_space *space, *space2;
+	isl_multi_aff *ma;
+	isl_map *map;
+
+	space = isl_space_unwrap(isl_set_get_space(isolate2));
+	space = isl_space_range(space);
+
+	id = isl_set_get_tuple_id(isolate1);
+	isolate1 = isl_set_product(isolate1, isl_set_universe(space));
+	map = isl_set_unwrap(isolate1);
+	map = isl_map_curry(map);
+	isolate1 = isl_map_wrap(map);
+	isolate1 = isl_set_set_tuple_id(isolate1, id);
+
+	space = isl_set_get_space(isolate1);
+	space2 = isl_set_get_space(isolate2);
+	space = isl_space_map_from_domain_and_range(space, space2);
+	ma = isl_multi_aff_identity(space);
+	isolate2 = isl_set_preimage_multi_aff(isolate2, ma);
+
+	isolate1 = isolate_combine(isolate1, isolate2);
+
+	return isolate1;
+}
+
 /* Split the band root node of "tree" into two nested band nodes,
  * one with the first "pos" dimensions and
  * one with the remaining dimensions.
@@ -2378,6 +2467,75 @@ __isl_give isl_schedule_tree *isl_schedule_tree_band_split(
 		goto error;
 
 	tree = isl_schedule_tree_replace_child(tree, 0, child);
+
+	return tree;
+error:
+	isl_schedule_tree_free(child);
+	isl_schedule_tree_free(tree);
+	return NULL;
+}
+
+/* Merge the band root node of "tree" and its nested band child
+ * into a single band node.
+ * The space of the resulting band node is the product of
+ * the spaces of the original two nested bands.
+ * If the second band contains at least one member, then
+ * the permutable property is cleared on the resulting band.
+ * The coincident properties of the members of the second band
+ * are also cleared in the resulting band.
+ *
+ * The loop AST generation type options and the isolate options
+ * are combined, when possible.
+ */
+__isl_give isl_schedule_tree *isl_schedule_tree_band_join_child(
+	__isl_take isl_schedule_tree *tree, int depth)
+{
+	int n;
+	isl_set *isolate1, *isolate2, *isolate;
+	isl_schedule_tree *child;
+	isl_schedule_band *child_band;
+
+	if (!tree)
+		return NULL;
+	if (tree->type != isl_schedule_node_band)
+		isl_die(isl_schedule_tree_get_ctx(tree), isl_error_invalid,
+			"not a band node", return isl_schedule_tree_free(tree));
+	if (!isl_schedule_tree_has_children(tree))
+		isl_die(isl_schedule_tree_get_ctx(tree), isl_error_invalid,
+			"child is not a band node",
+			return isl_schedule_tree_free(tree));
+
+	child = isl_schedule_tree_get_child(tree, 0);
+	if (!child)
+		goto error;
+	if (child->type != isl_schedule_node_band)
+		isl_die(isl_schedule_tree_get_ctx(tree), isl_error_invalid,
+			"child is not a band node", goto error);
+
+	tree = isl_schedule_tree_cow(tree);
+	if (!tree)
+		goto error;
+
+	n = isl_schedule_tree_band_n_member(tree);
+	isolate1 = isl_schedule_tree_band_get_ast_isolate_option(tree, depth);
+	isolate2 = isl_schedule_tree_band_get_ast_isolate_option(child,
+								depth + n);
+	isolate = isolate_join(isl_set_copy(isolate1), isolate2);
+
+	child_band = isl_schedule_band_copy(child->band);
+	tree->band = isl_schedule_band_join(tree->band, child_band);
+	tree->band = isl_schedule_band_replace_ast_build_option(tree->band,
+							    isolate1, isolate);
+	if (!tree->band)
+		goto error;
+
+	if (!isl_schedule_tree_has_children(child)) {
+		isl_schedule_tree_free(child);
+		tree = isl_schedule_tree_reset_children(tree);
+	} else {
+		child = isl_schedule_tree_child(child, 0);
+		tree = isl_schedule_tree_replace_child(tree, 0, child);
+	}
 
 	return tree;
 error:

@@ -2027,6 +2027,27 @@ __isl_give isl_schedule_node *isl_schedule_node_band_split(
 	return isl_schedule_node_graft_tree(node, tree);
 }
 
+/* Merge band node "node" and its nested band child into a single
+ * band node.
+ * The space of the resulting band node is the product of
+ * the spaces of the original two nested bands.
+ * If the second band contains at least one member, then
+ * the permutable property is cleared on the resulting band.
+ * The coincident properties of the members of the second band
+ * are also cleared in the resulting band.
+ */
+__isl_give isl_schedule_node *isl_schedule_node_band_join_child(
+	__isl_take isl_schedule_node *node)
+{
+	int depth;
+	isl_schedule_tree *tree;
+
+	depth = isl_schedule_node_get_schedule_depth(node);
+	tree = isl_schedule_node_get_tree(node);
+	tree = isl_schedule_tree_band_join_child(tree, depth);
+	return isl_schedule_node_graft_tree(node, tree);
+}
+
 /* Return the context of the context node "node".
  */
 __isl_give isl_set *isl_schedule_node_context_get_context(

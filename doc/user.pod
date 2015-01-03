@@ -8862,6 +8862,22 @@ The schedules of the two band nodes live in anonymous spaces.
 The loop AST generation type options and the isolate option
 are split over the the two band nodes.
 
+Two nested band nodes can be joined together using the following function.
+
+	#include <isl/schedule_node.h>
+	__isl_give isl_schedule_node *
+	isl_schedule_node_band_join_child(
+		__isl_take isl_schedule_node *node);
+
+The space of the resulting band node is the product of
+the spaces of the original two nested band.
+If the second band contains at least one member, then
+the permutable property is cleared on the resulting band.
+The coincident properties of the members of the second band
+are also cleared in the resulting band.
+An attempt is made to preserve the isolate options, but they
+may get lost if the isolate options of the two band nodes conflict.
+
 A band node can be moved down to the leaves of the subtree rooted
 at the band node using the following function.
 
