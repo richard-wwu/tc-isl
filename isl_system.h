@@ -19,4 +19,7 @@ __isl_give isl_system *isl_system_lower_bound(__isl_take isl_system *sys,
 __isl_give isl_system *isl_system_upper_bound(__isl_take isl_system *sys,
 	unsigned pos, isl_int value);
 
+__isl_give isl_system *isl_system_nonneg(isl_ctx *ctx, unsigned n_var,
+	unsigned pos, unsigned n);
+
 #endif

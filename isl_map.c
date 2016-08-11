@@ -8383,29 +8383,22 @@ __isl_give isl_map *isl_set_identity(__isl_take isl_set *set)
 __isl_give isl_basic_set *isl_basic_set_positive_orthant(
 	__isl_take isl_space *space)
 {
-	int i;
 	unsigned nparam;
 	unsigned dim;
+	unsigned total;
+	isl_ctx *ctx;
+	isl_system *sys;
 	struct isl_basic_set *bset;
 
 	if (!space)
 		return NULL;
 	nparam = space->nparam;
 	dim = space->n_out;
-	bset = isl_basic_set_alloc_space(space, 0, 0, dim);
-	if (!bset)
-		return NULL;
-	for (i = 0; i < dim; ++i) {
-		int k = isl_basic_set_alloc_inequality(bset);
-		if (k < 0)
-			goto error;
-		isl_seq_clr(bset->ineq[k], 1 + isl_basic_set_total_dim(bset));
-		isl_int_set_si(bset->ineq[k][1 + nparam + i], 1);
-	}
+	total = isl_space_dim(space, isl_dim_all);
+	ctx = isl_space_get_ctx(space);
+	sys = isl_system_nonneg(ctx, total, nparam, dim);
+	bset = isl_basic_set_from_space_and_system(space, sys);
 	return bset;
-error:
-	isl_basic_set_free(bset);
-	return NULL;
 }
 
 /* Construct the half-space x_pos >= 0.
@@ -13775,6 +13768,19 @@ __isl_give isl_basic_set *isl_basic_set_transform_dims(
 	__isl_take isl_mat *trans)
 {
 	return isl_basic_map_transform_dims(bset, type, first, trans);
+}
+
+/* Construct a basic set from a system of constraints
+ * (without local variables) within the given space.
+ */
+__isl_give isl_basic_set *isl_basic_set_from_space_and_system(
+	__isl_take isl_space *space, __isl_take isl_system *sys)
+{
+	isl_basic_set *bset;
+
+	bset = isl_basic_set_from_system(sys);
+	bset = isl_basic_set_reset_space(bset, space);
+	return bset;
 }
 
 /* Construct a basic set from a system of constraints,

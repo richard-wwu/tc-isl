@@ -1,9 +1,12 @@
 /*
+ * Copyright 2009      Katholieke Universiteit Leuven
  * Copyright 2016      Sven Verdoolaege
  *
  * Use of this software is governed by the MIT license
  *
- * Written by Sven Verdoolaege
+ * Written by Sven Verdoolaege,
+ * K.U.Leuven, Departement Computerwetenschappen, Celestijnenlaan 200A,
+ * B-3001 Leuven, Belgium
  */
 
 /* An isl_system is a system of constraints.
@@ -140,3 +143,18 @@ static isl_stat isl_system_check_range(__isl_keep isl_system *sys,
 #define INT_NEG(r,i)	isl_int_neg(r,i)
 
 #include "isl_system_bound_templ.c"
+
+/* Create an isl_system of dimension "n_var", where the "n" variables
+ * starting at position "pos" are non-negative.
+ */
+__isl_give isl_system *isl_system_nonneg(isl_ctx *ctx, unsigned n_var,
+	unsigned pos, unsigned n)
+{
+	int i;
+	isl_system *sys;
+
+	sys = isl_system_alloc(ctx, n_var, 0, 0, n);
+	for (i = 0; i < n; ++i)
+		sys = isl_system_lower_bound_si(sys, pos + i, 0);
+	return sys;
+}
