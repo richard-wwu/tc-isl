@@ -101,3 +101,42 @@ __isl_give isl_system *isl_system_extend_constraints(
 {
 	return isl_basic_map_extend_constraints(sys, n_eq, n_ineq);
 }
+
+/* Check that there are "n" dimensions starting at "first" in "sys".
+ */
+static isl_stat isl_system_check_range(__isl_keep isl_system *sys,
+	unsigned first, unsigned n)
+{
+	unsigned dim;
+
+	if (!sys)
+		return isl_stat_error;
+	dim = isl_system_dim(sys);
+	if (first + n > dim || first + n < first)
+		isl_die(isl_system_get_ctx(sys), isl_error_invalid,
+			"position or range out of bounds",
+			return isl_stat_error);
+	return isl_stat_ok;
+}
+
+#undef SUFFIX
+#define SUFFIX		_si
+#undef INT
+#define INT		int
+#undef INT_SET
+#define INT_SET(r,i)	isl_int_set_si(r,i)
+#undef INT_NEG
+#define INT_NEG(r,i)	isl_int_set_si(r,-(i))
+
+#include "isl_system_bound_templ.c"
+
+#undef SUFFIX
+#define SUFFIX
+#undef INT
+#define INT		isl_int
+#undef INT_SET
+#define INT_SET(r,i)	isl_int_set(r,i)
+#undef INT_NEG
+#define INT_NEG(r,i)	isl_int_neg(r,i)
+
+#include "isl_system_bound_templ.c"
