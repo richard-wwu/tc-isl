@@ -109,19 +109,39 @@ void isl_dim_map_dump(struct isl_dim_map *dim_map)
 	fprintf(stderr, "\n");
 }
 
-static void copy_constraint_dim_map(isl_int *dst, isl_int *src,
-	__isl_keep isl_dim_map *dim_map)
+/* Copy an expression from "src" to "dst"
+ * using the mapping specified by "dim_map", starting at position "off".
+ * In particular, if "off" is zero, then an affine expression is copied.
+ * If "off" is one, then a linear expression is copied.
+ */
+static void isl_dim_map_cpy_expr(__isl_keep isl_dim_map *dim_map, int off,
+	isl_int *dst, isl_int *src)
 {
 	int i;
 
-	for (i = 0; i < dim_map->len; ++i) {
-		if (dim_map->m[i].sgn == 0)
+	for (i = 0; off + i < dim_map->len; ++i) {
+		if (dim_map->m[off + i].sgn == 0)
 			isl_int_set_si(dst[i], 0);
-		else if (dim_map->m[i].sgn > 0)
-			isl_int_set(dst[i], src[dim_map->m[i].pos]);
+		else if (dim_map->m[off + i].sgn > 0)
+			isl_int_set(dst[i], src[dim_map->m[off + i].pos - off]);
 		else
-			isl_int_neg(dst[i], src[dim_map->m[i].pos]);
+			isl_int_neg(dst[i], src[dim_map->m[off + i].pos - off]);
 	}
+}
+
+/* Copy a linear expression "src" (i.e., without constant term)
+ * to "dst" using the mapping specified by "dim_map".
+ */
+void isl_dim_map_cpy_lin(__isl_keep isl_dim_map *dim_map,
+	isl_int *dst, isl_int *src)
+{
+	isl_dim_map_cpy_expr(dim_map, 1, dst, src);
+}
+
+static void copy_constraint_dim_map(isl_int *dst, isl_int *src,
+	__isl_keep isl_dim_map *dim_map)
+{
+	isl_dim_map_cpy_expr(dim_map, 0, dst, src);
 }
 
 static void copy_div_dim_map(isl_int *dst, isl_int *src,
