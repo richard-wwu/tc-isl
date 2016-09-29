@@ -35,3 +35,19 @@ __isl_give isl_system *SF(isl_system_bound,SUFFIX)(__isl_take isl_system *sys,
 	sys = isl_system_finish_inequality(sys, ineq);
 	return sys;
 }
+
+/* Bound the given variable of "system" from below to "value".
+ */
+__isl_give isl_system *SF(isl_system_lower_bound,SUFFIX)(
+	__isl_take isl_system *sys, unsigned pos, INT value)
+{
+	return SF(isl_system_bound,SUFFIX)(sys, pos, value, 0);
+}
+
+/* Bound the given variable of "system" from above to "value".
+ */
+__isl_give isl_system *SF(isl_system_upper_bound,SUFFIX)(
+	__isl_take isl_system *sys, unsigned pos, INT value)
+{
+	return SF(isl_system_bound,SUFFIX)(sys, pos, value, 1);
+}
