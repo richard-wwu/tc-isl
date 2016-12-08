@@ -83,6 +83,8 @@ __isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_range_product(		\
 	__isl_take isl_multi_##BASE *multi1,				\
 	__isl_take isl_multi_##BASE *multi2);				\
+__isl_give isl_multi_##BASE *isl_multi_##BASE##_factor_domain(		\
+	__isl_take isl_multi_##BASE *multi);				\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_factor_range(		\
 	__isl_take isl_multi_##BASE *multi);				\
 isl_bool isl_multi_##BASE##_range_is_wrapping(				\

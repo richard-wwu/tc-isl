@@ -6749,6 +6749,8 @@ from the result using the following functions.
 		__isl_take isl_union_map *umap);
 
 	#include <isl/val.h>
+	__isl_give isl_multi_val *isl_multi_val_factor_domain(
+		__isl_take isl_multi_val *mv);
 	__isl_give isl_multi_val *isl_multi_val_factor_range(
 		__isl_take isl_multi_val *mv);
 	__isl_give isl_multi_val *
@@ -6759,6 +6761,8 @@ from the result using the following functions.
 		__isl_take isl_multi_val *mv);
 
 	#include <isl/aff.h>
+	__isl_give isl_multi_aff *isl_multi_aff_factor_domain(
+		__isl_take isl_multi_aff *ma);
 	__isl_give isl_multi_aff *isl_multi_aff_factor_range(
 		__isl_take isl_multi_aff *ma);
 	__isl_give isl_multi_aff *
@@ -6768,6 +6772,9 @@ from the result using the following functions.
 	isl_multi_aff_range_factor_range(
 		__isl_take isl_multi_aff *ma);
 	__isl_give isl_multi_pw_aff *
+	isl_multi_pw_aff_factor_domain(
+		__isl_take isl_multi_pw_aff *mpa);
+	__isl_give isl_multi_pw_aff *
 	isl_multi_pw_aff_factor_range(
 		__isl_take isl_multi_pw_aff *mpa);
 	__isl_give isl_multi_pw_aff *
@@ -6776,6 +6783,9 @@ from the result using the following functions.
 	__isl_give isl_multi_pw_aff *
 	isl_multi_pw_aff_range_factor_range(
 		__isl_take isl_multi_pw_aff *mpa);
+	__isl_give isl_multi_union_pw_aff *
+	isl_multi_union_pw_aff_factor_domain(
+		__isl_take isl_multi_union_pw_aff *mupa);
 	__isl_give isl_multi_union_pw_aff *
 	isl_multi_union_pw_aff_factor_range(
 		__isl_take isl_multi_union_pw_aff *mupa);
@@ -6789,7 +6799,12 @@ from the result using the following functions.
 The splice functions are a generalization of the flat product functions,
 where the second argument may be inserted at any position inside
 the first argument rather than being placed at the end.
-The functions C<isl_multi_val_factor_range>,
+The functions
+C<isl_multi_val_factor_domain>,
+C<isl_multi_aff_factor_domain>,
+C<isl_multi_pw_aff_factor_domain>,
+C<isl_multi_union_pw_aff_factor_domain>,
+C<isl_multi_val_factor_range>,
 C<isl_multi_aff_factor_range>,
 C<isl_multi_pw_aff_factor_range> and
 C<isl_multi_union_pw_aff_factor_range>

@@ -864,6 +864,34 @@ __isl_give MULTI(BASE) *FN(MULTI(BASE),range_factor_range)(
 	return multi;
 }
 
+/* Given a function [B -> C], extract the function B.
+ */
+__isl_give MULTI(BASE) *FN(MULTI(BASE),factor_domain)(
+	__isl_take MULTI(BASE) *multi)
+{
+	isl_bool wrapping;
+	isl_space *space;
+	int total, keep;
+
+	space = FN(MULTI(BASE),peek_space)(multi);
+	wrapping = isl_space_is_wrapping(space);
+	if (wrapping < 0)
+		return FN(MULTI(BASE),free)(multi);
+	if (!wrapping)
+		isl_die(FN(MULTI(BASE),get_ctx)(multi), isl_error_invalid,
+			"not a product", return FN(MULTI(BASE),free)(multi));
+
+	space = isl_space_copy(space);
+	total = isl_space_dim(space, isl_dim_set);
+	space = isl_space_factor_domain(space);
+	keep = isl_space_dim(space, isl_dim_set);
+	multi = FN(MULTI(BASE),drop_dims)(multi,
+					    isl_dim_set, keep, total - keep);
+	multi = FN(MULTI(BASE),reset_space)(multi, space);
+
+	return multi;
+}
+
 /* Given a function [B -> C], extract the function C.
  */
 __isl_give MULTI(BASE) *FN(MULTI(BASE),factor_range)(
