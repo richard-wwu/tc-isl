@@ -142,7 +142,7 @@ __isl_give isl_space *isl_space_drop_outputs(__isl_take isl_space *dim,
 __isl_export
 __isl_give isl_space *isl_space_domain(__isl_take isl_space *space);
 __isl_export
-__isl_give isl_space *isl_space_from_domain(__isl_take isl_space *dim);
+__isl_give isl_space *isl_space_from_domain(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_space *isl_space_range(__isl_take isl_space *space);
 __isl_export
