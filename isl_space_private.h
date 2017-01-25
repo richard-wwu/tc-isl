@@ -53,8 +53,8 @@ __isl_give isl_space *isl_space_flatten(__isl_take isl_space *dim);
 __isl_give isl_space *isl_space_flatten_domain(__isl_take isl_space *dim);
 __isl_give isl_space *isl_space_flatten_range(__isl_take isl_space *dim);
 
-__isl_give isl_space *isl_space_replace(__isl_take isl_space *dst,
-	enum isl_dim_type type, __isl_keep isl_space *src);
+__isl_give isl_space *isl_space_replace_params(__isl_take isl_space *dst,
+	__isl_keep isl_space *src);
 
 __isl_give isl_space *isl_space_lift(__isl_take isl_space *dim, unsigned n_local);
 
