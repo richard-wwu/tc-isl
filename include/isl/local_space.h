@@ -10,11 +10,12 @@
 extern "C" {
 #endif
 
-struct isl_local_space;
+struct __isl_export isl_local_space;
 typedef struct isl_local_space isl_local_space;
 
 isl_ctx *isl_local_space_get_ctx(__isl_keep isl_local_space *ls);
 
+__isl_constructor
 __isl_give isl_local_space *isl_local_space_from_space(__isl_take isl_space *dim);
 
 __isl_give isl_local_space *isl_local_space_copy(
@@ -52,8 +53,10 @@ __isl_give isl_aff *isl_local_space_get_div(__isl_keep isl_local_space *ls,
 int isl_local_space_find_dim_by_name(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, const char *name);
 
+__isl_export
 __isl_give isl_local_space *isl_local_space_domain(
 	__isl_take isl_local_space *ls);
+__isl_export
 __isl_give isl_local_space *isl_local_space_range(
 	__isl_take isl_local_space *ls);
 __isl_give isl_local_space *isl_local_space_from_domain(
@@ -73,6 +76,7 @@ __isl_give isl_local_space *isl_local_space_intersect(
 __isl_give isl_local_space *isl_local_space_wrap(
 	__isl_take isl_local_space *ls);
 
+__isl_export
 isl_bool isl_local_space_is_equal(__isl_keep isl_local_space *ls1,
 	__isl_keep isl_local_space *ls2);
 

@@ -95,6 +95,7 @@ generator::generator(set<RecordDecl *> &exported_types,
 		classes[name].type = decl;
 		classes[name].fn_to_str = find_by_name(name + "_to_str", false);
 		classes[name].fn_copy = find_by_name(name + "_copy", true);
+		classes[name].fn_copy = find_by_name(name + "_is_equal", true);
 		classes[name].fn_free = find_by_name(name + "_free", true);
 	}
 

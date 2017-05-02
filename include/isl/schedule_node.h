@@ -21,6 +21,7 @@ __isl_give isl_schedule_node *isl_schedule_node_copy(
 __isl_null isl_schedule_node *isl_schedule_node_free(
 	__isl_take isl_schedule_node *node);
 
+__isl_export
 isl_bool isl_schedule_node_is_equal(__isl_keep isl_schedule_node *node1,
 	__isl_keep isl_schedule_node *node2);
 
