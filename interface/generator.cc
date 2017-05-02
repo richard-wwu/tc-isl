@@ -86,6 +86,10 @@ generator::generator(set<RecordDecl *> &exported_types,
 		if (i != functions_by_name.end())
 			classes[name].fn_to_str = i->second;
 
+		i = functions_by_name.find(name + "_is_equal");
+		if (i != functions_by_name.end())
+			classes[name].fn_is_equal = i->second;
+
 		i = functions_by_name.find (name + "_free");
 		if (i == functions_by_name.end())
 			die("No _free function found");

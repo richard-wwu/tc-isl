@@ -65,6 +65,7 @@ __isl_give isl_multi_##BASE *isl_multi_##BASE##_reset_user(		\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_drop_dims(		\
 	__isl_take isl_multi_##BASE *multi, enum isl_dim_type type,	\
 	unsigned first, unsigned n);					\
+__isl_export                                                            \
 __isl_give isl_##BASE *isl_multi_##BASE##_get_##BASE(			\
 	__isl_keep isl_multi_##BASE *multi, int pos);			\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_##BASE(		\

@@ -23,6 +23,7 @@ struct isl_class {
 	set<FunctionDecl *> constructors;
 	map<string, set<FunctionDecl *> > methods;
 	FunctionDecl *fn_to_str;
+	FunctionDecl *fn_is_equal;
 	FunctionDecl *fn_free;
 };
 
