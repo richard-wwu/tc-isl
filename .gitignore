@@ -58,7 +58,6 @@ pip_test.sh
 codegen_test.sh
 interface/extract_interface
 interface/isl-noexceptions.h
-interface/test/CMakeLists.txt
 interface/test/build/
 isl_codegen
 isl_schedule
