@@ -110,7 +110,7 @@ long evalIntegerAt(const isl::aff& a, const isl::point& pt) {
   auto aff_map = isl::manage(isl_map_from_aff(a.copy()));
   auto pt_map = isl::manage(isl_map_from_domain(isl::set(pt).release()));
   auto m = pt_map.apply_domain(aff_map);
-  assert(m.is_single_valued());
+  assert(m.is_single_valued().is_true());
   // Project out all parameters and only keep the value
   m = m.project_out(isl::dim::param, 0, isl::set(pt).dim(isl::dim::param));
   auto v = isl::manage(

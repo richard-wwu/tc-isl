@@ -52,23 +52,11 @@ bool extensions = true;
 static void osprintf(ostream &os, const char *format, ...)
 {
 	va_list arguments;
-	FILE *string_stream;
-	char *string_pointer;
-	size_t size;
-
+	constexpr size_t size = 1<<20; // 4M should suffice
+	char string_pointer[size];
 	va_start(arguments, format);
-
-	string_stream = open_memstream(&string_pointer, &size);
-
-	if (!string_stream) {
-		fprintf(stderr, "open_memstream failed -- aborting!\n");
-		exit(1);
-	}
-
-	vfprintf(string_stream, format, arguments);
-	fclose(string_stream);
+	vsnprintf(string_pointer, size, format, arguments);
 	os << string_pointer;
-	free(string_pointer);
 }
 
 /* Convert "l" to a string.
