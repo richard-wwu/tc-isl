@@ -146,6 +146,8 @@ __isl_give isl_schedule_node *isl_schedule_node_band_shift(
 	__isl_take isl_multi_union_pw_aff *shift);
 __isl_give isl_schedule_node *isl_schedule_node_band_tile(
 	__isl_take isl_schedule_node *node, __isl_take isl_multi_val *sizes);
+__isl_give isl_schedule_node *isl_schedule_node_band_lower(
+	__isl_take isl_schedule_node *node);
 __isl_give isl_schedule_node *isl_schedule_node_band_sink(
 	__isl_take isl_schedule_node *node);
 __isl_give isl_schedule_node *isl_schedule_node_band_split(

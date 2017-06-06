@@ -8890,6 +8890,21 @@ any anchored nodes.
 The result points to the node in the resulting tree that is in the same
 position as the node pointed to by C<node> in the original tree.
 
+A band node can also be moved down a single level in the tree
+using the following function.
+
+	#include <isl/schedule_node.h>
+	__isl_give isl_schedule_node *
+	isl_schedule_node_band_lower(
+		__isl_take isl_schedule_node *node);
+
+The subtree rooted at the given node is assumed not to have
+any anchored nodes.
+This operation is currently only supported if the child node
+through which the node is lowered is either a band or a sequence node.
+The result points to the node in the resulting tree that is in the same
+position as the node pointed to by C<node> in the original tree.
+
 	#include <isl/schedule_node.h>
 	__isl_give isl_schedule_node *
 	isl_schedule_node_order_before(
