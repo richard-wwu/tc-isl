@@ -245,6 +245,9 @@ __isl_give isl_schedule_tree *isl_schedule_tree_drop_child(
 __isl_give isl_schedule_tree *isl_schedule_tree_replace_child(
 	__isl_take isl_schedule_tree *tree, int pos,
 	__isl_take isl_schedule_tree *new_child);
+__isl_give isl_multi_union_pw_aff *
+isl_schedule_tree_sequence_get_partial_schedule_multi_union_pw_aff(
+	__isl_keep isl_schedule_tree *tree);
 __isl_give isl_schedule_tree *isl_schedule_tree_sequence_splice(
 	__isl_take isl_schedule_tree *tree, int pos,
 	__isl_take isl_schedule_tree *child);

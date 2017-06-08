@@ -2211,6 +2211,25 @@ __isl_give isl_id *isl_schedule_node_mark_get_id(
 	return isl_schedule_tree_mark_get_id(node->tree);
 }
 
+/* Return an isl_multi_union_pw_aff that represents the ordering
+ * expressed by the sequence node "node" along with its filter children.
+ */
+__isl_give isl_multi_union_pw_aff *
+isl_schedule_node_sequence_get_partial_schedule_multi_union_pw_aff(
+	__isl_keep isl_schedule_node *node)
+{
+	if (!node)
+		return NULL;
+
+	if (isl_schedule_node_get_type(node) != isl_schedule_node_sequence)
+		isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
+			"not a sequence node", return NULL);
+
+	return
+	    isl_schedule_tree_sequence_get_partial_schedule_multi_union_pw_aff(
+		node->tree);
+}
+
 /* Replace the child at position "pos" of the sequence node "node"
  * by the children of sequence root node of "tree".
  */

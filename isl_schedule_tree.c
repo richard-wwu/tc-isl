@@ -2102,6 +2102,76 @@ error:
 	return NULL;
 }
 
+/* Return an isl_union_pw_aff that represents the ordering
+ * expressed by the sequence tree root along with its filter children.
+ *
+ * In particular, return a function that assigns increasing
+ * integer values to the filter domains.
+ */
+static __isl_give isl_union_pw_aff *sequence_get_partial(
+	__isl_keep isl_schedule_tree *tree)
+{
+	int i, n;
+	isl_ctx *ctx;
+	isl_val *v = NULL;
+	isl_space *space;
+	isl_union_pw_aff *upa;
+
+	if (!tree)
+		return NULL;
+
+	ctx = isl_schedule_tree_get_ctx(tree);
+	if (!tree->children)
+		isl_die(ctx, isl_error_internal, "missing children",
+			return NULL);
+	n = isl_schedule_tree_list_n_schedule_tree(tree->children);
+	if (n == 0)
+		isl_die(ctx, isl_error_internal, "missing children",
+			return NULL);
+
+	space = extract_space_from_filter_child(tree);
+
+	upa = isl_union_pw_aff_empty(space);
+	v = isl_val_zero(ctx);
+
+	for (i = 0; i < n; ++i, v = isl_val_add_ui(v, 1)) {
+		isl_union_pw_aff *upa_i;
+		isl_union_set *dom;
+		isl_schedule_tree *child;
+
+		child = isl_schedule_tree_list_get_schedule_tree(
+							tree->children, i);
+		dom = isl_schedule_tree_filter_get_filter(child);
+		isl_schedule_tree_free(child);
+
+		upa_i = isl_union_pw_aff_val_on_domain(dom, isl_val_copy(v));
+		upa = isl_union_pw_aff_union_add(upa, upa_i);
+	}
+
+	isl_val_free(v);
+
+	return upa;
+}
+
+/* Return an isl_multi_union_pw_aff that represents the ordering
+ * expressed by the sequence tree root along with its filter children.
+ */
+__isl_give isl_multi_union_pw_aff *
+isl_schedule_tree_sequence_get_partial_schedule_multi_union_pw_aff(
+	__isl_keep isl_schedule_tree *tree)
+{
+	isl_union_pw_aff *upa;
+
+	if (!tree)
+		return NULL;
+	if (isl_schedule_tree_get_type(tree) != isl_schedule_node_sequence)
+		isl_die(isl_schedule_tree_get_ctx(tree), isl_error_invalid,
+			"not a sequence node", return NULL);
+
+	upa = sequence_get_partial(tree);
+	return isl_multi_union_pw_aff_from_union_pw_aff(upa);
+}
+
 /* Given two trees with sequence roots, replace the child at position
  * "pos" of "tree" with the children of "child".
  */
