@@ -598,7 +598,7 @@ void cpp_generator::print_operators_impl(ostream &os, const isl_class &clazz)
 	std::string cppstring = type2cpp(clazz);
 	const char *cppname = cppstring.c_str();
         if (clazz.fn_to_str) {
-	        osprintf(os, "std::ostream& operator<<(std::ostream& os, const %s& C) {\n", cppname);
+	        osprintf(os, "inline std::ostream& operator<<(std::ostream& os, const %s& C) {\n", cppname);
         	osprintf(os, "  os << C.to_str();\n");
         	osprintf(os, "  return os;\n");
         	osprintf(os, "}\n");
@@ -606,7 +606,7 @@ void cpp_generator::print_operators_impl(ostream &os, const isl_class &clazz)
         }
         if (clazz.fn_is_equal) {
 	        osprintf(os,
-                         "isl::boolean operator==(const %s& C1, const %s& C2) {\n",
+                         "inline isl::boolean operator==(const %s& C1, const %s& C2) {\n",
                          cppname,
                          cppname);
         	osprintf(os, "  return C1.is_equal(C2);\n");
