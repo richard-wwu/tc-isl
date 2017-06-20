@@ -176,6 +176,7 @@ void cpp_generator::print_class(ostream &os, const isl_class &clazz)
 	osprintf(os, "\n");
 	print_methods_decl(os, clazz);
 
+	osprintf(os, "  typedef %s* isl_ptr_t;\n", name);
 	osprintf(os, "};\n");
 }
 
