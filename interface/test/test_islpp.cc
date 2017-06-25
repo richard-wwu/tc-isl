@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <limits>
+#include <sstream>
 #include <unordered_set>
 #include <vector>
 
@@ -119,29 +120,30 @@ long evalIntegerAt(const isl::aff& a, const isl::point& pt) {
   return isl_val_get_num_si(v.get());
 }
 
+std::stringstream ss;
 void test_simple_union_set(isl::ctx ctx) {
   auto S1 = isl::set(ctx, "{ A[2, 8, 1] }");
-  std::cout << S1 << std::endl;
+  ss << S1 << std::endl;
   auto S2 = isl::union_set(ctx, "{ A[2, 8, 1]; B[1] }");
-  std::cout << S2 << std::endl;
-  std::cout << (S2 & S1) << std::endl;
+  ss << S2 << std::endl;
+  ss << (S2 & S1) << std::endl;
   assert(bool(S1 == (S2 & S1)));
 }
 
 void test_simple_union_map(isl::ctx ctx) {
   auto M1 = isl::union_map(ctx, "{ A[2, 8, 1] -> B[0]; C[123] -> D[1] }");
-  std::cout << M1 << " " << M1.reverse() << std::endl;
+  ss << M1 << " " << M1.reverse() << std::endl;
   auto M2 = isl::union_map(ctx, "{ B[0] -> B[1]; D[1] -> B[0] }");
-  std::cout << M1 << " " << M1.reverse() << std::endl;
-  std::cout << "Domain: " << M1.domain()  << std::endl;
-  std::cout << "Range: " << M1.range()  << std::endl;
-  std::cout << "DomainMap: " << M1.domain_map() << std::endl;
+  ss << M1 << " " << M1.reverse() << std::endl;
+  ss << "Domain: " << M1.domain()  << std::endl;
+  ss << "Range: " << M1.range()  << std::endl;
+  ss << "DomainMap: " << M1.domain_map() << std::endl;
 }
 
 void test_simple_params(isl::ctx ctx) {
   // From string
   isl::set S1(ctx, R"S([p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 })S");
-  std::cout << S1 << std::endl;
+  ss << S1 << std::endl;
   // Create a simple 2-D parametric domain
   isl::space ContextSpace(ctx, 2);
   isl::local_space Context(ContextSpace);
@@ -149,18 +151,18 @@ void test_simple_params(isl::ctx ctx) {
   isl::aff p1(Context, isl::dim::param, 1);
   // With range [0-10] x [0-20]
   isl::set S2 = 0 <= p0 & p0 <= 10 & 0 <= p1 & p1 <= 20;
-  std::cout << S2 << std::endl;
+  ss << S2 << std::endl;
   assert(S1.to_str() == S2.to_str());
 }
 
 void test_simple_set(isl::ctx ctx) {
   // From string
   isl::set S1(ctx, R"S([p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 })S");
-  std::cout << S1 << std::endl;
+  ss << S1 << std::endl;
 
   // Add dim::set dimensions
   isl::set D = S1.add_dims(isl::dim::set, 2);
-  std::cout << D << std::endl;
+  ss << D << std::endl;
   assert(D.to_str() == std::string(
            "[p0, p1] -> { [i0, i1] : 0 <= p0 <= 10 and 0 <= p1 <= 20 }"));
 }
@@ -168,12 +170,12 @@ void test_simple_set(isl::ctx ctx) {
 class ScopeGuard {
   std::function<void()> onExit;
   ScopeGuard() = delete;
-  ScopeGuard(ScopeGuard&) = delete;
+  ScopeGuard(const ScopeGuard&) = delete;
   ScopeGuard(ScopeGuard&&) = delete;
   ScopeGuard operator=(ScopeGuard&) = delete;
   ScopeGuard operator=(ScopeGuard&&) = delete;
  public:
-  template<class F> ScopeGuard(const F& f) : onExit(f) {}
+  template<class F> explicit ScopeGuard(const F& f) : onExit(f) {}
   ~ScopeGuard() { onExit(); }
 };
 
@@ -193,52 +195,52 @@ void test_simple_codegen(isl::ctx ctx) {
 
   // With range [0-10] x [0-20]
   isl::set S2 = 0 <= i0 & i0 <= 10 & 0 <= i1 & i1 <= 20;
-  std::cout << S2 << std::endl;
+  ss << S2 << std::endl;
   auto B = isl::ast_build::from_context(isl::set(ctx, "{:}"));
   auto sched = isl::schedule::from_domain(S2);
   auto N1 = B.node_from_schedule(sched);
   auto um = isl::union_map::from_domain_and_range(S2, S2);
   auto N2 = B.node_from_schedule_map(um);
-  std::cout << "SCHED: " << sched << std::endl;
-  std::cout << to_c(N1);
-  std::cout << "SCHED MAP: " << um << std::endl;
-  std::cout << to_c(N2);
+  ss << "SCHED: " << sched << std::endl;
+  ss << to_c(N1);
+  ss << "SCHED MAP: " << um << std::endl;
+  ss << to_c(N2);
 }
 
 void test_simple_aff(isl::ctx ctx) {
   {
     // Union set with 2 named integer tuples
     auto a = isl::union_set(ctx, "{ A[1, 2, 3]; B[1] } ");
-    std::cout << a << std::endl;
+    ss << a << std::endl;
   }
   {
     // This aff is a pw_aff
     auto a = isl::pw_aff(ctx, "{ [i, j] -> [floor(i + j / 2)] }");
-    std::cout << a << std::endl;
+    ss << a << std::endl;
   }
   {
     // This pw_aff is not an aff
     auto a = isl::pw_aff(
       ctx, "{ [x] -> [x + 1] : 0 <= x < 10; [x] -> [0] : x = 10 }");
-    std::cout << a << std::endl;
+    ss << a << std::endl;
     // Under context
     auto b = isl::pw_aff(
       ctx, "[n] -> { [x] -> [x + 1] : 0 <= x < n; [x] -> [0] : x = n - 1 }");
-    std::cout << b << std::endl;
+    ss << b << std::endl;
   }
   {
     // This pw_multi_aff is not a pw_aff
     auto a = isl::pw_multi_aff(
       ctx, "{ [x] -> [x + 1, x + 1] : 0 <= x < 10; [x] -> [0, 123] : x = 10 }");
-    std::cout << a << std::endl;
+    ss << a << std::endl;
     // tuple of expression: multi_aff is not an aff (RHS has 2 expressions)
     auto b = isl::multi_aff(
       ctx, " { [i, j] -> [j + i, 2 * i] } ");
-    std::cout << b << std::endl;
+    ss << b << std::endl;
     // tuple of pw expression (needs parens)
     auto c = isl::multi_pw_aff(
       ctx, " { [i, j] -> [ (j + i : i > 0), (2 * i : j > 0)] } ");
-    std::cout << c << std::endl;
+    ss << c << std::endl;
   }
 }
 
@@ -273,8 +275,40 @@ int main() {
   test_simple_params(ctx);
   test_simple_set(ctx);
   test_simple_codegen(ctx);
-  test_simple_aff(ctx);
   test_simple_eval(ctx);
 
-  return 0;
+  if (ss.str() == std::string(R"STR({ B[1]; A[1, 2, 3] }
+{ [i, j] -> [(i + floor((j)/2))] }
+{ [x] -> [(1 + x)] : 0 <= x <= 9; [x] -> [(0)] : x = 10 }
+[n] -> { [x] -> [(n)] : x = -1 + n and n > 0; [x] -> [(1 + x)] : 0 <= x <= -2 + n; [x] -> [(0)] : x = -1 + n and n <= 0 }
+{ [x] -> [(1 + x), (1 + x)] : 0 <= x <= 9; [x] -> [(0), (123)] : x = 10 }
+{ [i, j] -> [(i + j), (2i)] }
+{ [i, j] -> [((i + j) : i > 0), ((2i) : j > 0)] }
+{ A[2, 8, 1] }
+{ B[1]; A[2, 8, 1] }
+{ A[2, 8, 1] }
+{ A[2, 8, 1] -> B[0]; C[123] -> D[1] } { B[0] -> A[2, 8, 1]; D[1] -> C[123] }
+{ A[2, 8, 1] -> B[0]; C[123] -> D[1] } { B[0] -> A[2, 8, 1]; D[1] -> C[123] }
+Domain: { C[123]; A[2, 8, 1] }
+Range: { D[1]; B[0] }
+DomainMap: { [A[2, 8, 1] -> B[0]] -> A[2, 8, 1]; [C[123] -> D[1]] -> C[123] }
+[p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
+[p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
+[p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
+[p0, p1] -> { [i0, i1] : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
+{ [i0, i1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 }
+SCHED: { domain: "{ [i0, i1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 }" }
+for (int c0 = 0; c0 <= 10; c0 += 1)
+  for (int c1 = 0; c1 <= 20; c1 += 1)
+    (c0, c1);
+SCHED MAP: { [i0, i1] -> [o0, o1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 and 0 <= o0 <= 10 and 0 <= o1 <= 20 }
+for (int c0 = 0; c0 <= 10; c0 += 1)
+  for (int c1 = 0; c1 <= 20; c1 += 1)
+    for (int c2 = 0; c2 <= 10; c2 += 1)
+      for (int c3 = 0; c3 <= 20; c3 += 1)
+        (c2, c3);
+)STR")) {
+    return 0;
+  }
+  return 1;
 }
