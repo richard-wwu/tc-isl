@@ -7,6 +7,20 @@
 #include <unordered_set>
 #include <vector>
 
+#include <gtest/gtest.h>
+
+class ScopeGuard {
+  std::function<void()> onExit;
+  ScopeGuard() = delete;
+  ScopeGuard(const ScopeGuard&) = delete;
+  ScopeGuard(ScopeGuard&&) = delete;
+  ScopeGuard operator=(ScopeGuard&) = delete;
+  ScopeGuard operator=(ScopeGuard&&) = delete;
+ public:
+  template<class F> explicit ScopeGuard(const F& f) : onExit(f) {}
+  ~ScopeGuard() { onExit(); }
+};
+
 isl::aff operator*(int i, const isl::aff& A) {
   isl_ctx *ctx = A.get_ctx().get();
   isl::aff T(isl::local_space(A.get_space().domain()), isl::val(ctx, i));
@@ -120,17 +134,39 @@ long evalIntegerAt(const isl::aff& a, const isl::point& pt) {
   return isl_val_get_num_si(v.get());
 }
 
-std::stringstream ss;
-void test_simple_union_set(isl::ctx ctx) {
+std::string to_c(const isl::ast_node& N) {
+  auto p = isl_printer_to_str(N.get_ctx().get());
+  ScopeGuard g([=]{ isl_printer_free(p); });
+  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
+  p = isl_printer_print_ast_node(p, N.get());
+  char* c_str = isl_printer_get_str(p);
+  ScopeGuard gg([=]{ free(c_str); });
+  std::string res(c_str);
+  return res;
+}
+
+
+TEST(ISLPP, SimpleUnionSet) {
+  isl_ctx* ctx = isl_ctx_alloc();
+  ScopeGuard g([=](){ isl_ctx_free(ctx); });
+  std::stringstream ss;
   auto S1 = isl::set(ctx, "{ A[2, 8, 1] }");
   ss << S1 << std::endl;
   auto S2 = isl::union_set(ctx, "{ A[2, 8, 1]; B[1] }");
   ss << S2 << std::endl;
   ss << (S2 & S1) << std::endl;
-  assert(bool(S1 == (S2 & S1)));
+  EXPECT_TRUE(bool(S1 == (S2 & S1)));
+  std::string expected(R"RES({ A[2, 8, 1] }
+{ B[1]; A[2, 8, 1] }
+{ A[2, 8, 1] }
+)RES");
+  EXPECT_EQ(expected, ss.str());
 }
 
-void test_simple_union_map(isl::ctx ctx) {
+TEST(ISLPP, SimpleUnionMap) {
+  isl_ctx* ctx = isl_ctx_alloc();
+  ScopeGuard g([=](){ isl_ctx_free(ctx); });
+  std::stringstream ss;
   auto M1 = isl::union_map(ctx, "{ A[2, 8, 1] -> B[0]; C[123] -> D[1] }");
   ss << M1 << " " << M1.reverse() << std::endl;
   auto M2 = isl::union_map(ctx, "{ B[0] -> B[1]; D[1] -> B[0] }");
@@ -138,9 +174,19 @@ void test_simple_union_map(isl::ctx ctx) {
   ss << "Domain: " << M1.domain()  << std::endl;
   ss << "Range: " << M1.range()  << std::endl;
   ss << "DomainMap: " << M1.domain_map() << std::endl;
+  std::string expected(R"RES({ A[2, 8, 1] -> B[0]; C[123] -> D[1] } { B[0] -> A[2, 8, 1]; D[1] -> C[123] }
+{ A[2, 8, 1] -> B[0]; C[123] -> D[1] } { B[0] -> A[2, 8, 1]; D[1] -> C[123] }
+Domain: { C[123]; A[2, 8, 1] }
+Range: { D[1]; B[0] }
+DomainMap: { [A[2, 8, 1] -> B[0]] -> A[2, 8, 1]; [C[123] -> D[1]] -> C[123] }
+)RES");
+  EXPECT_EQ(expected, ss.str());
 }
 
-void test_simple_params(isl::ctx ctx) {
+TEST(ISLPP, SimpleParams) {
+  isl_ctx* ctx = isl_ctx_alloc();
+  ScopeGuard g([=](){ isl_ctx_free(ctx); });
+  std::stringstream ss;
   // From string
   isl::set S1(ctx, R"S([p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 })S");
   ss << S1 << std::endl;
@@ -152,47 +198,29 @@ void test_simple_params(isl::ctx ctx) {
   // With range [0-10] x [0-20]
   isl::set S2 = 0 <= p0 & p0 <= 10 & 0 <= p1 & p1 <= 20;
   ss << S2 << std::endl;
-  assert(S1.to_str() == S2.to_str());
+  EXPECT_EQ(S1.to_str(), S2.to_str());
 }
 
-void test_simple_set(isl::ctx ctx) {
+TEST(ISLPP, SimpleSet) {
+  isl_ctx* ctx = isl_ctx_alloc();
+  ScopeGuard g([=](){ isl_ctx_free(ctx); });
   // From string
   isl::set S1(ctx, R"S([p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 })S");
-  ss << S1 << std::endl;
-
   // Add dim::set dimensions
   isl::set D = S1.add_dims(isl::dim::set, 2);
-  ss << D << std::endl;
-  assert(D.to_str() == std::string(
-           "[p0, p1] -> { [i0, i1] : 0 <= p0 <= 10 and 0 <= p1 <= 20 }"));
+  ASSERT_EQ(std::string(
+              "[p0, p1] -> { [i0, i1] : 0 <= p0 <= 10 and 0 <= p1 <= 20 }"),
+            D.to_str());
 }
 
-class ScopeGuard {
-  std::function<void()> onExit;
-  ScopeGuard() = delete;
-  ScopeGuard(const ScopeGuard&) = delete;
-  ScopeGuard(ScopeGuard&&) = delete;
-  ScopeGuard operator=(ScopeGuard&) = delete;
-  ScopeGuard operator=(ScopeGuard&&) = delete;
- public:
-  template<class F> explicit ScopeGuard(const F& f) : onExit(f) {}
-  ~ScopeGuard() { onExit(); }
-};
-
-std::string to_c(const isl::ast_node& N) {
-  auto p = isl_printer_to_str(N.get_ctx().get());
-  ScopeGuard g([=]{ isl_printer_free(p); });
-  p = isl_printer_set_output_format(p, ISL_FORMAT_C);
-  p = isl_printer_print_ast_node(p, N.get());
-  return isl_printer_get_str(p);
-}
-
-void test_simple_codegen(isl::ctx ctx) {
+TEST(ISLPP, SimpleCodegen) {
+  isl_ctx* ctx = isl_ctx_alloc();
+  ScopeGuard g([=](){ isl_ctx_free(ctx); });
+  std::stringstream ss;
   isl::space ContextSpace(ctx, 0, 2);
   isl::local_space Context(ContextSpace);
   isl::aff i0(Context, isl::dim::set, 0);
   isl::aff i1(Context, isl::dim::set, 1);
-
   // With range [0-10] x [0-20]
   isl::set S2 = 0 <= i0 & i0 <= 10 & 0 <= i1 & i1 <= 20;
   ss << S2 << std::endl;
@@ -205,9 +233,25 @@ void test_simple_codegen(isl::ctx ctx) {
   ss << to_c(N1);
   ss << "SCHED MAP: " << um << std::endl;
   ss << to_c(N2);
+  std::string expected(R"RES({ [i0, i1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 }
+SCHED: { domain: "{ [i0, i1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 }" }
+for (int c0 = 0; c0 <= 10; c0 += 1)
+  for (int c1 = 0; c1 <= 20; c1 += 1)
+    (c0, c1);
+SCHED MAP: { [i0, i1] -> [o0, o1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 and 0 <= o0 <= 10 and 0 <= o1 <= 20 }
+for (int c0 = 0; c0 <= 10; c0 += 1)
+  for (int c1 = 0; c1 <= 20; c1 += 1)
+    for (int c2 = 0; c2 <= 10; c2 += 1)
+      for (int c3 = 0; c3 <= 20; c3 += 1)
+        (c2, c3);
+)RES");
+  EXPECT_EQ(expected, ss.str());
 }
 
-void test_simple_aff(isl::ctx ctx) {
+TEST(ISLPP, SimpleAff) {
+  isl_ctx* ctx = isl_ctx_alloc();
+  ScopeGuard g([=](){ isl_ctx_free(ctx); });
+  std::stringstream ss;
   {
     // Union set with 2 named integer tuples
     auto a = isl::union_set(ctx, "{ A[1, 2, 3]; B[1] } ");
@@ -242,73 +286,39 @@ void test_simple_aff(isl::ctx ctx) {
       ctx, " { [i, j] -> [ (j + i : i > 0), (2 * i : j > 0)] } ");
     ss << c << std::endl;
   }
-}
-
-void test_simple_eval(isl::ctx ctx) {
-  isl::pw_aff pwaff(
-    ctx, R"ISL([x, y, z] -> { [(256)] : z > 10000;
-             [floor((31 + x + y + z) / 32) ] : 0 <= z <= 9999 })ISL");
-
-  isl::set res = makeUniverseSet(ctx, { "x", "y", "z" });
-  isl::point pt = makePoint(
-    isl::manage(isl_set_get_space(res.get())), {"x", "z"}, {1, 1234});
-
-  auto B = isl::ast_build::from_context(res);
-  long val = std::numeric_limits<long>::max();
-  pwaff.foreach_piece([&pt, &val](isl::set s, isl::aff a){
-      if ((s & pt).is_empty()) { return isl::stat::ok; }
-      // only 1 piece should intersect non-empty
-      assert(val == std::numeric_limits<long>::max());
-      val = evalIntegerAt(a, pt);
-      return isl::stat::ok;
-    });
-  assert(val == 39);
-}
-
-int main() {
-  isl_ctx *ctx = isl_ctx_alloc();
-  ScopeGuard g([=](){ isl_ctx_free(ctx); });
-
-  test_simple_aff(ctx);
-  test_simple_union_set(ctx);
-  test_simple_union_map(ctx);
-  test_simple_params(ctx);
-  test_simple_set(ctx);
-  test_simple_codegen(ctx);
-  test_simple_eval(ctx);
-
-  if (ss.str() == std::string(R"STR({ B[1]; A[1, 2, 3] }
+  std::string expected(R"RES({ B[1]; A[1, 2, 3] }
 { [i, j] -> [(i + floor((j)/2))] }
 { [x] -> [(1 + x)] : 0 <= x <= 9; [x] -> [(0)] : x = 10 }
 [n] -> { [x] -> [(n)] : x = -1 + n and n > 0; [x] -> [(1 + x)] : 0 <= x <= -2 + n; [x] -> [(0)] : x = -1 + n and n <= 0 }
 { [x] -> [(1 + x), (1 + x)] : 0 <= x <= 9; [x] -> [(0), (123)] : x = 10 }
 { [i, j] -> [(i + j), (2i)] }
 { [i, j] -> [((i + j) : i > 0), ((2i) : j > 0)] }
-{ A[2, 8, 1] }
-{ B[1]; A[2, 8, 1] }
-{ A[2, 8, 1] }
-{ A[2, 8, 1] -> B[0]; C[123] -> D[1] } { B[0] -> A[2, 8, 1]; D[1] -> C[123] }
-{ A[2, 8, 1] -> B[0]; C[123] -> D[1] } { B[0] -> A[2, 8, 1]; D[1] -> C[123] }
-Domain: { C[123]; A[2, 8, 1] }
-Range: { D[1]; B[0] }
-DomainMap: { [A[2, 8, 1] -> B[0]] -> A[2, 8, 1]; [C[123] -> D[1]] -> C[123] }
-[p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
-[p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
-[p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
-[p0, p1] -> { [i0, i1] : 0 <= p0 <= 10 and 0 <= p1 <= 20 }
-{ [i0, i1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 }
-SCHED: { domain: "{ [i0, i1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 }" }
-for (int c0 = 0; c0 <= 10; c0 += 1)
-  for (int c1 = 0; c1 <= 20; c1 += 1)
-    (c0, c1);
-SCHED MAP: { [i0, i1] -> [o0, o1] : 0 <= i0 <= 10 and 0 <= i1 <= 20 and 0 <= o0 <= 10 and 0 <= o1 <= 20 }
-for (int c0 = 0; c0 <= 10; c0 += 1)
-  for (int c1 = 0; c1 <= 20; c1 += 1)
-    for (int c2 = 0; c2 <= 10; c2 += 1)
-      for (int c3 = 0; c3 <= 20; c3 += 1)
-        (c2, c3);
-)STR")) {
-    return 0;
-  }
-  return 1;
+)RES");
+  EXPECT_EQ(expected, ss.str());
+}
+
+TEST(ISLPP, SimpleEval) {
+  isl_ctx* ctx = isl_ctx_alloc();
+  ScopeGuard g([=](){ isl_ctx_free(ctx); });
+  isl::pw_aff pwaff(
+    ctx, R"ISL([x, y, z] -> { [(256)] : z > 10000;
+             [floor((31 + x + y + z) / 32) ] : 0 <= z <= 9999 })ISL");
+  isl::set res = makeUniverseSet(ctx, { "x", "y", "z" });
+  isl::point pt = makePoint(
+    isl::manage(isl_set_get_space(res.get())), {"x", "z"}, {1, 1234});
+  auto B = isl::ast_build::from_context(res);
+  long val = std::numeric_limits<long>::max();
+  pwaff.foreach_piece([&pt, &val](isl::set s, isl::aff a){
+      if ((s & pt).is_empty()) { return isl::stat::ok; }
+      // only 1 piece should intersect non-empty
+      EXPECT_EQ(std::numeric_limits<long>::max(), val) << "dsf";
+      val = evalIntegerAt(a, pt);
+      return isl::stat::ok;
+    });
+  ASSERT_EQ(39, val) << "error";
+}
+
+int main(int argc, char** argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
