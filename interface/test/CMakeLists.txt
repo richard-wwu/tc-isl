@@ -19,10 +19,16 @@ set(ISLPP_INCLUDE_DIR ${ISL_PREFIX}/include/isl/interface)
 # For OSX with brew
 # set(PROTOBUF_LIB_PATH /usr/local/Cellar/)
 
+enable_testing()
+find_library(GTEST_LIB gtest HINTS $ENV{C2ISL_DIR}/third-party-install/lib)
+find_library(GTEST_MAIN_LIB gtest_main HINTS $ENV{C2ISL_DIR}/third-party-install/lib)
+find_library(GMOCK_LIB gmock HINTS $ENV{C2ISL_DIR}/third-party-install/lib)
+set(GOOGLE_LIBS ${GTEST_LIB} ${GTEST_MAIN_LIB} ${GMOCK_LIB_LIB})
+
 find_library(ISL_LIB isl HINTS ${ISL_PREFIX}/lib)
 
 include_directories(${ISL_INCLUDE_DIR} ${ISLPP_INCLUDE_DIR})
 
 add_executable(test_islpp test_islpp.cc)
 
-target_link_libraries(test_islpp ${ISL_LIB})
+target_link_libraries(test_islpp ${ISL_LIB} ${GOOGLE_LIBS})
