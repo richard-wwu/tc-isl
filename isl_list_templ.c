@@ -242,7 +242,7 @@ __isl_null LIST(EL) *FN(LIST(EL),free)(__isl_take LIST(EL) *list)
 
 /* Return the number of elements in "list".
  */
-int FN(LIST(EL),n)(__isl_keep LIST(EL) *list)
+int FN(LIST(EL),size)(__isl_keep LIST(EL) *list)
 {
 	return list ? list->n : 0;
 }
@@ -251,7 +251,7 @@ int FN(LIST(EL),n)(__isl_keep LIST(EL) *list)
  */
 int FN(FN(LIST(EL),n),BASE)(__isl_keep LIST(EL) *list)
 {
-	return FN(LIST(EL),n)(list);
+	return FN(LIST(EL),size)(list);
 }
 
 /* Return the element at position "index" in "list".
@@ -358,7 +358,7 @@ __isl_give LIST(EL) *FN(LIST(EL),reverse)(__isl_take LIST(EL) *list)
 {
 	int i, n;
 
-	n = FN(LIST(EL),n)(list);
+	n = FN(LIST(EL),size)(list);
 	for (i = 0; i < n - 1 - i; ++i)
 		list = FN(LIST(EL),swap)(list, i, n - 1 - i);
 	return list;
