@@ -64,6 +64,7 @@ __isl_give isl_schedule_node *isl_schedule_node_get_shared_ancestor(
 	__isl_keep isl_schedule_node *node1,
 	__isl_keep isl_schedule_node *node2);
 
+__isl_export
 __isl_give isl_schedule_node *isl_schedule_node_root(
 	__isl_take isl_schedule_node *node);
 __isl_export
@@ -90,6 +91,7 @@ __isl_give isl_schedule_node *isl_schedule_node_group(
 __isl_give isl_schedule_node *isl_schedule_node_sequence_splice_child(
 	__isl_take isl_schedule_node *node, int pos);
 
+__isl_export
 __isl_give isl_space *isl_schedule_node_band_get_space(
 	__isl_keep isl_schedule_node *node);
 __isl_export
@@ -122,8 +124,10 @@ isl_bool isl_schedule_node_band_member_get_coincident(
 __isl_export
 __isl_give isl_schedule_node *isl_schedule_node_band_member_set_coincident(
 	__isl_take isl_schedule_node *node, int pos, int coincident);
+__isl_export
 isl_bool isl_schedule_node_band_get_permutable(
 	__isl_keep isl_schedule_node *node);
+__isl_export
 __isl_give isl_schedule_node *isl_schedule_node_band_set_permutable(
 	__isl_take isl_schedule_node *node, int permutable);
 
@@ -141,6 +145,7 @@ __isl_give isl_schedule_node *isl_schedule_node_band_mod(
 __isl_give isl_schedule_node *isl_schedule_node_band_shift(
 	__isl_take isl_schedule_node *node,
 	__isl_take isl_multi_union_pw_aff *shift);
+__isl_export
 __isl_give isl_schedule_node *isl_schedule_node_band_tile(
 	__isl_take isl_schedule_node *node, __isl_take isl_multi_val *sizes);
 __isl_give isl_schedule_node *isl_schedule_node_band_sink(
@@ -192,11 +197,14 @@ __isl_give isl_union_map *isl_schedule_node_get_subtree_expansion(
 __isl_give isl_union_pw_multi_aff *isl_schedule_node_get_subtree_contraction(
 	__isl_keep isl_schedule_node *node);
 
+__isl_export
 __isl_give isl_schedule_node *isl_schedule_node_insert_context(
 	__isl_take isl_schedule_node *node, __isl_take isl_set *context);
+__isl_export
 __isl_give isl_schedule_node *isl_schedule_node_insert_partial_schedule(
 	__isl_take isl_schedule_node *node,
 	__isl_take isl_multi_union_pw_aff *schedule);
+__isl_export
 __isl_give isl_schedule_node *isl_schedule_node_insert_filter(
 	__isl_take isl_schedule_node *node, __isl_take isl_union_set *filter);
 __isl_give isl_schedule_node *isl_schedule_node_insert_guard(

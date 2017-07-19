@@ -37,7 +37,9 @@ unsigned isl_set_dim(__isl_keep isl_set *set, enum isl_dim_type type);
 
 isl_ctx *isl_basic_set_get_ctx(__isl_keep isl_basic_set *bset);
 isl_ctx *isl_set_get_ctx(__isl_keep isl_set *set);
+__isl_export
 __isl_give isl_space *isl_basic_set_get_space(__isl_keep isl_basic_set *bset);
+__isl_export
 __isl_give isl_space *isl_set_get_space(__isl_keep isl_set *set);
 __isl_give isl_set *isl_set_reset_space(__isl_take isl_set *set,
 	__isl_take isl_space *dim);
@@ -57,6 +59,7 @@ __isl_give isl_set *isl_set_set_tuple_name(__isl_take isl_set *set,
 	const char *s);
 const char *isl_basic_set_get_dim_name(__isl_keep isl_basic_set *bset,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_basic_set *isl_basic_set_set_dim_name(
 	__isl_take isl_basic_set *bset,
 	enum isl_dim_type type, unsigned pos, const char *s);
@@ -64,6 +67,7 @@ isl_bool isl_set_has_dim_name(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
 const char *isl_set_get_dim_name(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_set *isl_set_set_dim_name(__isl_take isl_set *set,
 	enum isl_dim_type type, unsigned pos, const char *s);
 
@@ -234,6 +238,7 @@ isl_bool isl_basic_set_is_subset(__isl_keep isl_basic_set *bset1,
 isl_bool isl_basic_set_plain_is_equal(__isl_keep isl_basic_set *bset1,
 	__isl_keep isl_basic_set *bset2);
 
+__isl_constructor
 __isl_give isl_set *isl_set_empty(__isl_take isl_space *dim);
 __isl_export
 __isl_give isl_set *isl_set_universe(__isl_take isl_space *dim);
@@ -256,6 +261,7 @@ __isl_give isl_basic_set *isl_set_affine_hull(__isl_take isl_set *set);
 __isl_give isl_basic_set *isl_set_convex_hull(__isl_take isl_set *set);
 __isl_export
 __isl_give isl_basic_set *isl_set_polyhedral_hull(__isl_take isl_set *set);
+__isl_export
 __isl_give isl_basic_set *isl_set_simple_hull(__isl_take isl_set *set);
 __isl_export
 __isl_give isl_basic_set *isl_set_unshifted_simple_hull(

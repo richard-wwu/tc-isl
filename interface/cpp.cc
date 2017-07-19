@@ -52,7 +52,7 @@ bool extensions = true;
 static void osprintf(ostream &os, const char *format, ...)
 {
 	va_list arguments;
-	constexpr size_t size = 1<<20; // 4M should suffice
+	const size_t size = 1<<20; // 4M should suffice
 	char string_pointer[size];
 	va_start(arguments, format);
 	vsnprintf(string_pointer, size, format, arguments);

@@ -169,14 +169,17 @@ public:
 
   inline isl::aff add(isl::aff aff2) const;
   inline isl::aff ceil() const;
+  inline isl::aff div(isl::aff aff2) const;
   inline isl::aff floor() const;
   inline isl::set ge_set(isl::aff aff2) const;
   inline isl::space get_space() const;
+  inline isl::set le_set(isl::aff aff2) const;
   inline isl::aff mod_val(isl::val mod) const;
   inline isl::aff mul(isl::aff aff2) const;
   inline isl::aff neg() const;
   inline isl::boolean plain_is_equal(const isl::aff &aff2) const;
   inline isl::aff pullback(isl::multi_aff ma) const;
+  inline isl::aff sub(isl::aff aff2) const;
   typedef isl_aff* isl_ptr_t;
 };
 
@@ -275,6 +278,7 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
+  inline std::string to_C_str() const;
   typedef isl_ast_node* isl_ptr_t;
 };
 
@@ -310,6 +314,7 @@ public:
   inline isl::basic_map apply_range(isl::basic_map bmap2) const;
   inline isl::basic_set deltas() const;
   inline isl::basic_map detect_equalities() const;
+  static inline isl::basic_map empty(isl::space dim);
   inline isl::basic_map flatten() const;
   inline isl::basic_map flatten_domain() const;
   inline isl::basic_map flatten_range() const;
@@ -363,6 +368,7 @@ public:
   inline isl::basic_set detect_equalities() const;
   inline unsigned int dim(isl::dim type) const;
   inline isl::basic_set flatten() const;
+  inline isl::space get_space() const;
   inline isl::basic_set gist(isl::basic_set context) const;
   inline isl::basic_set intersect(isl::basic_set bset2) const;
   inline isl::basic_set intersect_params(isl::basic_set bset2) const;
@@ -375,6 +381,7 @@ public:
   static inline isl::basic_set nat_universe(isl::space dim);
   inline isl::basic_set sample() const;
   inline isl::point sample_point() const;
+  inline isl::basic_set set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
   inline isl::set unite(isl::basic_set bset2) const;
   static inline isl::basic_set universe(isl::space dim);
   typedef isl_basic_set* isl_ptr_t;
@@ -447,12 +454,14 @@ public:
   inline isl::map complement() const;
   inline isl::set deltas() const;
   inline isl::map detect_equalities() const;
+  static inline isl::map empty(isl::space dim);
   inline isl::map flatten() const;
   inline isl::map flatten_domain() const;
   inline isl::map flatten_range() const;
   inline isl::stat foreach_basic_map(const std::function<isl::stat(isl::basic_map)> &fn) const;
   inline isl::map gist(isl::map context) const;
   inline isl::map gist_domain(isl::set context) const;
+  static inline isl::map identity(isl::space dim);
   inline isl::map intersect(isl::map map2) const;
   inline isl::map intersect_domain(isl::set set) const;
   inline isl::map intersect_params(isl::set params) const;
@@ -473,6 +482,7 @@ public:
   inline isl::basic_map sample() const;
   inline isl::map subtract(isl::map map2) const;
   inline isl::map unite(isl::map map2) const;
+  static inline isl::map universe(isl::space dim);
   inline isl::basic_map unshifted_simple_hull() const;
   typedef isl_map* isl_ptr_t;
 };
@@ -491,6 +501,7 @@ public:
   inline /* implicit */ multi_aff();
   inline /* implicit */ multi_aff(const isl::multi_aff &obj);
   inline /* implicit */ multi_aff(isl::aff aff);
+  inline explicit multi_aff(isl::space space);
   inline explicit multi_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_aff &operator=(isl::multi_aff obj);
   inline ~multi_aff();
@@ -668,6 +679,7 @@ public:
   inline isl::multi_union_pw_aff sub(isl::multi_union_pw_aff multi2) const;
   inline isl::multi_union_pw_aff union_add(isl::multi_union_pw_aff mupa2) const;
   static inline isl::multi_union_pw_aff zero(isl::space space);
+  inline isl::union_set zero_union_set() const;
   typedef isl_multi_union_pw_aff* isl_ptr_t;
 };
 
@@ -796,9 +808,16 @@ public:
   inline std::string to_str() const;
 
   inline isl::pw_aff add(isl::pw_aff pwaff2) const;
+  inline isl::map eq_map(isl::pw_aff pa2) const;
   inline isl::stat foreach_piece(const std::function<isl::stat(isl::set, isl::aff)> &fn) const;
+  inline isl::set ge_set(isl::pw_aff pwaff2) const;
   inline isl::space get_space() const;
+  inline isl::map gt_map(isl::pw_aff pa2) const;
+  inline isl::set gt_set(isl::pw_aff pwaff2) const;
   inline isl::boolean is_equal(const isl::pw_aff &pa2) const;
+  inline isl::set le_set(isl::pw_aff pwaff2) const;
+  inline isl::map lt_map(isl::pw_aff pa2) const;
+  inline isl::set lt_set(isl::pw_aff pwaff2) const;
   inline isl::pw_aff pullback(isl::multi_aff ma) const;
   inline isl::pw_aff pullback(isl::pw_multi_aff pma) const;
   inline isl::pw_aff pullback(isl::multi_pw_aff mpa) const;
@@ -821,6 +840,7 @@ public:
   inline /* implicit */ pw_multi_aff(const isl::pw_multi_aff &obj);
   inline explicit pw_multi_aff(isl::set domain, isl::multi_val mv);
   inline explicit pw_multi_aff(isl::ctx ctx, const std::string &str);
+  inline explicit pw_multi_aff(isl::space space);
   inline /* implicit */ pw_multi_aff(isl::multi_aff ma);
   inline /* implicit */ pw_multi_aff(isl::pw_aff pa);
   inline isl::pw_multi_aff &operator=(isl::pw_multi_aff obj);
@@ -879,7 +899,9 @@ public:
   static inline isl::schedule from_domain(isl::union_set domain);
   inline isl::union_map get_map() const;
   inline isl::schedule_node get_root() const;
+  inline isl::schedule insert_partial_schedule(isl::multi_union_pw_aff partial) const;
   inline isl::schedule pullback(isl::union_pw_multi_aff upma) const;
+  inline isl::schedule sequence(isl::schedule schedule2) const;
   typedef isl_schedule* isl_ptr_t;
 };
 
@@ -947,9 +969,13 @@ public:
   inline std::string to_str() const;
 
   inline isl::multi_union_pw_aff band_get_partial_schedule() const;
+  inline isl::boolean band_get_permutable() const;
+  inline isl::space band_get_space() const;
   inline isl::boolean band_member_get_coincident(int pos) const;
   inline isl::schedule_node band_member_set_coincident(int pos, int coincident) const;
   inline unsigned int band_n_member() const;
+  inline isl::schedule_node band_set_permutable(int permutable) const;
+  inline isl::schedule_node band_tile(isl::multi_val sizes) const;
   inline isl::schedule_node child(int pos) const;
   inline isl::union_set get_domain() const;
   inline isl::multi_union_pw_aff get_prefix_schedule_multi_union_pw_aff() const;
@@ -957,8 +983,12 @@ public:
   inline isl::union_pw_multi_aff get_prefix_schedule_union_pw_multi_aff() const;
   inline isl::schedule get_schedule() const;
   inline isl::union_set get_universe_domain() const;
+  inline isl::schedule_node insert_context(isl::set context) const;
+  inline isl::schedule_node insert_filter(isl::union_set filter) const;
+  inline isl::schedule_node insert_partial_schedule(isl::multi_union_pw_aff schedule) const;
   inline isl::boolean is_equal(const isl::schedule_node &node2) const;
   inline isl::schedule_node parent() const;
+  inline isl::schedule_node root() const;
   typedef isl_schedule_node* isl_ptr_t;
 };
 
@@ -976,6 +1006,7 @@ public:
   inline /* implicit */ set();
   inline /* implicit */ set(const isl::set &obj);
   inline explicit set(isl::ctx ctx, const std::string &str);
+  inline explicit set(isl::space dim);
   inline /* implicit */ set(isl::basic_set bset);
   inline /* implicit */ set(isl::point pnt);
   inline isl::set &operator=(isl::set obj);
@@ -1001,6 +1032,7 @@ public:
   inline isl::set flatten() const;
   inline isl::stat foreach_basic_set(const std::function<isl::stat(isl::basic_set)> &fn) const;
   static inline isl::set from_union_set(isl::union_set uset);
+  inline isl::space get_space() const;
   inline isl::set gist(isl::set context) const;
   inline isl::map identity() const;
   inline isl::set intersect(isl::set set2) const;
@@ -1019,6 +1051,8 @@ public:
   inline isl::basic_set polyhedral_hull() const;
   inline isl::basic_set sample() const;
   inline isl::point sample_point() const;
+  inline isl::set set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
+  inline isl::basic_set simple_hull() const;
   inline isl::set subtract(isl::set set2) const;
   inline isl::set unite(isl::set set2) const;
   static inline isl::set universe(isl::space dim);
@@ -1055,10 +1089,23 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
+  inline isl::space add_dims(isl::dim type, unsigned int n) const;
   inline unsigned int dim(isl::dim type) const;
   inline isl::space domain() const;
+  inline isl::space drop_dims(isl::dim type, unsigned int first, unsigned int num) const;
+  inline int find_dim_by_name(isl::dim type, const std::string &name) const;
+  inline std::string get_dim_name(isl::dim type, unsigned int pos) const;
+  inline std::string get_tuple_name(isl::dim type) const;
+  inline isl::boolean has_dim_name(isl::dim type, unsigned int pos) const;
+  inline isl::boolean has_tuple_name(isl::dim type) const;
   inline isl::boolean is_equal(const isl::space &space2) const;
+  inline isl::space map_from_domain_and_range(isl::space range) const;
+  inline isl::space map_from_set() const;
+  inline isl::space params() const;
   inline isl::space range() const;
+  inline isl::space set_dim_name(isl::dim type, unsigned int pos, const std::string &name) const;
+  inline isl::space set_from_params() const;
+  inline isl::space set_tuple_name(isl::dim type, const std::string &s) const;
   typedef isl_space* isl_ptr_t;
 };
 
@@ -1174,6 +1221,7 @@ public:
   inline isl::union_map domain_map() const;
   inline isl::union_pw_multi_aff domain_map_union_pw_multi_aff() const;
   inline isl::union_map domain_product(isl::union_map umap2) const;
+  static inline isl::union_map empty(isl::space dim);
   inline isl::union_map factor_domain() const;
   inline isl::union_map factor_range() const;
   inline isl::union_map fixed_power(isl::val exp) const;
@@ -1249,6 +1297,7 @@ public:
   inline isl::boolean plain_is_equal(const isl::union_pw_aff &upa2) const;
   inline isl::union_pw_aff pullback(isl::union_pw_multi_aff upma) const;
   inline isl::union_pw_aff union_add(isl::union_pw_aff upa2) const;
+  inline isl::union_set zero_union_set() const;
   typedef isl_union_pw_aff* isl_ptr_t;
 };
 
@@ -1521,6 +1570,11 @@ isl::aff aff::ceil() const {
   return manage(res);
 }
 
+isl::aff aff::div(isl::aff aff2) const {
+  auto res = isl_aff_div(copy(), aff2.release());
+  return manage(res);
+}
+
 isl::aff aff::floor() const {
   auto res = isl_aff_floor(copy());
   return manage(res);
@@ -1533,6 +1587,11 @@ isl::set aff::ge_set(isl::aff aff2) const {
 
 isl::space aff::get_space() const {
   auto res = isl_aff_get_space(get());
+  return manage(res);
+}
+
+isl::set aff::le_set(isl::aff aff2) const {
+  auto res = isl_aff_le_set(copy(), aff2.release());
   return manage(res);
 }
 
@@ -1558,6 +1617,11 @@ isl::boolean aff::plain_is_equal(const isl::aff &aff2) const {
 
 isl::aff aff::pullback(isl::multi_aff ma) const {
   auto res = isl_aff_pullback_multi_aff(copy(), ma.release());
+  return manage(res);
+}
+
+isl::aff aff::sub(isl::aff aff2) const {
+  auto res = isl_aff_sub(copy(), aff2.release());
   return manage(res);
 }
 
@@ -1835,6 +1899,12 @@ std::string ast_node::to_str() const {
 }
 
 
+std::string ast_node::to_C_str() const {
+  auto res = isl_ast_node_to_C_str(get());
+  std::string tmp(res);
+  free(res);
+  return tmp;
+}
 
 // implementations for isl::basic_map
 isl::basic_map manage(__isl_take isl_basic_map *ptr) {
@@ -1941,6 +2011,11 @@ isl::basic_set basic_map::deltas() const {
 
 isl::basic_map basic_map::detect_equalities() const {
   auto res = isl_basic_map_detect_equalities(copy());
+  return manage(res);
+}
+
+isl::basic_map basic_map::empty(isl::space dim) {
+  auto res = isl_basic_map_empty(dim.release());
   return manage(res);
 }
 
@@ -2141,6 +2216,11 @@ isl::basic_set basic_set::flatten() const {
   return manage(res);
 }
 
+isl::space basic_set::get_space() const {
+  auto res = isl_basic_set_get_space(get());
+  return manage(res);
+}
+
 isl::basic_set basic_set::gist(isl::basic_set context) const {
   auto res = isl_basic_set_gist(copy(), context.release());
   return manage(res);
@@ -2198,6 +2278,11 @@ isl::basic_set basic_set::sample() const {
 
 isl::point basic_set::sample_point() const {
   auto res = isl_basic_set_sample_point(copy());
+  return manage(res);
+}
+
+isl::basic_set basic_set::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+  auto res = isl_basic_set_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
 
@@ -2417,6 +2502,11 @@ isl::map map::detect_equalities() const {
   return manage(res);
 }
 
+isl::map map::empty(isl::space dim) {
+  auto res = isl_map_empty(dim.release());
+  return manage(res);
+}
+
 isl::map map::flatten() const {
   auto res = isl_map_flatten(copy());
   return manage(res);
@@ -2450,6 +2540,11 @@ isl::map map::gist(isl::map context) const {
 
 isl::map map::gist_domain(isl::set context) const {
   auto res = isl_map_gist_domain(copy(), context.release());
+  return manage(res);
+}
+
+isl::map map::identity(isl::space dim) {
+  auto res = isl_map_identity(dim.release());
   return manage(res);
 }
 
@@ -2553,6 +2648,11 @@ isl::map map::unite(isl::map map2) const {
   return manage(res);
 }
 
+isl::map map::universe(isl::space dim) {
+  auto res = isl_map_universe(dim.release());
+  return manage(res);
+}
+
 isl::basic_map map::unshifted_simple_hull() const {
   auto res = isl_map_unshifted_simple_hull(copy());
   return manage(res);
@@ -2574,6 +2674,10 @@ multi_aff::multi_aff(__isl_take isl_multi_aff *ptr)
 
 multi_aff::multi_aff(isl::aff aff) {
   auto res = isl_multi_aff_from_aff(aff.release());
+  ptr = res;
+}
+multi_aff::multi_aff(isl::space space) {
+  auto res = isl_multi_aff_identity(space.release());
   ptr = res;
 }
 multi_aff::multi_aff(isl::ctx ctx, const std::string &str) {
@@ -3311,6 +3415,11 @@ isl::multi_union_pw_aff multi_union_pw_aff::zero(isl::space space) {
   return manage(res);
 }
 
+isl::union_set multi_union_pw_aff::zero_union_set() const {
+  auto res = isl_multi_union_pw_aff_zero_union_set(copy());
+  return manage(res);
+}
+
 // implementations for isl::multi_val
 isl::multi_val manage(__isl_take isl_multi_val *ptr) {
   return multi_val(ptr);
@@ -3739,6 +3848,11 @@ isl::pw_aff pw_aff::add(isl::pw_aff pwaff2) const {
   return manage(res);
 }
 
+isl::map pw_aff::eq_map(isl::pw_aff pa2) const {
+  auto res = isl_pw_aff_eq_map(copy(), pa2.release());
+  return manage(res);
+}
+
 isl::stat pw_aff::foreach_piece(const std::function<isl::stat(isl::set, isl::aff)> &fn) const {
   auto fn_p = &fn;
   auto fn_lambda = [](isl_set *arg_0, isl_aff *arg_1, void *arg_2) -> isl_stat {
@@ -3750,14 +3864,44 @@ isl::stat pw_aff::foreach_piece(const std::function<isl::stat(isl::set, isl::aff
   return isl::stat(res);
 }
 
+isl::set pw_aff::ge_set(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_ge_set(copy(), pwaff2.release());
+  return manage(res);
+}
+
 isl::space pw_aff::get_space() const {
   auto res = isl_pw_aff_get_space(get());
+  return manage(res);
+}
+
+isl::map pw_aff::gt_map(isl::pw_aff pa2) const {
+  auto res = isl_pw_aff_gt_map(copy(), pa2.release());
+  return manage(res);
+}
+
+isl::set pw_aff::gt_set(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_gt_set(copy(), pwaff2.release());
   return manage(res);
 }
 
 isl::boolean pw_aff::is_equal(const isl::pw_aff &pa2) const {
   auto res = isl_pw_aff_is_equal(get(), pa2.get());
   return res;
+}
+
+isl::set pw_aff::le_set(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_le_set(copy(), pwaff2.release());
+  return manage(res);
+}
+
+isl::map pw_aff::lt_map(isl::pw_aff pa2) const {
+  auto res = isl_pw_aff_lt_map(copy(), pa2.release());
+  return manage(res);
+}
+
+isl::set pw_aff::lt_set(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_lt_set(copy(), pwaff2.release());
+  return manage(res);
 }
 
 isl::pw_aff pw_aff::pullback(isl::multi_aff ma) const {
@@ -3800,6 +3944,10 @@ pw_multi_aff::pw_multi_aff(isl::set domain, isl::multi_val mv) {
 }
 pw_multi_aff::pw_multi_aff(isl::ctx ctx, const std::string &str) {
   auto res = isl_pw_multi_aff_read_from_str(ctx.release(), str.c_str());
+  ptr = res;
+}
+pw_multi_aff::pw_multi_aff(isl::space space) {
+  auto res = isl_pw_multi_aff_identity(space.release());
   ptr = res;
 }
 pw_multi_aff::pw_multi_aff(isl::multi_aff ma) {
@@ -4025,8 +4173,18 @@ isl::schedule_node schedule::get_root() const {
   return manage(res);
 }
 
+isl::schedule schedule::insert_partial_schedule(isl::multi_union_pw_aff partial) const {
+  auto res = isl_schedule_insert_partial_schedule(copy(), partial.release());
+  return manage(res);
+}
+
 isl::schedule schedule::pullback(isl::union_pw_multi_aff upma) const {
   auto res = isl_schedule_pullback_union_pw_multi_aff(copy(), upma.release());
+  return manage(res);
+}
+
+isl::schedule schedule::sequence(isl::schedule schedule2) const {
+  auto res = isl_schedule_sequence(copy(), schedule2.release());
   return manage(res);
 }
 
@@ -4228,6 +4386,16 @@ isl::multi_union_pw_aff schedule_node::band_get_partial_schedule() const {
   return manage(res);
 }
 
+isl::boolean schedule_node::band_get_permutable() const {
+  auto res = isl_schedule_node_band_get_permutable(get());
+  return res;
+}
+
+isl::space schedule_node::band_get_space() const {
+  auto res = isl_schedule_node_band_get_space(get());
+  return manage(res);
+}
+
 isl::boolean schedule_node::band_member_get_coincident(int pos) const {
   auto res = isl_schedule_node_band_member_get_coincident(get(), pos);
   return res;
@@ -4241,6 +4409,16 @@ isl::schedule_node schedule_node::band_member_set_coincident(int pos, int coinci
 unsigned int schedule_node::band_n_member() const {
   auto res = isl_schedule_node_band_n_member(get());
   return res;
+}
+
+isl::schedule_node schedule_node::band_set_permutable(int permutable) const {
+  auto res = isl_schedule_node_band_set_permutable(copy(), permutable);
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::band_tile(isl::multi_val sizes) const {
+  auto res = isl_schedule_node_band_tile(copy(), sizes.release());
+  return manage(res);
 }
 
 isl::schedule_node schedule_node::child(int pos) const {
@@ -4278,6 +4456,21 @@ isl::union_set schedule_node::get_universe_domain() const {
   return manage(res);
 }
 
+isl::schedule_node schedule_node::insert_context(isl::set context) const {
+  auto res = isl_schedule_node_insert_context(copy(), context.release());
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::insert_filter(isl::union_set filter) const {
+  auto res = isl_schedule_node_insert_filter(copy(), filter.release());
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::insert_partial_schedule(isl::multi_union_pw_aff schedule) const {
+  auto res = isl_schedule_node_insert_partial_schedule(copy(), schedule.release());
+  return manage(res);
+}
+
 isl::boolean schedule_node::is_equal(const isl::schedule_node &node2) const {
   auto res = isl_schedule_node_is_equal(get(), node2.get());
   return res;
@@ -4285,6 +4478,11 @@ isl::boolean schedule_node::is_equal(const isl::schedule_node &node2) const {
 
 isl::schedule_node schedule_node::parent() const {
   auto res = isl_schedule_node_parent(copy());
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::root() const {
+  auto res = isl_schedule_node_root(copy());
   return manage(res);
 }
 
@@ -4304,6 +4502,10 @@ set::set(__isl_take isl_set *ptr)
 
 set::set(isl::ctx ctx, const std::string &str) {
   auto res = isl_set_read_from_str(ctx.release(), str.c_str());
+  ptr = res;
+}
+set::set(isl::space dim) {
+  auto res = isl_set_empty(dim.release());
   ptr = res;
 }
 set::set(isl::basic_set bset) {
@@ -4435,6 +4637,11 @@ isl::set set::from_union_set(isl::union_set uset) {
   return manage(res);
 }
 
+isl::space set::get_space() const {
+  auto res = isl_set_get_space(get());
+  return manage(res);
+}
+
 isl::set set::gist(isl::set context) const {
   auto res = isl_set_gist(copy(), context.release());
   return manage(res);
@@ -4522,6 +4729,16 @@ isl::basic_set set::sample() const {
 
 isl::point set::sample_point() const {
   auto res = isl_set_sample_point(copy());
+  return manage(res);
+}
+
+isl::set set::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+  auto res = isl_set_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
+  return manage(res);
+}
+
+isl::basic_set set::simple_hull() const {
+  auto res = isl_set_simple_hull(copy());
   return manage(res);
 }
 
@@ -4636,6 +4853,11 @@ std::string space::to_str() const {
 }
 
 
+isl::space space::add_dims(isl::dim type, unsigned int n) const {
+  auto res = isl_space_add_dims(copy(), static_cast<enum isl_dim_type>(type), n);
+  return manage(res);
+}
+
 unsigned int space::dim(isl::dim type) const {
   auto res = isl_space_dim(get(), static_cast<enum isl_dim_type>(type));
   return res;
@@ -4646,13 +4868,75 @@ isl::space space::domain() const {
   return manage(res);
 }
 
+isl::space space::drop_dims(isl::dim type, unsigned int first, unsigned int num) const {
+  auto res = isl_space_drop_dims(copy(), static_cast<enum isl_dim_type>(type), first, num);
+  return manage(res);
+}
+
+int space::find_dim_by_name(isl::dim type, const std::string &name) const {
+  auto res = isl_space_find_dim_by_name(get(), static_cast<enum isl_dim_type>(type), name.c_str());
+  return res;
+}
+
+std::string space::get_dim_name(isl::dim type, unsigned int pos) const {
+  auto res = isl_space_get_dim_name(get(), static_cast<enum isl_dim_type>(type), pos);
+  std::string tmp(res);
+  return tmp;
+}
+
+std::string space::get_tuple_name(isl::dim type) const {
+  auto res = isl_space_get_tuple_name(get(), static_cast<enum isl_dim_type>(type));
+  std::string tmp(res);
+  return tmp;
+}
+
+isl::boolean space::has_dim_name(isl::dim type, unsigned int pos) const {
+  auto res = isl_space_has_dim_name(get(), static_cast<enum isl_dim_type>(type), pos);
+  return res;
+}
+
+isl::boolean space::has_tuple_name(isl::dim type) const {
+  auto res = isl_space_has_tuple_name(get(), static_cast<enum isl_dim_type>(type));
+  return res;
+}
+
 isl::boolean space::is_equal(const isl::space &space2) const {
   auto res = isl_space_is_equal(get(), space2.get());
   return res;
 }
 
+isl::space space::map_from_domain_and_range(isl::space range) const {
+  auto res = isl_space_map_from_domain_and_range(copy(), range.release());
+  return manage(res);
+}
+
+isl::space space::map_from_set() const {
+  auto res = isl_space_map_from_set(copy());
+  return manage(res);
+}
+
+isl::space space::params() const {
+  auto res = isl_space_params(copy());
+  return manage(res);
+}
+
 isl::space space::range() const {
   auto res = isl_space_range(copy());
+  return manage(res);
+}
+
+isl::space space::set_dim_name(isl::dim type, unsigned int pos, const std::string &name) const {
+  auto res = isl_space_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, name.c_str());
+  return manage(res);
+}
+
+isl::space space::set_from_params() const {
+  auto res = isl_space_set_from_params(copy());
+  return manage(res);
+}
+
+isl::space space::set_tuple_name(isl::dim type, const std::string &s) const {
+  auto res = isl_space_set_tuple_name(copy(), static_cast<enum isl_dim_type>(type), s.c_str());
   return manage(res);
 }
 
@@ -5021,6 +5305,11 @@ isl::union_map union_map::domain_product(isl::union_map umap2) const {
   return manage(res);
 }
 
+isl::union_map union_map::empty(isl::space dim) {
+  auto res = isl_union_map_empty(dim.release());
+  return manage(res);
+}
+
 isl::union_map union_map::factor_domain() const {
   auto res = isl_union_map_factor_domain(copy());
   return manage(res);
@@ -5325,6 +5614,11 @@ isl::union_pw_aff union_pw_aff::pullback(isl::union_pw_multi_aff upma) const {
 
 isl::union_pw_aff union_pw_aff::union_add(isl::union_pw_aff upa2) const {
   auto res = isl_union_pw_aff_union_add(copy(), upa2.release());
+  return manage(res);
+}
+
+isl::union_set union_pw_aff::zero_union_set() const {
+  auto res = isl_union_pw_aff_zero_union_set(copy());
   return manage(res);
 }
 
