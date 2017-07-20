@@ -972,16 +972,21 @@ public:
   inline isl::boolean band_get_permutable() const;
   inline isl::space band_get_space() const;
   inline isl::boolean band_member_get_coincident(int pos) const;
+  inline isl::schedule_node band_member_set_ast_loop_type(int pos, isl::dim type) const;
   inline isl::schedule_node band_member_set_coincident(int pos, int coincident) const;
   inline unsigned int band_n_member() const;
   inline isl::schedule_node band_set_permutable(int permutable) const;
+  inline isl::schedule_node band_sink() const;
+  inline isl::schedule_node band_split(int pos) const;
   inline isl::schedule_node band_tile(isl::multi_val sizes) const;
   inline isl::schedule_node child(int pos) const;
   inline isl::union_set get_domain() const;
   inline isl::multi_union_pw_aff get_prefix_schedule_multi_union_pw_aff() const;
+  inline isl::union_map get_prefix_schedule_relation() const;
   inline isl::union_map get_prefix_schedule_union_map() const;
   inline isl::union_pw_multi_aff get_prefix_schedule_union_pw_multi_aff() const;
   inline isl::schedule get_schedule() const;
+  inline int get_schedule_depth() const;
   inline isl::union_set get_universe_domain() const;
   inline isl::schedule_node insert_context(isl::set context) const;
   inline isl::schedule_node insert_filter(isl::union_set filter) const;
@@ -1375,6 +1380,7 @@ public:
   inline isl::union_set detect_equalities() const;
   inline isl::stat foreach_point(const std::function<isl::stat(isl::point)> &fn) const;
   inline isl::stat foreach_set(const std::function<isl::stat(isl::set)> &fn) const;
+  inline isl::space get_space() const;
   inline isl::union_set gist(isl::union_set context) const;
   inline isl::union_set gist_params(isl::set set) const;
   inline isl::union_map identity() const;
@@ -4401,6 +4407,11 @@ isl::boolean schedule_node::band_member_get_coincident(int pos) const {
   return res;
 }
 
+isl::schedule_node schedule_node::band_member_set_ast_loop_type(int pos, isl::dim type) const {
+  auto res = isl_schedule_node_band_member_set_ast_loop_type(copy(), pos, static_cast<enum isl_ast_loop_type>(type));
+  return manage(res);
+}
+
 isl::schedule_node schedule_node::band_member_set_coincident(int pos, int coincident) const {
   auto res = isl_schedule_node_band_member_set_coincident(copy(), pos, coincident);
   return manage(res);
@@ -4413,6 +4424,16 @@ unsigned int schedule_node::band_n_member() const {
 
 isl::schedule_node schedule_node::band_set_permutable(int permutable) const {
   auto res = isl_schedule_node_band_set_permutable(copy(), permutable);
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::band_sink() const {
+  auto res = isl_schedule_node_band_sink(copy());
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::band_split(int pos) const {
+  auto res = isl_schedule_node_band_split(copy(), pos);
   return manage(res);
 }
 
@@ -4436,6 +4457,11 @@ isl::multi_union_pw_aff schedule_node::get_prefix_schedule_multi_union_pw_aff() 
   return manage(res);
 }
 
+isl::union_map schedule_node::get_prefix_schedule_relation() const {
+  auto res = isl_schedule_node_get_prefix_schedule_relation(get());
+  return manage(res);
+}
+
 isl::union_map schedule_node::get_prefix_schedule_union_map() const {
   auto res = isl_schedule_node_get_prefix_schedule_union_map(get());
   return manage(res);
@@ -4449,6 +4475,11 @@ isl::union_pw_multi_aff schedule_node::get_prefix_schedule_union_pw_multi_aff() 
 isl::schedule schedule_node::get_schedule() const {
   auto res = isl_schedule_node_get_schedule(get());
   return manage(res);
+}
+
+int schedule_node::get_schedule_depth() const {
+  auto res = isl_schedule_node_get_schedule_depth(get());
+  return res;
 }
 
 isl::union_set schedule_node::get_universe_domain() const {
@@ -5873,6 +5904,11 @@ isl::stat union_set::foreach_set(const std::function<isl::stat(isl::set)> &fn) c
   };
   auto res = isl_union_set_foreach_set(get(), fn_lambda, &fn_p);
   return isl::stat(res);
+}
+
+isl::space union_set::get_space() const {
+  auto res = isl_union_set_get_space(get());
+  return manage(res);
 }
 
 isl::union_set union_set::gist(isl::union_set context) const {
