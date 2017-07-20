@@ -76,6 +76,12 @@ isl_schedule_constraints_set_conditional_validity(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_union_map *condition,
 	__isl_take isl_union_map *validity);
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_custom_constraint_callback(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_give isl_basic_set *(*callback)(__isl_take isl_basic_set *,
+		int, int, __isl_keep isl_id_list *, int *, int *, void *),
+	void *data);
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc);
 

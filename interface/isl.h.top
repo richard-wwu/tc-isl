@@ -19,6 +19,7 @@
 #include <isl/union_map.h>
 #include <isl/union_set.h>
 #include <isl/val.h>
+#include <isl/constraint.h>
 
 #include <functional>
 #include <string>

@@ -376,6 +376,11 @@ struct isl_sched_graph {
 	int weak;
 
 	int max_weight;
+
+        __isl_give isl_basic_set *(*add_constraint)(
+		__isl_take isl_basic_set *, int, int,
+		__isl_keep isl_id_list *, int *, int *, void *);
+        void *add_constraint_data;
 };
 
 /* Initialize node_table based on the list of nodes.
@@ -1353,6 +1358,11 @@ static isl_stat graph_init(struct isl_sched_graph *graph,
 		if (r < 0)
 			return isl_stat_error;
 	}
+
+	graph->add_constraint =
+		isl_schedule_constraints_get_custom_constraint_callback(sc);
+	graph->add_constraint_data =
+		isl_schedule_constraints_get_custom_constraint_callback_user(sc);
 
 	return isl_stat_ok;
 }
@@ -2704,6 +2714,34 @@ static isl_stat setup_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 	if (add_all_proximity_constraints(graph, use_coincidence) < 0)
 		return isl_stat_error;
 
+	if (graph->add_constraint) {
+		int *node_n_param = isl_calloc_array(ctx, int, graph->n);
+		int *node_n_dims = isl_calloc_array(ctx, int, graph->n);
+		isl_id_list *node_id_list = isl_id_list_alloc(ctx, graph->n);
+
+		for (i = 0; i < graph->n; ++i) {
+			isl_space *node_space = graph->node[i].space;
+			isl_id *node_id =
+				isl_space_get_tuple_id(node_space, isl_dim_set);
+
+			node_id_list =
+				isl_id_list_add(node_id_list, node_id);
+			node_n_param[i] = graph->node[i].nparam;
+			node_n_dims[i] = graph->node[i].nvar;
+		}
+
+		graph->lp = (graph->add_constraint)(graph->lp, nparam,
+			graph->n_total_row, node_id_list, node_n_param,
+			node_n_dims, graph->add_constraint_data);
+
+		isl_id_list_free(node_id_list);
+		free(node_n_param);
+		free(node_n_dims);
+
+		if (!graph->lp)
+			return isl_stat_error;
+	}
+
 	return isl_stat_ok;
 }
 
@@ -3516,6 +3554,9 @@ static int extract_sub_graph(isl_ctx *ctx, struct isl_sched_graph *graph,
 	sub->max_row = graph->max_row;
 	sub->n_total_row = graph->n_total_row;
 	sub->band_start = graph->band_start;
+
+	sub->add_constraint = graph->add_constraint;
+	sub->add_constraint_data = graph->add_constraint_data;
 
 	return 0;
 }
