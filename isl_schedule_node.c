@@ -1974,6 +1974,32 @@ __isl_give isl_schedule_node *isl_schedule_node_band_split(
 	return isl_schedule_node_graft_tree(node, tree);
 }
 
+/* Transform the band nodes with the schedule specified in 
+*  the "pma" 
+*/
+__isl_give isl_schedule_node *isl_schedule_node_band_transform_pw_multi_aff(
+	__isl_take isl_schedule_node *node, __isl_take isl_pw_multi_aff *pma)
+{
+	enum isl_schedule_node_type type;
+	isl_schedule_tree *tree;
+
+	if (!node || !pma)
+		goto error;
+
+	type = isl_schedule_node_get_type(node);
+	if (type != isl_schedule_node_band)
+		isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
+			"can only transform band nodes", goto error);
+
+	tree = isl_schedule_tree_copy(node->tree);
+	tree = isl_schedule_tree_band_transform_pw_multi_aff(tree, pma);
+	return isl_schedule_node_graft_tree(node, tree);
+error:
+	isl_pw_multi_aff_free(pma);
+	isl_schedule_node_free(node);
+	return NULL;
+}
+
 /* Return the context of the context node "node".
  */
 __isl_give isl_set *isl_schedule_node_context_get_context(
@@ -4711,3 +4737,5 @@ __isl_give char *isl_schedule_node_to_str(__isl_keep isl_schedule_node *node)
 
 	return s;
 }
+
+
