@@ -5202,7 +5202,12 @@ static __isl_give isl_schedule_node *sort_statements(
 	if (graph->scc < graph->n) {
 		if (!initialized && compute_maxvar(graph) < 0)
 			return isl_schedule_node_free(node);
-		return carry_dependences(node, graph);
+		if (ctx->opt->schedule_algorithm == ISL_SCHEDULE_ALGORITHM_OUTERPAR)
+			isl_die(ctx, isl_error_invalid,
+				"outer parallelism not found when requested",
+				 return isl_schedule_node_free(node));
+		else
+			return carry_dependences(node, graph);
 	}
 
 	filters = extract_sccs(ctx, graph);
@@ -5492,6 +5497,8 @@ static __isl_give isl_schedule_node *compute_schedule_finish_band(
 	if (graph->n_row < graph->maxvar) {
 		isl_ctx *ctx;
 		int empty = graph->n_total_row == graph->band_start;
+		int outer_coincidence =
+			isl_options_get_schedule_outer_coincidence(ctx);
 
 		ctx = isl_schedule_node_get_ctx(node);
 		if (!ctx->opt->schedule_maximize_band_depth && !empty)
@@ -5504,7 +5511,12 @@ static __isl_give isl_schedule_node *compute_schedule_finish_band(
 			return compute_component_schedule(node, graph, 1);
 		if (!initialized && compute_maxvar(graph) < 0)
 			return isl_schedule_node_free(node);
-		if (isl_options_get_schedule_outer_coincidence(ctx))
+
+		if (ctx->opt->schedule_algorithm == ISL_SCHEDULE_ALGORITHM_OUTERPAR)
+			isl_die(ctx, isl_error_invalid,
+				"outer parallelism not found when requested",
+				 return isl_schedule_node_free(node));
+		else if (outer_coincidence)
 			return carry_coincidence(node, graph);
 		return carry_dependences(node, graph);
 	}
