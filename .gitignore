@@ -40,6 +40,8 @@ isl_polyhedron_minimize
 isl_polyhedron_sample
 isl_polytope_scan
 isl_test
+isl_flow
+isl_flow_cmp
 libtool
 ltmain.sh
 m4/libtool.m4
@@ -57,8 +59,10 @@ pip_test.sh
 
 codegen_test.sh
 interface/extract_interface
-# interface/isl-noexceptions.h
+interface/isl-noexceptions.h
+interface/isl_test_cpp
 interface/test/build/
 isl_codegen
 isl_schedule
 isl_test_int
+flow_test.sh
