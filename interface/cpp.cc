@@ -791,6 +791,11 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 		if (gives(method))
 			osprintf(os, "  free(res);\n");
 		osprintf(os, "  return tmp;\n");
+	} else if (is_isl_enum(return_type)) {
+		string typestr = return_type.getAsString();
+		typestr = typestr.replace(typestr.find("isl_"), sizeof("isl::")-2, "isl::");
+		osprintf(os, "  return static_cast<%s>(res);\n", typestr.c_str());
+
 	} else {
 		osprintf(os, "  return res;\n");
 	}
@@ -1094,9 +1099,10 @@ string cpp_generator::type2cpp(QualType type)
 		return "isl::stat";
 
         if (extensions) {
-          if (type->isEnumeralType())
-            return "isl::dim";
-
+			  if (type->isEnumeralType()) {
+				  string typestr = type.getAsString();
+				  return typestr.replace(typestr.find("isl_"), sizeof("isl::")-2, "isl::");
+			  }
           if (is_isl_ctx(type))
             return "isl::ctx";
         }

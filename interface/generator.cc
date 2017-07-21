@@ -285,6 +285,16 @@ bool generator::is_isl_stat(QualType type)
 	return s == "isl_stat";
 }
 
+/* Is "type" the type isl_enum?
+ */
+bool generator::is_isl_enum(QualType type)
+{
+	if (is_isl_bool(type) || is_isl_stat(type))
+		return false;
+
+	return type->isEnumeralType(); 
+}
+
 
 /* Is "type" that of a pointer to a function?
  */
