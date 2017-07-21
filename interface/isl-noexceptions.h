@@ -91,7 +91,7 @@ enum class stat {
   error = isl_stat_error
 };
 
-enum class dim {
+enum class dim_type {
   cst = isl_dim_cst,
   param = isl_dim_param,
   in = isl_dim_in,
@@ -99,6 +99,60 @@ enum class dim {
   set = isl_dim_set,
   div = isl_dim_div,
   all = isl_dim_all
+};
+
+enum class ast_op_type {
+	error = isl_ast_op_error,
+	_and = isl_ast_op_and,
+	and_then = isl_ast_op_and_then,
+	_or = isl_ast_op_or,
+	or_else = isl_ast_op_or_else,
+	_max = isl_ast_op_max,
+	_min = isl_ast_op_min,
+	minus = isl_ast_op_minus,
+	add = isl_ast_op_add,
+	sub = isl_ast_op_sub,
+	mul = isl_ast_op_mul,
+	div = isl_ast_op_div,
+	fdiv_q = isl_ast_op_fdiv_q,	/* Round towards -infty */
+	pdiv_q = isl_ast_op_pdiv_q,	/* Dividend is non-negative */
+	pdiv_r = isl_ast_op_pdiv_r,	/* Dividend is non-negative */
+	zdiv_r = isl_ast_op_zdiv_r,	/* Result only compared against zero */
+	cond = isl_ast_op_cond,
+	select = isl_ast_op_select,
+	eq = isl_ast_op_eq,
+	le = isl_ast_op_le,
+	lt = isl_ast_op_lt,
+	ge = isl_ast_op_ge,
+	gt = isl_ast_op_gt,
+	call = isl_ast_op_call,
+	access = isl_ast_op_access,
+	member = isl_ast_op_member,
+	address_of = isl_ast_op_address_of
+};
+
+enum class ast_expr_type {
+	error = isl_ast_expr_error,
+	op = isl_ast_expr_op,
+	id = isl_ast_expr_id,
+	_int = isl_ast_expr_int
+};
+
+enum class ast_node_type {
+	error = isl_ast_node_error,
+	_for = isl_ast_node_for,
+	_if = isl_ast_node_if,
+	block = isl_ast_node_block,
+	mark = isl_ast_node_mark,
+	user = isl_ast_node_user
+};
+
+enum class ast_loop_type {
+	error = isl_ast_loop_error,
+	_default = isl_ast_loop_default,
+	atomic = isl_ast_loop_atomic,
+	unroll = isl_ast_loop_unroll,
+	separate = isl_ast_loop_separate
 };
 
 }
@@ -152,7 +206,7 @@ public:
   inline /* implicit */ aff(const isl::aff &obj);
   inline explicit aff(isl::local_space ls);
   inline explicit aff(isl::local_space ls, isl::val val);
-  inline explicit aff(isl::local_space ls, isl::dim type, unsigned int pos);
+  inline explicit aff(isl::local_space ls, enum isl::dim_type type, unsigned int pos);
   inline explicit aff(isl::ctx ctx, const std::string &str);
   inline isl::aff &operator=(isl::aff obj);
   inline ~aff();
@@ -179,7 +233,7 @@ public:
   inline isl::aff neg() const;
   inline isl::boolean plain_is_equal(const isl::aff &aff2) const;
   inline isl::aff pullback(isl::multi_aff ma) const;
-  inline isl::aff set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
+  inline isl::aff set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const;
   inline isl::aff sub(isl::aff aff2) const;
   typedef isl_aff* isl_ptr_t;
 };
@@ -250,12 +304,10 @@ public:
   inline std::string to_str() const;
 
   inline int get_op_n_arg() const;
-  inline isl::dim get_op_type() const;
+  inline enum isl::ast_op_type get_op_type() const;
   inline isl::boolean is_equal(const isl::ast_expr &expr2) const;
   inline isl::ast_expr set_op_arg(int pos, isl::ast_expr arg) const;
-  inline isl::ast_expr substitute_ids(isl::id_to_ast_expr id2expr) const;
   inline std::string to_C_str() const;
-  inline std::string to_str() const;
   typedef isl_ast_expr* isl_ptr_t;
 };
 
@@ -285,21 +337,17 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
-  inline isl::ast_node_list block_get_children() const;
   inline isl::ast_node for_get_body() const;
   inline isl::ast_expr for_get_cond() const;
   inline isl::ast_expr for_get_inc() const;
   inline isl::ast_expr for_get_init() const;
   inline isl::ast_expr for_get_iterator() const;
   inline isl::boolean for_is_degenerate() const;
-  inline isl::id get_annotation() const;
-  inline isl::dim get_type() const;
+  inline enum isl::ast_node_type get_type() const;
   inline isl::ast_expr if_get_cond() const;
   inline isl::ast_node if_get_then() const;
   inline isl::boolean if_has_else() const;
-  inline isl::id mark_get_id() const;
   inline isl::ast_node mark_get_node() const;
-  inline isl::ast_node set_annotation(isl::id annotation) const;
   inline std::string to_C_str() const;
   inline isl::ast_expr user_get_expr() const;
   typedef isl_ast_node* isl_ptr_t;
@@ -350,7 +398,7 @@ public:
   inline isl::boolean is_subset(const isl::basic_map &bmap2) const;
   inline isl::map lexmax() const;
   inline isl::map lexmin() const;
-  inline isl::basic_map project_out(isl::dim type, unsigned int first, unsigned int n) const;
+  inline isl::basic_map project_out(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::basic_map reverse() const;
   inline isl::basic_map sample() const;
   inline isl::map unite(isl::basic_map bmap2) const;
@@ -385,11 +433,11 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
-  inline isl::basic_set add_dims(isl::dim type, unsigned int n) const;
+  inline isl::basic_set add_dims(enum isl::dim_type type, unsigned int n) const;
   inline isl::basic_set affine_hull() const;
   inline isl::basic_set apply(isl::basic_map bmap) const;
   inline isl::basic_set detect_equalities() const;
-  inline unsigned int dim(isl::dim type) const;
+  inline unsigned int dim(enum isl::dim_type type) const;
   inline isl::basic_set flatten() const;
   inline isl::space get_space() const;
   inline isl::basic_set gist(isl::basic_set context) const;
@@ -404,7 +452,7 @@ public:
   static inline isl::basic_set nat_universe(isl::space dim);
   inline isl::basic_set sample() const;
   inline isl::point sample_point() const;
-  inline isl::basic_set set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
+  inline isl::basic_set set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const;
   inline isl::set unite(isl::basic_set bset2) const;
   static inline isl::basic_set universe(isl::space dim);
   typedef isl_basic_set* isl_ptr_t;
@@ -500,7 +548,7 @@ public:
   inline isl::map lexmax() const;
   inline isl::map lexmin() const;
   inline isl::basic_map polyhedral_hull() const;
-  inline isl::map project_out(isl::dim type, unsigned int first, unsigned int n) const;
+  inline isl::map project_out(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::map reverse() const;
   inline isl::basic_map sample() const;
   inline isl::map subtract(isl::map map2) const;
@@ -540,19 +588,19 @@ public:
   inline std::string to_str() const;
 
   inline isl::multi_aff add(isl::multi_aff multi2) const;
-  inline isl::multi_aff add_dims(isl::dim type, unsigned int n) const;
+  inline isl::multi_aff add_dims(enum isl::dim_type type, unsigned int n) const;
   inline isl::multi_aff align_params(isl::space model) const;
-  inline isl::multi_aff drop_dims(isl::dim type, unsigned int first, unsigned int n) const;
+  inline isl::multi_aff drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_aff factor_range() const;
-  inline int find_dim_by_name(isl::dim type, const std::string &name) const;
+  inline int find_dim_by_name(enum isl::dim_type type, const std::string &name) const;
   inline isl::multi_aff flat_range_product(isl::multi_aff multi2) const;
   inline isl::multi_aff flatten_range() const;
   inline isl::multi_aff from_range() const;
   inline isl::aff get_aff(int pos) const;
   inline isl::space get_domain_space() const;
   inline isl::space get_space() const;
-  inline std::string get_tuple_name(isl::dim type) const;
-  inline isl::multi_aff insert_dims(isl::dim type, unsigned int first, unsigned int n) const;
+  inline std::string get_tuple_name(enum isl::dim_type type) const;
+  inline isl::multi_aff insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff neg() const;
   inline isl::multi_aff product(isl::multi_aff multi2) const;
@@ -567,8 +615,8 @@ public:
   inline isl::multi_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff scale_val(isl::val v) const;
   inline isl::multi_aff set_aff(int pos, isl::aff el) const;
-  inline isl::multi_aff set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
-  inline isl::multi_aff set_tuple_name(isl::dim type, const std::string &s) const;
+  inline isl::multi_aff set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const;
+  inline isl::multi_aff set_tuple_name(enum isl::dim_type type, const std::string &s) const;
   inline isl::multi_aff splice(unsigned int in_pos, unsigned int out_pos, isl::multi_aff multi2) const;
   inline isl::multi_aff sub(isl::multi_aff multi2) const;
   static inline isl::multi_aff zero(isl::space space);
@@ -606,19 +654,19 @@ public:
   inline std::string to_str() const;
 
   inline isl::multi_pw_aff add(isl::multi_pw_aff multi2) const;
-  inline isl::multi_pw_aff add_dims(isl::dim type, unsigned int n) const;
+  inline isl::multi_pw_aff add_dims(enum isl::dim_type type, unsigned int n) const;
   inline isl::multi_pw_aff align_params(isl::space model) const;
-  inline isl::multi_pw_aff drop_dims(isl::dim type, unsigned int first, unsigned int n) const;
+  inline isl::multi_pw_aff drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_pw_aff factor_range() const;
-  inline int find_dim_by_name(isl::dim type, const std::string &name) const;
+  inline int find_dim_by_name(enum isl::dim_type type, const std::string &name) const;
   inline isl::multi_pw_aff flat_range_product(isl::multi_pw_aff multi2) const;
   inline isl::multi_pw_aff flatten_range() const;
   inline isl::multi_pw_aff from_range() const;
   inline isl::space get_domain_space() const;
   inline isl::pw_aff get_pw_aff(int pos) const;
   inline isl::space get_space() const;
-  inline std::string get_tuple_name(isl::dim type) const;
-  inline isl::multi_pw_aff insert_dims(isl::dim type, unsigned int first, unsigned int n) const;
+  inline std::string get_tuple_name(enum isl::dim_type type) const;
+  inline isl::multi_pw_aff insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::boolean is_equal(const isl::multi_pw_aff &mpa2) const;
   inline isl::multi_pw_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_pw_aff neg() const;
@@ -635,9 +683,9 @@ public:
   inline isl::multi_pw_aff scale_down_val(isl::val v) const;
   inline isl::multi_pw_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_pw_aff scale_val(isl::val v) const;
-  inline isl::multi_pw_aff set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
+  inline isl::multi_pw_aff set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const;
   inline isl::multi_pw_aff set_pw_aff(int pos, isl::pw_aff el) const;
-  inline isl::multi_pw_aff set_tuple_name(isl::dim type, const std::string &s) const;
+  inline isl::multi_pw_aff set_tuple_name(enum isl::dim_type type, const std::string &s) const;
   inline isl::multi_pw_aff splice(unsigned int in_pos, unsigned int out_pos, isl::multi_pw_aff multi2) const;
   inline isl::multi_pw_aff sub(isl::multi_pw_aff multi2) const;
   static inline isl::multi_pw_aff zero(isl::space space);
@@ -677,15 +725,15 @@ public:
 
   inline isl::multi_union_pw_aff add(isl::multi_union_pw_aff multi2) const;
   inline isl::multi_union_pw_aff align_params(isl::space model) const;
-  inline isl::multi_union_pw_aff drop_dims(isl::dim type, unsigned int first, unsigned int n) const;
+  inline isl::multi_union_pw_aff drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_union_pw_aff factor_range() const;
-  inline int find_dim_by_name(isl::dim type, const std::string &name) const;
+  inline int find_dim_by_name(enum isl::dim_type type, const std::string &name) const;
   inline isl::multi_union_pw_aff flat_range_product(isl::multi_union_pw_aff multi2) const;
   inline isl::multi_union_pw_aff flatten_range() const;
   inline isl::multi_union_pw_aff from_range() const;
   inline isl::space get_domain_space() const;
   inline isl::space get_space() const;
-  inline std::string get_tuple_name(isl::dim type) const;
+  inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::union_pw_aff get_union_pw_aff(int pos) const;
   inline isl::multi_union_pw_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff neg() const;
@@ -699,8 +747,8 @@ public:
   inline isl::multi_union_pw_aff scale_down_val(isl::val v) const;
   inline isl::multi_union_pw_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff scale_val(isl::val v) const;
-  inline isl::multi_union_pw_aff set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
-  inline isl::multi_union_pw_aff set_tuple_name(isl::dim type, const std::string &s) const;
+  inline isl::multi_union_pw_aff set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const;
+  inline isl::multi_union_pw_aff set_tuple_name(enum isl::dim_type type, const std::string &s) const;
   inline isl::multi_union_pw_aff set_union_pw_aff(int pos, isl::union_pw_aff el) const;
   inline isl::multi_union_pw_aff sub(isl::multi_union_pw_aff multi2) const;
   inline isl::multi_union_pw_aff union_add(isl::multi_union_pw_aff mupa2) const;
@@ -736,19 +784,19 @@ public:
   inline std::string to_str() const;
 
   inline isl::multi_val add(isl::multi_val multi2) const;
-  inline isl::multi_val add_dims(isl::dim type, unsigned int n) const;
+  inline isl::multi_val add_dims(enum isl::dim_type type, unsigned int n) const;
   inline isl::multi_val align_params(isl::space model) const;
-  inline isl::multi_val drop_dims(isl::dim type, unsigned int first, unsigned int n) const;
+  inline isl::multi_val drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_val factor_range() const;
-  inline int find_dim_by_name(isl::dim type, const std::string &name) const;
+  inline int find_dim_by_name(enum isl::dim_type type, const std::string &name) const;
   inline isl::multi_val flat_range_product(isl::multi_val multi2) const;
   inline isl::multi_val flatten_range() const;
   inline isl::multi_val from_range() const;
   inline isl::space get_domain_space() const;
   inline isl::space get_space() const;
-  inline std::string get_tuple_name(isl::dim type) const;
+  inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::val get_val(int pos) const;
-  inline isl::multi_val insert_dims(isl::dim type, unsigned int first, unsigned int n) const;
+  inline isl::multi_val insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_val mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_val neg() const;
   inline isl::multi_val product(isl::multi_val multi2) const;
@@ -761,8 +809,8 @@ public:
   inline isl::multi_val scale_down_val(isl::val v) const;
   inline isl::multi_val scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_val scale_val(isl::val v) const;
-  inline isl::multi_val set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
-  inline isl::multi_val set_tuple_name(isl::dim type, const std::string &s) const;
+  inline isl::multi_val set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const;
+  inline isl::multi_val set_tuple_name(enum isl::dim_type type, const std::string &s) const;
   inline isl::multi_val set_val(int pos, isl::val el) const;
   inline isl::multi_val splice(unsigned int in_pos, unsigned int out_pos, isl::multi_val multi2) const;
   inline isl::multi_val sub(isl::multi_val multi2) const;
@@ -797,9 +845,9 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
-  inline isl::point add_ui(isl::dim type, int pos, unsigned int val) const;
+  inline isl::point add_ui(enum isl::dim_type type, int pos, unsigned int val) const;
   inline isl::space get_space() const;
-  inline isl::point sub_ui(isl::dim type, int pos, unsigned int val) const;
+  inline isl::point sub_ui(enum isl::dim_type type, int pos, unsigned int val) const;
   typedef isl_point* isl_ptr_t;
 };
 
@@ -818,7 +866,7 @@ public:
   inline /* implicit */ pw_aff(const isl::pw_aff &obj);
   inline /* implicit */ pw_aff(isl::aff aff);
   inline explicit pw_aff(isl::local_space ls);
-  inline explicit pw_aff(isl::local_space ls, isl::dim type, unsigned int pos);
+  inline explicit pw_aff(isl::local_space ls, enum isl::dim_type type, unsigned int pos);
   inline explicit pw_aff(isl::set domain, isl::val v);
   inline explicit pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::pw_aff &operator=(isl::pw_aff obj);
@@ -893,7 +941,7 @@ public:
   inline isl::pw_multi_aff pullback(isl::multi_aff ma) const;
   inline isl::pw_multi_aff pullback(isl::pw_multi_aff pma2) const;
   inline isl::pw_multi_aff range_product(isl::pw_multi_aff pma2) const;
-  inline isl::pw_multi_aff reset_tuple_id(isl::dim type) const;
+  inline isl::pw_multi_aff reset_tuple_id(enum isl::dim_type type) const;
   inline isl::pw_multi_aff union_add(isl::pw_multi_aff pma2) const;
   typedef isl_pw_multi_aff* isl_ptr_t;
 };
@@ -1001,7 +1049,7 @@ public:
   inline isl::boolean band_get_permutable() const;
   inline isl::space band_get_space() const;
   inline isl::boolean band_member_get_coincident(int pos) const;
-  inline isl::schedule_node band_member_set_ast_loop_type(int pos, isl::dim type) const;
+  inline isl::schedule_node band_member_set_ast_loop_type(int pos, enum isl::ast_loop_type type) const;
   inline isl::schedule_node band_member_set_coincident(int pos, int coincident) const;
   inline unsigned int band_n_member() const;
   inline isl::schedule_node band_set_permutable(int permutable) const;
@@ -1057,13 +1105,13 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
-  inline isl::set add_dims(isl::dim type, unsigned int n) const;
+  inline isl::set add_dims(enum isl::dim_type type, unsigned int n) const;
   inline isl::basic_set affine_hull() const;
   inline isl::set apply(isl::map map) const;
   inline isl::set coalesce() const;
   inline isl::set complement() const;
   inline isl::set detect_equalities() const;
-  inline unsigned int dim(isl::dim type) const;
+  inline unsigned int dim(enum isl::dim_type type) const;
   inline isl::set flatten() const;
   inline isl::stat foreach_basic_set(const std::function<isl::stat(isl::basic_set)> &fn) const;
   static inline isl::set from_union_set(isl::union_set uset);
@@ -1086,7 +1134,7 @@ public:
   inline isl::basic_set polyhedral_hull() const;
   inline isl::basic_set sample() const;
   inline isl::point sample_point() const;
-  inline isl::set set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const;
+  inline isl::set set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const;
   inline isl::basic_set simple_hull() const;
   inline isl::set subtract(isl::set set2) const;
   inline isl::set unite(isl::set set2) const;
@@ -1124,23 +1172,23 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
-  inline isl::space add_dims(isl::dim type, unsigned int n) const;
-  inline unsigned int dim(isl::dim type) const;
+  inline isl::space add_dims(enum isl::dim_type type, unsigned int n) const;
+  inline unsigned int dim(enum isl::dim_type type) const;
   inline isl::space domain() const;
-  inline isl::space drop_dims(isl::dim type, unsigned int first, unsigned int num) const;
-  inline int find_dim_by_name(isl::dim type, const std::string &name) const;
-  inline std::string get_dim_name(isl::dim type, unsigned int pos) const;
-  inline std::string get_tuple_name(isl::dim type) const;
-  inline isl::boolean has_dim_name(isl::dim type, unsigned int pos) const;
-  inline isl::boolean has_tuple_name(isl::dim type) const;
+  inline isl::space drop_dims(enum isl::dim_type type, unsigned int first, unsigned int num) const;
+  inline int find_dim_by_name(enum isl::dim_type type, const std::string &name) const;
+  inline std::string get_dim_name(enum isl::dim_type type, unsigned int pos) const;
+  inline std::string get_tuple_name(enum isl::dim_type type) const;
+  inline isl::boolean has_dim_name(enum isl::dim_type type, unsigned int pos) const;
+  inline isl::boolean has_tuple_name(enum isl::dim_type type) const;
   inline isl::boolean is_equal(const isl::space &space2) const;
   inline isl::space map_from_domain_and_range(isl::space range) const;
   inline isl::space map_from_set() const;
   inline isl::space params() const;
   inline isl::space range() const;
-  inline isl::space set_dim_name(isl::dim type, unsigned int pos, const std::string &name) const;
+  inline isl::space set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &name) const;
   inline isl::space set_from_params() const;
-  inline isl::space set_tuple_name(isl::dim type, const std::string &s) const;
+  inline isl::space set_tuple_name(enum isl::dim_type type, const std::string &s) const;
   typedef isl_space* isl_ptr_t;
 };
 
@@ -1527,7 +1575,7 @@ aff::aff(isl::local_space ls, isl::val val) {
   auto res = isl_aff_val_on_domain(ls.release(), val.release());
   ptr = res;
 }
-aff::aff(isl::local_space ls, isl::dim type, unsigned int pos) {
+aff::aff(isl::local_space ls, enum isl::dim_type type, unsigned int pos) {
   auto res = isl_aff_var_on_domain(ls.release(), static_cast<enum isl_dim_type>(type), pos);
   ptr = res;
 }
@@ -1656,7 +1704,7 @@ isl::aff aff::pullback(isl::multi_aff ma) const {
   return manage(res);
 }
 
-isl::aff aff::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+isl::aff aff::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const {
   auto res = isl_aff_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
@@ -1865,9 +1913,9 @@ int ast_expr::get_op_n_arg() const {
   return res;
 }
 
-isl::dim ast_expr::get_op_type() const {
+enum isl::ast_op_type ast_expr::get_op_type() const {
   auto res = isl_ast_expr_get_op_type(get());
-  return res;
+  return static_cast<enum isl::ast_op_type>(res);
 }
 
 isl::boolean ast_expr::is_equal(const isl::ast_expr &expr2) const {
@@ -1880,20 +1928,8 @@ isl::ast_expr ast_expr::set_op_arg(int pos, isl::ast_expr arg) const {
   return manage(res);
 }
 
-isl::ast_expr ast_expr::substitute_ids(isl::id_to_ast_expr id2expr) const {
-  auto res = isl_ast_expr_substitute_ids(copy(), id2expr.release());
-  return manage(res);
-}
-
 std::string ast_expr::to_C_str() const {
   auto res = isl_ast_expr_to_C_str(get());
-  std::string tmp(res);
-  free(res);
-  return tmp;
-}
-
-std::string ast_expr::to_str() const {
-  auto res = isl_ast_expr_to_str(get());
   std::string tmp(res);
   free(res);
   return tmp;
@@ -1974,11 +2010,6 @@ std::string ast_node::to_str() const {
 }
 
 
-isl::ast_node_list ast_node::block_get_children() const {
-  auto res = isl_ast_node_block_get_children(get());
-  return manage(res);
-}
-
 isl::ast_node ast_node::for_get_body() const {
   auto res = isl_ast_node_for_get_body(get());
   return manage(res);
@@ -2009,14 +2040,9 @@ isl::boolean ast_node::for_is_degenerate() const {
   return res;
 }
 
-isl::id ast_node::get_annotation() const {
-  auto res = isl_ast_node_get_annotation(get());
-  return manage(res);
-}
-
-isl::dim ast_node::get_type() const {
+enum isl::ast_node_type ast_node::get_type() const {
   auto res = isl_ast_node_get_type(get());
-  return res;
+  return static_cast<enum isl::ast_node_type>(res);
 }
 
 isl::ast_expr ast_node::if_get_cond() const {
@@ -2034,18 +2060,8 @@ isl::boolean ast_node::if_has_else() const {
   return res;
 }
 
-isl::id ast_node::mark_get_id() const {
-  auto res = isl_ast_node_mark_get_id(get());
-  return manage(res);
-}
-
 isl::ast_node ast_node::mark_get_node() const {
   auto res = isl_ast_node_mark_get_node(get());
-  return manage(res);
-}
-
-isl::ast_node ast_node::set_annotation(isl::id annotation) const {
-  auto res = isl_ast_node_set_annotation(copy(), annotation.release());
   return manage(res);
 }
 
@@ -2234,7 +2250,7 @@ isl::map basic_map::lexmin() const {
   return manage(res);
 }
 
-isl::basic_map basic_map::project_out(isl::dim type, unsigned int first, unsigned int n) const {
+isl::basic_map basic_map::project_out(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_basic_map_project_out(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -2341,7 +2357,7 @@ std::string basic_set::to_str() const {
 }
 
 
-isl::basic_set basic_set::add_dims(isl::dim type, unsigned int n) const {
+isl::basic_set basic_set::add_dims(enum isl::dim_type type, unsigned int n) const {
   auto res = isl_basic_set_add_dims(copy(), static_cast<enum isl_dim_type>(type), n);
   return manage(res);
 }
@@ -2361,7 +2377,7 @@ isl::basic_set basic_set::detect_equalities() const {
   return manage(res);
 }
 
-unsigned int basic_set::dim(isl::dim type) const {
+unsigned int basic_set::dim(enum isl::dim_type type) const {
   auto res = isl_basic_set_dim(get(), static_cast<enum isl_dim_type>(type));
   return res;
 }
@@ -2436,7 +2452,7 @@ isl::point basic_set::sample_point() const {
   return manage(res);
 }
 
-isl::basic_set basic_set::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+isl::basic_set basic_set::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const {
   auto res = isl_basic_set_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
@@ -2778,7 +2794,7 @@ isl::basic_map map::polyhedral_hull() const {
   return manage(res);
 }
 
-isl::map map::project_out(isl::dim type, unsigned int first, unsigned int n) const {
+isl::map map::project_out(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_map_project_out(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -2905,7 +2921,7 @@ isl::multi_aff multi_aff::add(isl::multi_aff multi2) const {
   return manage(res);
 }
 
-isl::multi_aff multi_aff::add_dims(isl::dim type, unsigned int n) const {
+isl::multi_aff multi_aff::add_dims(enum isl::dim_type type, unsigned int n) const {
   auto res = isl_multi_aff_add_dims(copy(), static_cast<enum isl_dim_type>(type), n);
   return manage(res);
 }
@@ -2915,7 +2931,7 @@ isl::multi_aff multi_aff::align_params(isl::space model) const {
   return manage(res);
 }
 
-isl::multi_aff multi_aff::drop_dims(isl::dim type, unsigned int first, unsigned int n) const {
+isl::multi_aff multi_aff::drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_aff_drop_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -2925,7 +2941,7 @@ isl::multi_aff multi_aff::factor_range() const {
   return manage(res);
 }
 
-int multi_aff::find_dim_by_name(isl::dim type, const std::string &name) const {
+int multi_aff::find_dim_by_name(enum isl::dim_type type, const std::string &name) const {
   auto res = isl_multi_aff_find_dim_by_name(get(), static_cast<enum isl_dim_type>(type), name.c_str());
   return res;
 }
@@ -2960,13 +2976,13 @@ isl::space multi_aff::get_space() const {
   return manage(res);
 }
 
-std::string multi_aff::get_tuple_name(isl::dim type) const {
+std::string multi_aff::get_tuple_name(enum isl::dim_type type) const {
   auto res = isl_multi_aff_get_tuple_name(get(), static_cast<enum isl_dim_type>(type));
   std::string tmp(res);
   return tmp;
 }
 
-isl::multi_aff multi_aff::insert_dims(isl::dim type, unsigned int first, unsigned int n) const {
+isl::multi_aff multi_aff::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_aff_insert_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -3041,12 +3057,12 @@ isl::multi_aff multi_aff::set_aff(int pos, isl::aff el) const {
   return manage(res);
 }
 
-isl::multi_aff multi_aff::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+isl::multi_aff multi_aff::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const {
   auto res = isl_multi_aff_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
 
-isl::multi_aff multi_aff::set_tuple_name(isl::dim type, const std::string &s) const {
+isl::multi_aff multi_aff::set_tuple_name(enum isl::dim_type type, const std::string &s) const {
   auto res = isl_multi_aff_set_tuple_name(copy(), static_cast<enum isl_dim_type>(type), s.c_str());
   return manage(res);
 }
@@ -3166,7 +3182,7 @@ isl::multi_pw_aff multi_pw_aff::add(isl::multi_pw_aff multi2) const {
   return manage(res);
 }
 
-isl::multi_pw_aff multi_pw_aff::add_dims(isl::dim type, unsigned int n) const {
+isl::multi_pw_aff multi_pw_aff::add_dims(enum isl::dim_type type, unsigned int n) const {
   auto res = isl_multi_pw_aff_add_dims(copy(), static_cast<enum isl_dim_type>(type), n);
   return manage(res);
 }
@@ -3176,7 +3192,7 @@ isl::multi_pw_aff multi_pw_aff::align_params(isl::space model) const {
   return manage(res);
 }
 
-isl::multi_pw_aff multi_pw_aff::drop_dims(isl::dim type, unsigned int first, unsigned int n) const {
+isl::multi_pw_aff multi_pw_aff::drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_pw_aff_drop_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -3186,7 +3202,7 @@ isl::multi_pw_aff multi_pw_aff::factor_range() const {
   return manage(res);
 }
 
-int multi_pw_aff::find_dim_by_name(isl::dim type, const std::string &name) const {
+int multi_pw_aff::find_dim_by_name(enum isl::dim_type type, const std::string &name) const {
   auto res = isl_multi_pw_aff_find_dim_by_name(get(), static_cast<enum isl_dim_type>(type), name.c_str());
   return res;
 }
@@ -3221,13 +3237,13 @@ isl::space multi_pw_aff::get_space() const {
   return manage(res);
 }
 
-std::string multi_pw_aff::get_tuple_name(isl::dim type) const {
+std::string multi_pw_aff::get_tuple_name(enum isl::dim_type type) const {
   auto res = isl_multi_pw_aff_get_tuple_name(get(), static_cast<enum isl_dim_type>(type));
   std::string tmp(res);
   return tmp;
 }
 
-isl::multi_pw_aff multi_pw_aff::insert_dims(isl::dim type, unsigned int first, unsigned int n) const {
+isl::multi_pw_aff multi_pw_aff::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_pw_aff_insert_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -3312,7 +3328,7 @@ isl::multi_pw_aff multi_pw_aff::scale_val(isl::val v) const {
   return manage(res);
 }
 
-isl::multi_pw_aff multi_pw_aff::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+isl::multi_pw_aff multi_pw_aff::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const {
   auto res = isl_multi_pw_aff_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
@@ -3322,7 +3338,7 @@ isl::multi_pw_aff multi_pw_aff::set_pw_aff(int pos, isl::pw_aff el) const {
   return manage(res);
 }
 
-isl::multi_pw_aff multi_pw_aff::set_tuple_name(isl::dim type, const std::string &s) const {
+isl::multi_pw_aff multi_pw_aff::set_tuple_name(enum isl::dim_type type, const std::string &s) const {
   auto res = isl_multi_pw_aff_set_tuple_name(copy(), static_cast<enum isl_dim_type>(type), s.c_str());
   return manage(res);
 }
@@ -3447,7 +3463,7 @@ isl::multi_union_pw_aff multi_union_pw_aff::align_params(isl::space model) const
   return manage(res);
 }
 
-isl::multi_union_pw_aff multi_union_pw_aff::drop_dims(isl::dim type, unsigned int first, unsigned int n) const {
+isl::multi_union_pw_aff multi_union_pw_aff::drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_union_pw_aff_drop_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -3457,7 +3473,7 @@ isl::multi_union_pw_aff multi_union_pw_aff::factor_range() const {
   return manage(res);
 }
 
-int multi_union_pw_aff::find_dim_by_name(isl::dim type, const std::string &name) const {
+int multi_union_pw_aff::find_dim_by_name(enum isl::dim_type type, const std::string &name) const {
   auto res = isl_multi_union_pw_aff_find_dim_by_name(get(), static_cast<enum isl_dim_type>(type), name.c_str());
   return res;
 }
@@ -3487,7 +3503,7 @@ isl::space multi_union_pw_aff::get_space() const {
   return manage(res);
 }
 
-std::string multi_union_pw_aff::get_tuple_name(isl::dim type) const {
+std::string multi_union_pw_aff::get_tuple_name(enum isl::dim_type type) const {
   auto res = isl_multi_union_pw_aff_get_tuple_name(get(), static_cast<enum isl_dim_type>(type));
   std::string tmp(res);
   return tmp;
@@ -3558,12 +3574,12 @@ isl::multi_union_pw_aff multi_union_pw_aff::scale_val(isl::val v) const {
   return manage(res);
 }
 
-isl::multi_union_pw_aff multi_union_pw_aff::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+isl::multi_union_pw_aff multi_union_pw_aff::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const {
   auto res = isl_multi_union_pw_aff_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
 
-isl::multi_union_pw_aff multi_union_pw_aff::set_tuple_name(isl::dim type, const std::string &s) const {
+isl::multi_union_pw_aff multi_union_pw_aff::set_tuple_name(enum isl::dim_type type, const std::string &s) const {
   auto res = isl_multi_union_pw_aff_set_tuple_name(copy(), static_cast<enum isl_dim_type>(type), s.c_str());
   return manage(res);
 }
@@ -3673,7 +3689,7 @@ isl::multi_val multi_val::add(isl::multi_val multi2) const {
   return manage(res);
 }
 
-isl::multi_val multi_val::add_dims(isl::dim type, unsigned int n) const {
+isl::multi_val multi_val::add_dims(enum isl::dim_type type, unsigned int n) const {
   auto res = isl_multi_val_add_dims(copy(), static_cast<enum isl_dim_type>(type), n);
   return manage(res);
 }
@@ -3683,7 +3699,7 @@ isl::multi_val multi_val::align_params(isl::space model) const {
   return manage(res);
 }
 
-isl::multi_val multi_val::drop_dims(isl::dim type, unsigned int first, unsigned int n) const {
+isl::multi_val multi_val::drop_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_val_drop_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -3693,7 +3709,7 @@ isl::multi_val multi_val::factor_range() const {
   return manage(res);
 }
 
-int multi_val::find_dim_by_name(isl::dim type, const std::string &name) const {
+int multi_val::find_dim_by_name(enum isl::dim_type type, const std::string &name) const {
   auto res = isl_multi_val_find_dim_by_name(get(), static_cast<enum isl_dim_type>(type), name.c_str());
   return res;
 }
@@ -3723,7 +3739,7 @@ isl::space multi_val::get_space() const {
   return manage(res);
 }
 
-std::string multi_val::get_tuple_name(isl::dim type) const {
+std::string multi_val::get_tuple_name(enum isl::dim_type type) const {
   auto res = isl_multi_val_get_tuple_name(get(), static_cast<enum isl_dim_type>(type));
   std::string tmp(res);
   return tmp;
@@ -3734,7 +3750,7 @@ isl::val multi_val::get_val(int pos) const {
   return manage(res);
 }
 
-isl::multi_val multi_val::insert_dims(isl::dim type, unsigned int first, unsigned int n) const {
+isl::multi_val multi_val::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_val_insert_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
 }
@@ -3799,12 +3815,12 @@ isl::multi_val multi_val::scale_val(isl::val v) const {
   return manage(res);
 }
 
-isl::multi_val multi_val::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+isl::multi_val multi_val::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const {
   auto res = isl_multi_val_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
 
-isl::multi_val multi_val::set_tuple_name(isl::dim type, const std::string &s) const {
+isl::multi_val multi_val::set_tuple_name(enum isl::dim_type type, const std::string &s) const {
   auto res = isl_multi_val_set_tuple_name(copy(), static_cast<enum isl_dim_type>(type), s.c_str());
   return manage(res);
 }
@@ -3908,7 +3924,7 @@ std::string point::to_str() const {
 }
 
 
-isl::point point::add_ui(isl::dim type, int pos, unsigned int val) const {
+isl::point point::add_ui(enum isl::dim_type type, int pos, unsigned int val) const {
   auto res = isl_point_add_ui(copy(), static_cast<enum isl_dim_type>(type), pos, val);
   return manage(res);
 }
@@ -3918,7 +3934,7 @@ isl::space point::get_space() const {
   return manage(res);
 }
 
-isl::point point::sub_ui(isl::dim type, int pos, unsigned int val) const {
+isl::point point::sub_ui(enum isl::dim_type type, int pos, unsigned int val) const {
   auto res = isl_point_sub_ui(copy(), static_cast<enum isl_dim_type>(type), pos, val);
   return manage(res);
 }
@@ -3945,7 +3961,7 @@ pw_aff::pw_aff(isl::local_space ls) {
   auto res = isl_pw_aff_zero_on_domain(ls.release());
   ptr = res;
 }
-pw_aff::pw_aff(isl::local_space ls, isl::dim type, unsigned int pos) {
+pw_aff::pw_aff(isl::local_space ls, enum isl::dim_type type, unsigned int pos) {
   auto res = isl_pw_aff_var_on_domain(ls.release(), static_cast<enum isl_dim_type>(type), pos);
   ptr = res;
 }
@@ -4258,7 +4274,7 @@ isl::pw_multi_aff pw_multi_aff::range_product(isl::pw_multi_aff pma2) const {
   return manage(res);
 }
 
-isl::pw_multi_aff pw_multi_aff::reset_tuple_id(isl::dim type) const {
+isl::pw_multi_aff pw_multi_aff::reset_tuple_id(enum isl::dim_type type) const {
   auto res = isl_pw_multi_aff_reset_tuple_id(copy(), static_cast<enum isl_dim_type>(type));
   return manage(res);
 }
@@ -4590,7 +4606,7 @@ isl::boolean schedule_node::band_member_get_coincident(int pos) const {
   return res;
 }
 
-isl::schedule_node schedule_node::band_member_set_ast_loop_type(int pos, isl::dim type) const {
+isl::schedule_node schedule_node::band_member_set_ast_loop_type(int pos, enum isl::ast_loop_type type) const {
   auto res = isl_schedule_node_band_member_set_ast_loop_type(copy(), pos, static_cast<enum isl_ast_loop_type>(type));
   return manage(res);
 }
@@ -4800,7 +4816,7 @@ std::string set::to_str() const {
 }
 
 
-isl::set set::add_dims(isl::dim type, unsigned int n) const {
+isl::set set::add_dims(enum isl::dim_type type, unsigned int n) const {
   auto res = isl_set_add_dims(copy(), static_cast<enum isl_dim_type>(type), n);
   return manage(res);
 }
@@ -4830,7 +4846,7 @@ isl::set set::detect_equalities() const {
   return manage(res);
 }
 
-unsigned int set::dim(isl::dim type) const {
+unsigned int set::dim(enum isl::dim_type type) const {
   auto res = isl_set_dim(get(), static_cast<enum isl_dim_type>(type));
   return res;
 }
@@ -4951,7 +4967,7 @@ isl::point set::sample_point() const {
   return manage(res);
 }
 
-isl::set set::set_dim_name(isl::dim type, unsigned int pos, const std::string &s) const {
+isl::set set::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &s) const {
   auto res = isl_set_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, s.c_str());
   return manage(res);
 }
@@ -5072,12 +5088,12 @@ std::string space::to_str() const {
 }
 
 
-isl::space space::add_dims(isl::dim type, unsigned int n) const {
+isl::space space::add_dims(enum isl::dim_type type, unsigned int n) const {
   auto res = isl_space_add_dims(copy(), static_cast<enum isl_dim_type>(type), n);
   return manage(res);
 }
 
-unsigned int space::dim(isl::dim type) const {
+unsigned int space::dim(enum isl::dim_type type) const {
   auto res = isl_space_dim(get(), static_cast<enum isl_dim_type>(type));
   return res;
 }
@@ -5087,34 +5103,34 @@ isl::space space::domain() const {
   return manage(res);
 }
 
-isl::space space::drop_dims(isl::dim type, unsigned int first, unsigned int num) const {
+isl::space space::drop_dims(enum isl::dim_type type, unsigned int first, unsigned int num) const {
   auto res = isl_space_drop_dims(copy(), static_cast<enum isl_dim_type>(type), first, num);
   return manage(res);
 }
 
-int space::find_dim_by_name(isl::dim type, const std::string &name) const {
+int space::find_dim_by_name(enum isl::dim_type type, const std::string &name) const {
   auto res = isl_space_find_dim_by_name(get(), static_cast<enum isl_dim_type>(type), name.c_str());
   return res;
 }
 
-std::string space::get_dim_name(isl::dim type, unsigned int pos) const {
+std::string space::get_dim_name(enum isl::dim_type type, unsigned int pos) const {
   auto res = isl_space_get_dim_name(get(), static_cast<enum isl_dim_type>(type), pos);
   std::string tmp(res);
   return tmp;
 }
 
-std::string space::get_tuple_name(isl::dim type) const {
+std::string space::get_tuple_name(enum isl::dim_type type) const {
   auto res = isl_space_get_tuple_name(get(), static_cast<enum isl_dim_type>(type));
   std::string tmp(res);
   return tmp;
 }
 
-isl::boolean space::has_dim_name(isl::dim type, unsigned int pos) const {
+isl::boolean space::has_dim_name(enum isl::dim_type type, unsigned int pos) const {
   auto res = isl_space_has_dim_name(get(), static_cast<enum isl_dim_type>(type), pos);
   return res;
 }
 
-isl::boolean space::has_tuple_name(isl::dim type) const {
+isl::boolean space::has_tuple_name(enum isl::dim_type type) const {
   auto res = isl_space_has_tuple_name(get(), static_cast<enum isl_dim_type>(type));
   return res;
 }
@@ -5144,7 +5160,7 @@ isl::space space::range() const {
   return manage(res);
 }
 
-isl::space space::set_dim_name(isl::dim type, unsigned int pos, const std::string &name) const {
+isl::space space::set_dim_name(enum isl::dim_type type, unsigned int pos, const std::string &name) const {
   auto res = isl_space_set_dim_name(copy(), static_cast<enum isl_dim_type>(type), pos, name.c_str());
   return manage(res);
 }
@@ -5154,7 +5170,7 @@ isl::space space::set_from_params() const {
   return manage(res);
 }
 
-isl::space space::set_tuple_name(isl::dim type, const std::string &s) const {
+isl::space space::set_tuple_name(enum isl::dim_type type, const std::string &s) const {
   auto res = isl_space_set_tuple_name(copy(), static_cast<enum isl_dim_type>(type), s.c_str());
   return manage(res);
 }
