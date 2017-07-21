@@ -81,6 +81,7 @@ __isl_give isl_schedule_node *isl_schedule_node_previous_sibling(
 __isl_give isl_schedule_node *isl_schedule_node_next_sibling(
 	__isl_take isl_schedule_node *node);
 
+__isl_export
 isl_bool isl_schedule_node_is_subtree_anchored(
 	__isl_keep isl_schedule_node *node);
 
