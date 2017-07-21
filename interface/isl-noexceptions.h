@@ -249,7 +249,13 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
+  inline int get_op_n_arg() const;
+  inline isl::dim get_op_type() const;
   inline isl::boolean is_equal(const isl::ast_expr &expr2) const;
+  inline isl::ast_expr set_op_arg(int pos, isl::ast_expr arg) const;
+  inline isl::ast_expr substitute_ids(isl::id_to_ast_expr id2expr) const;
+  inline std::string to_C_str() const;
+  inline std::string to_str() const;
   typedef isl_ast_expr* isl_ptr_t;
 };
 
@@ -279,7 +285,23 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
+  inline isl::ast_node_list block_get_children() const;
+  inline isl::ast_node for_get_body() const;
+  inline isl::ast_expr for_get_cond() const;
+  inline isl::ast_expr for_get_inc() const;
+  inline isl::ast_expr for_get_init() const;
+  inline isl::ast_expr for_get_iterator() const;
+  inline isl::boolean for_is_degenerate() const;
+  inline isl::id get_annotation() const;
+  inline isl::dim get_type() const;
+  inline isl::ast_expr if_get_cond() const;
+  inline isl::ast_node if_get_then() const;
+  inline isl::boolean if_has_else() const;
+  inline isl::id mark_get_id() const;
+  inline isl::ast_node mark_get_node() const;
+  inline isl::ast_node set_annotation(isl::id annotation) const;
   inline std::string to_C_str() const;
+  inline isl::ast_expr user_get_expr() const;
   typedef isl_ast_node* isl_ptr_t;
 };
 
@@ -1838,9 +1860,43 @@ std::string ast_expr::to_str() const {
 }
 
 
+int ast_expr::get_op_n_arg() const {
+  auto res = isl_ast_expr_get_op_n_arg(get());
+  return res;
+}
+
+isl::dim ast_expr::get_op_type() const {
+  auto res = isl_ast_expr_get_op_type(get());
+  return res;
+}
+
 isl::boolean ast_expr::is_equal(const isl::ast_expr &expr2) const {
   auto res = isl_ast_expr_is_equal(get(), expr2.get());
   return res;
+}
+
+isl::ast_expr ast_expr::set_op_arg(int pos, isl::ast_expr arg) const {
+  auto res = isl_ast_expr_set_op_arg(copy(), pos, arg.release());
+  return manage(res);
+}
+
+isl::ast_expr ast_expr::substitute_ids(isl::id_to_ast_expr id2expr) const {
+  auto res = isl_ast_expr_substitute_ids(copy(), id2expr.release());
+  return manage(res);
+}
+
+std::string ast_expr::to_C_str() const {
+  auto res = isl_ast_expr_to_C_str(get());
+  std::string tmp(res);
+  free(res);
+  return tmp;
+}
+
+std::string ast_expr::to_str() const {
+  auto res = isl_ast_expr_to_str(get());
+  std::string tmp(res);
+  free(res);
+  return tmp;
 }
 
 // implementations for isl::ast_node
@@ -1918,11 +1974,91 @@ std::string ast_node::to_str() const {
 }
 
 
+isl::ast_node_list ast_node::block_get_children() const {
+  auto res = isl_ast_node_block_get_children(get());
+  return manage(res);
+}
+
+isl::ast_node ast_node::for_get_body() const {
+  auto res = isl_ast_node_for_get_body(get());
+  return manage(res);
+}
+
+isl::ast_expr ast_node::for_get_cond() const {
+  auto res = isl_ast_node_for_get_cond(get());
+  return manage(res);
+}
+
+isl::ast_expr ast_node::for_get_inc() const {
+  auto res = isl_ast_node_for_get_inc(get());
+  return manage(res);
+}
+
+isl::ast_expr ast_node::for_get_init() const {
+  auto res = isl_ast_node_for_get_init(get());
+  return manage(res);
+}
+
+isl::ast_expr ast_node::for_get_iterator() const {
+  auto res = isl_ast_node_for_get_iterator(get());
+  return manage(res);
+}
+
+isl::boolean ast_node::for_is_degenerate() const {
+  auto res = isl_ast_node_for_is_degenerate(get());
+  return res;
+}
+
+isl::id ast_node::get_annotation() const {
+  auto res = isl_ast_node_get_annotation(get());
+  return manage(res);
+}
+
+isl::dim ast_node::get_type() const {
+  auto res = isl_ast_node_get_type(get());
+  return res;
+}
+
+isl::ast_expr ast_node::if_get_cond() const {
+  auto res = isl_ast_node_if_get_cond(get());
+  return manage(res);
+}
+
+isl::ast_node ast_node::if_get_then() const {
+  auto res = isl_ast_node_if_get_then(get());
+  return manage(res);
+}
+
+isl::boolean ast_node::if_has_else() const {
+  auto res = isl_ast_node_if_has_else(get());
+  return res;
+}
+
+isl::id ast_node::mark_get_id() const {
+  auto res = isl_ast_node_mark_get_id(get());
+  return manage(res);
+}
+
+isl::ast_node ast_node::mark_get_node() const {
+  auto res = isl_ast_node_mark_get_node(get());
+  return manage(res);
+}
+
+isl::ast_node ast_node::set_annotation(isl::id annotation) const {
+  auto res = isl_ast_node_set_annotation(copy(), annotation.release());
+  return manage(res);
+}
+
 std::string ast_node::to_C_str() const {
   auto res = isl_ast_node_to_C_str(get());
   std::string tmp(res);
   free(res);
   return tmp;
+}
+
+isl::ast_expr ast_node::user_get_expr() const {
+  auto res = isl_ast_node_user_get_expr(get());
+  return manage(res);
 }
 
 // implementations for isl::basic_map
