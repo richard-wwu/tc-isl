@@ -5497,10 +5497,12 @@ static __isl_give isl_schedule_node *compute_schedule_finish_band(
 	if (graph->n_row < graph->maxvar) {
 		isl_ctx *ctx;
 		int empty = graph->n_total_row == graph->band_start;
-		int outer_coincidence =
-			isl_options_get_schedule_outer_coincidence(ctx);
+		int outer_coincidence;
 
 		ctx = isl_schedule_node_get_ctx(node);
+		outer_coincidence =
+			isl_options_get_schedule_outer_coincidence(ctx);
+
 		if (!ctx->opt->schedule_maximize_band_depth && !empty)
 			return compute_next_band(node, graph, 1);
 		if (graph->src_scc >= 0)
