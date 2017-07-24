@@ -16,7 +16,8 @@ enum isl_edge_type {
 	isl_edge_conditional_validity,
 	isl_edge_proximity,
 	isl_edge_last_sc = isl_edge_proximity,
-	isl_edge_last_table = isl_edge_proximity,
+	isl_edge_consecutivity,
+	isl_edge_last_table = isl_edge_consecutivity,
 	isl_edge_local
 };
 
@@ -38,6 +39,8 @@ void *isl_schedule_constraints_get_custom_constraint_callback_user(
 	__isl_keep isl_schedule_constraints *sc);
 
 int isl_schedule_constraints_n_basic_map(
+	__isl_keep isl_schedule_constraints *sc);
+int isl_schedule_constraints_n_inter_consecutivity_map(
 	__isl_keep isl_schedule_constraints *sc);
 int isl_schedule_constraints_n_map(__isl_keep isl_schedule_constraints *sc);
 
