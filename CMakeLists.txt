@@ -16,11 +16,19 @@ set(ISL_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 set(IMATH_SOURCE_DIR "${ISL_SOURCE_DIR}/imath")
 set(IMATH_BINARY_DIR "${ISL_BINARY_DIR}/imath")
 
+if (NOT ISL_INT)
+message(FATAL_ERROR "-DISL_INT=gmp required")
+endif()
+if (NOT CLANG_PREFIX)
+message(FATAL_ERROR "-DCLANG_PREFIX=... required")
+endif()
+if (NOT CMAKE_INSTALL_PREFIX)
+message(FATAL_ERROR "-DCMAKE_INSTALL_PREFIX=... required")
+endif()
 
 ## Configure options
 set(ISL_INT "imath" CACHE STRING "Which package to use to represent multi-precision integers (gmp|imath)")
 option(ISL_SMALL_INT_OPT "Use small integer optimization" ON)
-
 
 # Process configure options
 if (NOT ISL_INT MATCHES "^imath|gmp$")
@@ -404,3 +412,8 @@ install (TARGETS isl
          RUNTIME DESTINATION bin)
 
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/isl DESTINATION include)
+
+################################################################################
+# Install generated files that isl puts in the source tree in automake mode
+################################################################################
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/isl DESTINATION include FILES_MATCHING PATTERN "stdint.h")
