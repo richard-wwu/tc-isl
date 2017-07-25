@@ -35,4 +35,10 @@ int isl_schedule_constraints_n_basic_map(
 	__isl_keep isl_schedule_constraints *sc);
 int isl_schedule_constraints_n_map(__isl_keep isl_schedule_constraints *sc);
 
+isl_bool (*isl_schedule_constraints_get_merge_callback(
+	__isl_keep isl_schedule_constraints *sc))
+(__isl_give isl_union_map *, __isl_give isl_union_map *, int, int, int, void *);
+void *isl_schedule_constraints_get_merge_callback_data(
+	__isl_keep isl_schedule_constraints *sc);
+
 #endif
