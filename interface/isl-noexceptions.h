@@ -107,8 +107,8 @@ enum class ast_op_type {
 	and_then = isl_ast_op_and_then,
 	_or = isl_ast_op_or,
 	or_else = isl_ast_op_or_else,
-	_max = isl_ast_op_max,
-	_min = isl_ast_op_min,
+	max = isl_ast_op_max,
+	min = isl_ast_op_min,
 	minus = isl_ast_op_minus,
 	add = isl_ast_op_add,
 	sub = isl_ast_op_sub,
@@ -131,13 +131,6 @@ enum class ast_op_type {
 	address_of = isl_ast_op_address_of
 };
 
-enum class ast_expr_type {
-	error = isl_ast_expr_error,
-	op = isl_ast_expr_op,
-	id = isl_ast_expr_id,
-	_int = isl_ast_expr_int
-};
-
 enum class ast_node_type {
 	error = isl_ast_node_error,
 	_for = isl_ast_node_for,
@@ -154,7 +147,6 @@ enum class ast_loop_type {
 	unroll = isl_ast_loop_unroll,
 	separate = isl_ast_loop_separate
 };
-
 }
 } // namespace isl
 
