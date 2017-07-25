@@ -1,0 +1,29 @@
+
+language: c++
+
+compiler:
+        - gcc
+
+dist: trusty
+
+sudo: required
+
+before_install:
+        - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        - sudo apt-get update -y
+        - sudo apt-get install -y automake gcc-4.9 g++-4.9 git cmake3 libgmp3-dev libtool
+
+env:
+        - CMAKE_VERSION=cmake CORES=2
+
+cache:
+        apt: true
+        directories:
+        - /tmp/clang+llvm
+
+script:
+        - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 90
+        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 90
+        - .travis/install-llvm-clang-401.sh
+        - .travis/build.sh
+        - .travis/test.sh
