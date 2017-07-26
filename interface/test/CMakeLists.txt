@@ -14,7 +14,7 @@ endif()
 ################################################################################
 # Download and unpack googletest v1.8.0 (latest stable) at configure time.
 ################################################################################
-configure_file(gtest.cmake googletest/CMakeLists.txt)
+configure_file(gtest.cmake ${CMAKE_BINARY_DIR}/interface/test/googletest/CMakeLists.txt)
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
   RESULT_VARIABLE result
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/interface/test/googletest )

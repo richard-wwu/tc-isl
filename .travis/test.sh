@@ -2,7 +2,7 @@
 
 set -ex
 
-F=/tmp/install/lib/libisl.a
+F=/tmp/install/lib/libisl.so
 if ! test -e ${F} ; then
     echo "$F missing"
     exit 1

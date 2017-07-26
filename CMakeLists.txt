@@ -338,24 +338,32 @@ elseif (USE_IMATH_FOR_MP)
 endif ()
 
 
-add_library(isl ${libisl_sources})
-set_target_properties(isl PROPERTIES FOLDER "Integer Set Library")
+################################################################################
+# Build both static and shared + rpath
+################################################################################
+add_library(isl SHARED ${libisl_sources})
+add_library(isl-static STATIC ${libisl_sources})
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-target_include_directories(isl PRIVATE "${ISL_BINARY_DIR}" "${ISL_SOURCE_DIR}" ${PIPLIB_INCLUDE_DIRS})
-target_include_directories(isl PUBLIC "${ISL_BINARY_DIR}/include" "${ISL_SOURCE_DIR}/include")
-if (USE_GMP_FOR_MP)
-  target_include_directories(isl PUBLIC ${GMP_INCLUDE_DIRS})
-  target_link_libraries(isl PUBLIC ${GMP_LIBRARIES})
-endif ()
-if (USE_IMATH_FOR_MP)
-  target_include_directories(isl PUBLIC "${ISL_SOURCE_DIR}/imath")
-endif ()
+function(configure_isl_lib_build LIB)
+  set_target_properties(${LIB} PROPERTIES FOLDER "Integer Set Library")
+  target_include_directories(${LIB} PRIVATE "${ISL_BINARY_DIR}" "${ISL_SOURCE_DIR}" ${PIPLIB_INCLUDE_DIRS})
+  target_include_directories(${LIB} PUBLIC "${ISL_BINARY_DIR}/include" "${ISL_SOURCE_DIR}/include")
+  if (USE_GMP_FOR_MP)
+    target_include_directories(${LIB} PUBLIC ${GMP_INCLUDE_DIRS})
+    target_link_libraries(${LIB} PUBLIC ${GMP_LIBRARIES})
+  endif ()
+  if (USE_IMATH_FOR_MP)
+    target_include_directories(${LIB} PUBLIC "${ISL_SOURCE_DIR}/imath")
+  endif ()
+  # General compiler options
+  # if (CMAKE_COMPILER_IS_CLANGCC OR CMAKE_COMPILER_IS_GNUCC)
+  #  target_definitions(${LIB} -Wall)
+  # endif ()
+endfunction()
 
-# General compiler options
-#if (CMAKE_COMPILER_IS_CLANGCC OR CMAKE_COMPILER_IS_GNUCC)
-#  target_definitions(isl -Wall)
-#endif ()
-
+configure_isl_lib_build(isl)
+configure_isl_lib_build(isl-static)
 
 # Auxiliary executables
 macro (add_isl_executable _name)
@@ -407,6 +415,11 @@ add_subdirectory(interface)
 # Install libisl and includes
 ################################################################################
 install (TARGETS isl
+         ARCHIVE DESTINATION lib
+         LIBRARY DESTINATION lib
+         RUNTIME DESTINATION bin)
+
+install (TARGETS isl-static
          ARCHIVE DESTINATION lib
          LIBRARY DESTINATION lib
          RUNTIME DESTINATION bin)
