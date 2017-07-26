@@ -66,3 +66,4 @@ isl_codegen
 isl_schedule
 isl_test_int
 flow_test.sh
+build/*

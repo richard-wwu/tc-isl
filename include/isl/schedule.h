@@ -84,6 +84,12 @@ isl_schedule_constraints_set_custom_constraint_callback(
 	void *data);
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc);
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_merge_callback(
+	__isl_take isl_schedule_constraints *sc,
+	isl_bool (*callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *),
+	void *data);
 
 isl_ctx *isl_schedule_constraints_get_ctx(
 	__isl_keep isl_schedule_constraints *sc);

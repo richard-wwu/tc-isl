@@ -47,6 +47,10 @@ struct isl_schedule_constraints {
 		__isl_take isl_basic_set *, int, int,
 		__isl_keep isl_id_list *, int *, int *, void *);
         void *add_constraint_data;
+
+	isl_bool (*merge_callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *);
+	void *merge_callback_data;
 };
 
 __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
@@ -120,6 +124,9 @@ static __isl_give isl_schedule_constraints *isl_schedule_constraints_init(
 
 	sc->add_constraint = NULL;
 	sc->add_constraint_data = NULL;
+	
+	sc->merge_callback = NULL;
+	sc->merge_callback_data = NULL;
 
 	return sc;
 }
@@ -273,6 +280,32 @@ isl_schedule_constraints_set_custom_constraint_callback(
 	sc->add_constraint = callback;
 	sc->add_constraint_data = data;
 	return sc;
+}
+
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_merge_callback(
+	__isl_take isl_schedule_constraints *sc,
+	isl_bool (*callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *),
+	void *data)
+{
+	sc->merge_callback = callback;
+	sc->merge_callback_data = data;
+
+	return sc;
+}
+
+isl_bool (*isl_schedule_constraints_get_merge_callback(
+	__isl_keep isl_schedule_constraints *sc))
+(__isl_give isl_union_map *, __isl_give isl_union_map *, int, int, int, void *)
+{
+	return sc->merge_callback;
+}
+
+void *isl_schedule_constraints_get_merge_callback_data(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	return sc->merge_callback_data;
 }
 
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
