@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+__isl_export
 unsigned isl_union_map_dim(__isl_keep isl_union_map *umap,
 	enum isl_dim_type type);
 isl_bool isl_union_map_involves_dims(__isl_keep isl_union_map *umap,
@@ -221,6 +222,7 @@ isl_bool isl_union_map_is_strict_subset(__isl_keep isl_union_map *umap1,
 
 uint32_t isl_union_map_get_hash(__isl_keep isl_union_map *umap);
 
+__isl_export
 int isl_union_map_n_map(__isl_keep isl_union_map *umap);
 __isl_export
 isl_stat isl_union_map_foreach_map(__isl_keep isl_union_map *umap,

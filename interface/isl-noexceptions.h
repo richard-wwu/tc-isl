@@ -86,6 +86,173 @@ public:
   }
 };
 
+
+class id;
+
+inline isl::id manage(__isl_take isl_id *ptr);
+
+template <typename T>
+struct isl_id_user {
+	T *usr;
+	std::function<void (T *)> deleter;
+};
+
+template <typename T>
+static void *allocate_isl_id_user(T *u, std::function<void (T *)> d) {
+	isl_id_user<T> *iiu = new isl_id_user<T>;
+	iiu->usr = u;
+	iiu->deleter = d;
+	return iiu;
+}
+
+template <typename T>
+struct DeleteIslId {
+  static void delete_isl_id_user(void *v) {
+    auto iiu = static_cast<isl_id_user<T> *>(v);
+  	iiu->deleter(iiu->usr);
+  	delete iiu;
+  }
+};
+
+template <typename T>
+std::function<void (T *)> make_default_deleter() {
+  return [](T *t) {
+    delete t;
+  };
+}
+
+class id {
+private:
+  friend inline isl::id manage(__isl_take isl_id *ptr);
+
+  isl_id *ptr = nullptr;
+
+  inline explicit id(__isl_take isl_id *ptr);
+
+public:
+  inline /* implicit */ id();
+  inline /* implicit */ id(const isl::id &obj);
+
+  template <typename T>
+  explicit id(isl::ctx ctx, const std::string &str, T *obj,
+              std::function<void (T *)> deleter = make_default_deleter<T>())
+  {
+    void *usr = allocate_isl_id_user(obj, deleter);
+    auto res = isl_id_alloc(ctx.release(), str.c_str(), usr);
+    res = isl_id_set_free_user(res, &DeleteIslId<T>::delete_isl_id_user);
+    ptr = res;
+  }
+
+  explicit id(isl::ctx ctx, const std::string &str) {
+    auto res = isl_id_alloc(ctx.release(), str.c_str(), NULL);
+    ptr = res;
+  }
+
+  std::string get_name() const {
+    const char *Tmp = isl_id_get_name(get());
+    if (!Tmp)
+      return "";
+    std::string S(Tmp);
+    return S;
+  }
+
+  template <typename T>
+  T *get_user() const {
+    auto iiu = static_cast<isl_id_user<T> *>(isl_id_get_user(ptr));
+    return iiu->usr;
+  }
+
+  //inline explicit id(isl::ctx ctx, const std::string &str, std::shared_ptr<void> obj);
+  inline isl::id &operator=(isl::id obj);
+  inline ~id();
+  inline __isl_give isl_id *copy() const &;
+  inline __isl_give isl_id *copy() && = delete;
+  inline __isl_keep isl_id *get() const;
+  inline __isl_give isl_id *release();
+  inline __isl_keep isl_id *keep() const;
+  inline __isl_give isl_id *take();
+  inline explicit operator bool() const;
+  inline isl::ctx get_ctx() const;
+  inline bool is_null() const;
+  inline std::string to_str() const;
+
+  typedef isl_id* isl_ptr_t;
+};
+
+// implementations for isl::id
+isl::id manage(__isl_take isl_id *ptr) {
+  return id(ptr);
+}
+
+id::id()
+    : ptr(nullptr) {}
+
+id::id(const isl::id &obj)
+    : ptr(obj.copy()) {}
+
+id::id(__isl_take isl_id *ptr)
+    : ptr(ptr) {}
+
+id &id::operator=(isl::id obj) {
+  std::swap(this->ptr, obj.ptr);
+  return *this;
+}
+
+id::~id() {
+  if (ptr)
+    isl_id_free(ptr);
+}
+
+__isl_give isl_id *id::copy() const & {
+  return isl_id_copy(ptr);
+}
+
+__isl_keep isl_id *id::get() const {
+  return ptr;
+}
+
+__isl_give isl_id *id::release() {
+  isl_id *tmp = ptr;
+  ptr = nullptr;
+  return tmp;
+}
+
+__isl_keep isl_id *id::keep() const {
+  return get();
+}
+
+__isl_give isl_id *id::take() {
+  return release();
+}
+
+id::operator bool() const {
+  return !is_null();
+}
+
+isl::ctx id::get_ctx() const {
+  return isl::ctx(isl_id_get_ctx(ptr));
+}
+
+bool id::is_null() const {
+  return ptr == nullptr;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const id& C) {
+  os << C.to_str();
+  return os;
+}
+
+
+std::string id::to_str() const {
+  char *Tmp = isl_id_to_str(get());
+  if (!Tmp)
+    return "";
+  std::string S(Tmp);
+  free(Tmp);
+  return S;
+}
+
+
 enum class stat {
   ok = isl_stat_ok,
   error = isl_stat_error
@@ -295,6 +462,8 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
+  inline isl::id get_id() const;
+  inline isl::ast_expr get_op_arg(int pos) const;
   inline int get_op_n_arg() const;
   inline enum isl::ast_op_type get_op_type() const;
   inline isl::boolean is_equal(const isl::ast_expr &expr2) const;
@@ -337,8 +506,10 @@ public:
   inline isl::boolean for_is_degenerate() const;
   inline enum isl::ast_node_type get_type() const;
   inline isl::ast_expr if_get_cond() const;
+  inline isl::ast_node if_get_else() const;
   inline isl::ast_node if_get_then() const;
   inline isl::boolean if_has_else() const;
+  inline isl::id mark_get_id() const;
   inline isl::ast_node mark_get_node() const;
   inline std::string to_C_str() const;
   inline isl::ast_expr user_get_expr() const;
@@ -381,6 +552,7 @@ public:
   inline isl::basic_map flatten() const;
   inline isl::basic_map flatten_domain() const;
   inline isl::basic_map flatten_range() const;
+  inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::basic_map gist(isl::basic_map context) const;
   inline isl::basic_map intersect(isl::basic_map bmap2) const;
   inline isl::basic_map intersect_domain(isl::basic_set bset) const;
@@ -441,6 +613,8 @@ public:
   inline isl::boolean is_wrapping() const;
   inline isl::set lexmax() const;
   inline isl::set lexmin() const;
+  inline unsigned int n_dim() const;
+  inline unsigned int n_param() const;
   static inline isl::basic_set nat_universe(isl::space dim);
   inline isl::basic_set sample() const;
   inline isl::point sample_point() const;
@@ -875,7 +1049,10 @@ public:
   inline std::string to_str() const;
 
   inline isl::pw_aff add(isl::pw_aff pwaff2) const;
+  inline isl::pw_aff ceil() const;
+  inline isl::pw_aff div(isl::pw_aff pa2) const;
   inline isl::map eq_map(isl::pw_aff pa2) const;
+  inline isl::pw_aff floor() const;
   inline isl::stat foreach_piece(const std::function<isl::stat(isl::set, isl::aff)> &fn) const;
   inline isl::set ge_set(isl::pw_aff pwaff2) const;
   inline isl::space get_space() const;
@@ -885,9 +1062,15 @@ public:
   inline isl::set le_set(isl::pw_aff pwaff2) const;
   inline isl::map lt_map(isl::pw_aff pa2) const;
   inline isl::set lt_set(isl::pw_aff pwaff2) const;
+  inline isl::pw_aff max(isl::pw_aff pwaff2) const;
+  inline isl::pw_aff min(isl::pw_aff pwaff2) const;
+  inline isl::pw_aff mod_val(isl::val mod) const;
+  inline isl::pw_aff mul(isl::pw_aff pwaff2) const;
+  inline isl::pw_aff neg() const;
   inline isl::pw_aff pullback(isl::multi_aff ma) const;
   inline isl::pw_aff pullback(isl::pw_multi_aff pma) const;
   inline isl::pw_aff pullback(isl::multi_pw_aff mpa) const;
+  inline isl::pw_aff sub(isl::pw_aff pwaff2) const;
   inline isl::pw_aff union_add(isl::pw_aff pwaff2) const;
   typedef isl_pw_aff* isl_ptr_t;
 };
@@ -966,9 +1149,11 @@ public:
   inline std::string to_str() const;
 
   static inline isl::schedule from_domain(isl::union_set domain);
+  inline isl::union_set get_domain() const;
   inline isl::union_map get_map() const;
   inline isl::schedule_node get_root() const;
   inline isl::schedule insert_partial_schedule(isl::multi_union_pw_aff partial) const;
+  inline isl::boolean plain_is_equal(const isl::schedule &schedule2) const;
   inline isl::schedule pullback(isl::union_pw_multi_aff upma) const;
   inline isl::schedule sequence(isl::schedule schedule2) const;
   typedef isl_schedule* isl_ptr_t;
@@ -1122,6 +1307,8 @@ public:
   inline isl::set lexmin() const;
   inline isl::val max_val(const isl::aff &obj) const;
   inline isl::val min_val(const isl::aff &obj) const;
+  inline unsigned int n_dim() const;
+  inline unsigned int n_param() const;
   static inline isl::set nat_universe(isl::space dim);
   inline isl::basic_set polyhedral_hull() const;
   inline isl::basic_set sample() const;
@@ -1174,6 +1361,7 @@ public:
   inline isl::boolean has_dim_name(enum isl::dim_type type, unsigned int pos) const;
   inline isl::boolean has_tuple_name(enum isl::dim_type type) const;
   inline isl::boolean is_equal(const isl::space &space2) const;
+  inline isl::boolean is_set() const;
   inline isl::space map_from_domain_and_range(isl::space range) const;
   inline isl::space map_from_set() const;
   inline isl::space params() const;
@@ -1290,6 +1478,7 @@ public:
   inline isl::union_map compute_divs() const;
   inline isl::union_set deltas() const;
   inline isl::union_map detect_equalities() const;
+  inline unsigned int dim(enum isl::dim_type type) const;
   inline isl::union_set domain() const;
   inline isl::union_map domain_factor_domain() const;
   inline isl::union_map domain_factor_range() const;
@@ -1321,6 +1510,7 @@ public:
   inline isl::boolean is_subset(const isl::union_map &umap2) const;
   inline isl::union_map lexmax() const;
   inline isl::union_map lexmin() const;
+  inline int n_map() const;
   inline isl::union_map polyhedral_hull() const;
   inline isl::union_map product(isl::union_map umap2) const;
   inline isl::union_set range() const;
@@ -1448,6 +1638,7 @@ public:
   inline isl::union_set coalesce() const;
   inline isl::union_set compute_divs() const;
   inline isl::union_set detect_equalities() const;
+  inline unsigned int dim(enum isl::dim_type type) const;
   inline isl::stat foreach_point(const std::function<isl::stat(isl::point)> &fn) const;
   inline isl::stat foreach_set(const std::function<isl::stat(isl::set)> &fn) const;
   inline isl::space get_space() const;
@@ -1900,6 +2091,16 @@ std::string ast_expr::to_str() const {
 }
 
 
+isl::id ast_expr::get_id() const {
+  auto res = isl_ast_expr_get_id(get());
+  return manage(res);
+}
+
+isl::ast_expr ast_expr::get_op_arg(int pos) const {
+  auto res = isl_ast_expr_get_op_arg(get(), pos);
+  return manage(res);
+}
+
 int ast_expr::get_op_n_arg() const {
   auto res = isl_ast_expr_get_op_n_arg(get());
   return res;
@@ -2042,6 +2243,11 @@ isl::ast_expr ast_node::if_get_cond() const {
   return manage(res);
 }
 
+isl::ast_node ast_node::if_get_else() const {
+  auto res = isl_ast_node_if_get_else(get());
+  return manage(res);
+}
+
 isl::ast_node ast_node::if_get_then() const {
   auto res = isl_ast_node_if_get_then(get());
   return manage(res);
@@ -2050,6 +2256,11 @@ isl::ast_node ast_node::if_get_then() const {
 isl::boolean ast_node::if_has_else() const {
   auto res = isl_ast_node_if_has_else(get());
   return res;
+}
+
+isl::id ast_node::mark_get_id() const {
+  auto res = isl_ast_node_mark_get_id(get());
+  return manage(res);
 }
 
 isl::ast_node ast_node::mark_get_node() const {
@@ -2195,6 +2406,12 @@ isl::basic_map basic_map::flatten_domain() const {
 isl::basic_map basic_map::flatten_range() const {
   auto res = isl_basic_map_flatten_range(copy());
   return manage(res);
+}
+
+std::string basic_map::get_tuple_name(enum isl::dim_type type) const {
+  auto res = isl_basic_map_get_tuple_name(get(), static_cast<enum isl_dim_type>(type));
+  std::string tmp(res);
+  return tmp;
 }
 
 isl::basic_map basic_map::gist(isl::basic_map context) const {
@@ -2427,6 +2644,16 @@ isl::set basic_set::lexmax() const {
 isl::set basic_set::lexmin() const {
   auto res = isl_basic_set_lexmin(copy());
   return manage(res);
+}
+
+unsigned int basic_set::n_dim() const {
+  auto res = isl_basic_set_n_dim(get());
+  return res;
+}
+
+unsigned int basic_set::n_param() const {
+  auto res = isl_basic_set_n_param(get());
+  return res;
 }
 
 isl::basic_set basic_set::nat_universe(isl::space dim) {
@@ -4035,8 +4262,23 @@ isl::pw_aff pw_aff::add(isl::pw_aff pwaff2) const {
   return manage(res);
 }
 
+isl::pw_aff pw_aff::ceil() const {
+  auto res = isl_pw_aff_ceil(copy());
+  return manage(res);
+}
+
+isl::pw_aff pw_aff::div(isl::pw_aff pa2) const {
+  auto res = isl_pw_aff_div(copy(), pa2.release());
+  return manage(res);
+}
+
 isl::map pw_aff::eq_map(isl::pw_aff pa2) const {
   auto res = isl_pw_aff_eq_map(copy(), pa2.release());
+  return manage(res);
+}
+
+isl::pw_aff pw_aff::floor() const {
+  auto res = isl_pw_aff_floor(copy());
   return manage(res);
 }
 
@@ -4091,6 +4333,31 @@ isl::set pw_aff::lt_set(isl::pw_aff pwaff2) const {
   return manage(res);
 }
 
+isl::pw_aff pw_aff::max(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_max(copy(), pwaff2.release());
+  return manage(res);
+}
+
+isl::pw_aff pw_aff::min(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_min(copy(), pwaff2.release());
+  return manage(res);
+}
+
+isl::pw_aff pw_aff::mod_val(isl::val mod) const {
+  auto res = isl_pw_aff_mod_val(copy(), mod.release());
+  return manage(res);
+}
+
+isl::pw_aff pw_aff::mul(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_mul(copy(), pwaff2.release());
+  return manage(res);
+}
+
+isl::pw_aff pw_aff::neg() const {
+  auto res = isl_pw_aff_neg(copy());
+  return manage(res);
+}
+
 isl::pw_aff pw_aff::pullback(isl::multi_aff ma) const {
   auto res = isl_pw_aff_pullback_multi_aff(copy(), ma.release());
   return manage(res);
@@ -4103,6 +4370,11 @@ isl::pw_aff pw_aff::pullback(isl::pw_multi_aff pma) const {
 
 isl::pw_aff pw_aff::pullback(isl::multi_pw_aff mpa) const {
   auto res = isl_pw_aff_pullback_multi_pw_aff(copy(), mpa.release());
+  return manage(res);
+}
+
+isl::pw_aff pw_aff::sub(isl::pw_aff pwaff2) const {
+  auto res = isl_pw_aff_sub(copy(), pwaff2.release());
   return manage(res);
 }
 
@@ -4360,6 +4632,11 @@ isl::schedule schedule::from_domain(isl::union_set domain) {
   return manage(res);
 }
 
+isl::union_set schedule::get_domain() const {
+  auto res = isl_schedule_get_domain(get());
+  return manage(res);
+}
+
 isl::union_map schedule::get_map() const {
   auto res = isl_schedule_get_map(get());
   return manage(res);
@@ -4373,6 +4650,11 @@ isl::schedule_node schedule::get_root() const {
 isl::schedule schedule::insert_partial_schedule(isl::multi_union_pw_aff partial) const {
   auto res = isl_schedule_insert_partial_schedule(copy(), partial.release());
   return manage(res);
+}
+
+isl::boolean schedule::plain_is_equal(const isl::schedule &schedule2) const {
+  auto res = isl_schedule_plain_is_equal(get(), schedule2.get());
+  return res;
 }
 
 isl::schedule schedule::pullback(isl::union_pw_multi_aff upma) const {
@@ -4939,6 +5221,16 @@ isl::val set::min_val(const isl::aff &obj) const {
   return manage(res);
 }
 
+unsigned int set::n_dim() const {
+  auto res = isl_set_n_dim(get());
+  return res;
+}
+
+unsigned int set::n_param() const {
+  auto res = isl_set_n_param(get());
+  return res;
+}
+
 isl::set set::nat_universe(isl::space dim) {
   auto res = isl_set_nat_universe(dim.release());
   return manage(res);
@@ -5129,6 +5421,11 @@ isl::boolean space::has_tuple_name(enum isl::dim_type type) const {
 
 isl::boolean space::is_equal(const isl::space &space2) const {
   auto res = isl_space_is_equal(get(), space2.get());
+  return res;
+}
+
+isl::boolean space::is_set() const {
+  auto res = isl_space_is_set(get());
   return res;
 }
 
@@ -5502,6 +5799,11 @@ isl::union_map union_map::detect_equalities() const {
   return manage(res);
 }
 
+unsigned int union_map::dim(enum isl::dim_type type) const {
+  auto res = isl_union_map_dim(get(), static_cast<enum isl_dim_type>(type));
+  return res;
+}
+
 isl::union_set union_map::domain() const {
   auto res = isl_union_map_domain(copy());
   return manage(res);
@@ -5661,6 +5963,11 @@ isl::union_map union_map::lexmax() const {
 isl::union_map union_map::lexmin() const {
   auto res = isl_union_map_lexmin(copy());
   return manage(res);
+}
+
+int union_map::n_map() const {
+  auto res = isl_union_map_n_map(get());
+  return res;
 }
 
 isl::union_map union_map::polyhedral_hull() const {
@@ -6078,6 +6385,11 @@ isl::union_set union_set::compute_divs() const {
 isl::union_set union_set::detect_equalities() const {
   auto res = isl_union_set_detect_equalities(copy());
   return manage(res);
+}
+
+unsigned int union_set::dim(enum isl::dim_type type) const {
+  auto res = isl_union_set_dim(get(), static_cast<enum isl_dim_type>(type));
+  return res;
 }
 
 isl::stat union_set::foreach_point(const std::function<isl::stat(isl::point)> &fn) const {

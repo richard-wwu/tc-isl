@@ -23,14 +23,18 @@
 extern "C" {
 #endif
 
+__isl_export
 unsigned isl_basic_set_n_dim(__isl_keep isl_basic_set *bset);
+__isl_export
 unsigned isl_basic_set_n_param(__isl_keep isl_basic_set *bset);
 unsigned isl_basic_set_total_dim(__isl_keep const isl_basic_set *bset);
 __isl_export
 unsigned isl_basic_set_dim(__isl_keep isl_basic_set *bset,
 				enum isl_dim_type type);
 
+__isl_export
 unsigned isl_set_n_dim(__isl_keep isl_set *set);
+__isl_export
 unsigned isl_set_n_param(__isl_keep isl_set *set);
 __isl_export
 unsigned isl_set_dim(__isl_keep isl_set *set, enum isl_dim_type type);
