@@ -5871,7 +5871,7 @@ static isl_bool cluster_follows(int i, int j, void *user)
 }
 
 /* Mark all SCCs that belong to either of the two clusters in "c"
- * connected by the edge in "graph" with index "edge", or to any
+ * that contain "src" or "dst" node, or to any
  * of the intermediate clusters.
  * The marking is recorded in c->scc_in_merge.
  *
@@ -5893,7 +5893,8 @@ static isl_bool cluster_follows(int i, int j, void *user)
  * in c->scc_in_merge.
  */
 static isl_stat mark_merge_sccs(isl_ctx *ctx, struct isl_sched_graph *graph,
-	int edge, struct isl_clustering *c)
+	struct isl_sched_node *src, struct isl_sched_node *dst,
+	struct isl_clustering *c)
 {
 	struct isl_mark_merge_sccs_data data;
 	struct isl_tarjan_graph *g;
@@ -5904,8 +5905,8 @@ static isl_stat mark_merge_sccs(isl_ctx *ctx, struct isl_sched_graph *graph,
 
 	data.graph = graph;
 	data.scc_cluster = c->scc_cluster;
-	data.src = graph->edge[edge].src - graph->node;
-	data.dst = graph->edge[edge].dst - graph->node;
+	data.src = src - graph->node;
+	data.dst = dst - graph->node;
 
 	g = isl_tarjan_graph_component(ctx, graph->n, data.dst,
 					&cluster_follows, &data);
@@ -6910,7 +6911,8 @@ static isl_stat merge_clusters_along_edge(isl_ctx *ctx,
 	isl_bool merged;
 	int edge_weight = graph->edge[edge].weight;
 
-	if (mark_merge_sccs(ctx, graph, edge, c) < 0)
+	if (mark_merge_sccs(ctx, graph, graph->edge[edge].src,
+			    graph->edge[edge].dst, c) < 0)
 		return isl_stat_error;
 
 	if (any_no_merge(graph, c->scc_in_merge, &graph->edge[edge]))
@@ -7173,11 +7175,13 @@ isl_stat merge_node_pairs(isl_ctx *ctx, struct isl_sched_graph *graph,
 			struct isl_sched_node *node_j = &graph->node[j];
 			isl_bool merged;
 
-			if (node_i->scc == node_j->scc)
+			int cluster_i = c->scc_cluster[node_i->scc];
+			int cluster_j = c->scc_cluster[node_j->scc];
+
+			if (cluster_i == cluster_j)
 				continue;
 
-			c->scc_in_merge[node_i->scc] = 1;
-			c->scc_in_merge[node_j->scc] = 1;
+			mark_merge_sccs(ctx, graph, node_i, node_j, c);
 
 			merged = try_merge(ctx, graph, c);
 			if (merged < 0)
