@@ -56,15 +56,7 @@ include_directories(${CLANG_PREFIX}/include)
 link_directories(${CLANG_PREFIX}/lib)
 add_executable(extract_interface cpp.cc extract_interface.cc generator.cc python.cc)
 
-# More horrible horror...
-if(TRAVIS)
-  set(TINFO_LIB "tinfo")
-else()
-  set(TINFO_LIB "")
-endif()
-
-
-target_link_libraries(extract_interface isl clangFrontend clangParse clangSema clangEdit clangAnalysis clangAST clangLex clangBasic clangDriver clangSerialization clang LLVMOption LLVMX86Disassembler LLVMX86AsmParser LLVMX86CodeGen LLVMX86Desc LLVMX86Info LLVMX86AsmPrinter LLVMX86Utils LLVMMCDisassembler LLVMGlobalISel LLVMSelectionDAG LLVMAsmPrinter LLVMDebugInfoCodeView LLVMDebugInfoMSF LLVMCodeGen LLVMTarget LLVMScalarOpts LLVMInstCombine LLVMTransformUtils LLVMBitWriter LLVMAnalysis LLVMObject LLVMBitReader LLVMProfileData LLVMCore LLVMMCParser LLVMMC LLVMSupport LLVMDemangle rt dl pthread z m ${TINFO_LIB})
+target_link_libraries(extract_interface isl clangFrontend clangParse clangSema clangEdit clangAnalysis clangAST clangLex clangBasic clangDriver clangSerialization clang LLVMOption LLVMX86Disassembler LLVMX86AsmParser LLVMX86CodeGen LLVMX86Desc LLVMX86Info LLVMX86AsmPrinter LLVMX86Utils LLVMMCDisassembler LLVMGlobalISel LLVMSelectionDAG LLVMAsmPrinter LLVMDebugInfoCodeView LLVMDebugInfoMSF LLVMCodeGen LLVMTarget LLVMScalarOpts LLVMInstCombine LLVMTransformUtils LLVMBitWriter LLVMAnalysis LLVMObject LLVMBitReader LLVMProfileData LLVMCore LLVMMCParser LLVMMC LLVMSupport LLVMDemangle rt dl pthread z m tinfo)
 
 ################################################################################
 # Generate isl-noexceptions.h
