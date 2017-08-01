@@ -64,7 +64,8 @@ isl-noexceptions.h: extract_interface libdep.a isl-noexceptions.h.top \
 		isl-noexceptions.h.pre isl-noexceptions.h.bot
 	(cat $(srcdir)/isl-noexceptions.h.top $(srcdir)/all.h \
 	    $(srcdir)/isl-noexceptions.h.pre; \
-		./extract_interface$(EXEEXT) --language=cpp $(includes) \
+		./extract_interface$(EXEEXT) --language=cpp-noexceptions \
+			$(includes) \
 			$(srcdir)/all.h; \
 		cat $(srcdir)/isl-noexceptions.h.bot) \
 			> isl-noexceptions.h
