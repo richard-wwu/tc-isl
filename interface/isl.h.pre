@@ -1,0 +1,77 @@
+
+#include <functional>
+#include <stdexcept>
+#include <string>
+
+namespace isl {
+
+class ctx {
+  isl_ctx *ptr;
+public:
+  /* implicit */ ctx(isl_ctx *ctx)
+      : ptr(ctx) {}
+  isl_ctx *release() {
+    auto tmp = ptr;
+    ptr = nullptr;
+    return tmp;
+  }
+  isl_ctx *get() {
+    return ptr;
+  }
+};
+
+class exception : public std::runtime_error {
+public:
+	exception(const char *what_arg) : runtime_error(what_arg) {}
+	static exception create(enum isl_error error);
+};
+
+class exception_abort : public exception {
+public:
+	exception_abort() : exception("execution aborted") {}
+};
+
+class exception_alloc : public exception {
+public:
+	exception_alloc() : exception("memory allocation failure") {}
+};
+
+class exception_unknown : public exception {
+public:
+	exception_unknown() : exception("unknown failure") {}
+};
+
+class exception_internal : public exception {
+public:
+	exception_internal() : exception("internal error") {}
+};
+
+class exception_invalid : public exception {
+public:
+	exception_invalid() : exception("invalid argument") {}
+};
+
+class exception_quota : public exception {
+public:
+	exception_quota() : exception("quota exceeded") {}
+};
+
+class exception_unsupported : public exception {
+public:
+	exception_unsupported() : exception("unsupported operation") {}
+};
+
+exception exception::create(enum isl_error error) {
+	switch (error) {
+	case isl_error_none: throw exception_invalid();
+	case isl_error_abort: return exception_abort();
+	case isl_error_alloc: return exception_alloc();
+	case isl_error_unknown: return exception_unknown();
+	case isl_error_internal: return exception_internal();
+	case isl_error_invalid: return exception_invalid();
+	case isl_error_quota: return exception_quota();
+	case isl_error_unsupported: return exception_unsupported();
+	}
+}
+
+} // namespace isl

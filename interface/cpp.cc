@@ -78,6 +78,10 @@ static std::string to_string(long l)
  * Print first a set of forward declarations for all isl wrapper
  * classes, then the declarations of the classes, and at the end all
  * implementations.
+ *
+ * If C++ bindings without exceptions are being generated,
+ * then wrap them in an inline namespace to avoid conflicts
+ * with the default C++ bindings (with exceptions).
  */
 void cpp_generator::generate()
 {
@@ -85,7 +89,8 @@ void cpp_generator::generate()
 
 	osprintf(os, "\n");
 	osprintf(os, "namespace isl {\n\n");
-	osprintf(os, "inline namespace noexceptions {\n\n");
+	if (noexceptions)
+		osprintf(os, "inline namespace noexceptions {\n\n");
 
 	print_forward_declarations(os);
 	osprintf(os, "\n");
@@ -93,7 +98,8 @@ void cpp_generator::generate()
 	osprintf(os, "\n");
 	print_implementations(os);
 
-	osprintf(os, "} // namespace noexceptions\n");
+	if (noexceptions)
+		osprintf(os, "} // namespace noexceptions\n");
 	osprintf(os, "} // namespace isl\n");
 }
 
@@ -686,6 +692,12 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	print_method_header(os, clazz, method, fullname, false, kind);
 	osprintf(os, "{\n");
 
+	if (!noexceptions && kind == function_kind_member_method) {
+		osprintf(os, "  if (!ptr)\n");
+		osprintf(os,
+		    "    throw isl::exception::create(isl_error_invalid);\n");
+	}
+
 	for (int i = 0; i < num_params; ++i) {
 		ParmVarDecl *param = method->getParamDecl(i);
 		if (is_callback(param->getType())) {
@@ -711,9 +723,31 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	}
 	osprintf(os, ");\n");
 
+	if (!noexceptions) {
+		for (int i = 0; i < num_params; ++i) {
+			ParmVarDecl *param = method->getParamDecl(i);
+			const char *name;
+			if (!is_callback(param->getType()))
+				continue;
+			name = param->getName().str().c_str();
+			osprintf(os, "  if (%s_data.eptr)\n", name);
+			osprintf(os,
+				"    std::rethrow_exception(%s_data.eptr);\n",
+				name);
+		}
+	}
+
+	if (!noexceptions &&
+	    (is_isl_stat(return_type) || is_isl_bool(return_type))) {
+		osprintf(os, "  if (res < 0)\n");
+		osprintf(os, "    throw isl::exception::create("
+			"isl_ctx_last_error(%s_get_ctx(ptr)));\n",
+			clazz.name.c_str());
+	}
 	if (kind == function_kind_constructor) {
 		osprintf(os, "  ptr = res;\n");
-	} else if (is_isl_type(return_type) || is_isl_bool(return_type)) {
+	} else if (is_isl_type(return_type) ||
+		    (noexceptions && is_isl_bool(return_type))) {
 		osprintf(os, "  return manage(res);\n");
 	} else if (has_callback) {
 		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
@@ -970,6 +1004,8 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param) {
 
 	osprintf(os, "  struct %s_data {\n", pname.c_str());
 	osprintf(os, "    const %s *func;\n", cpp_args.c_str());
+	if (!noexceptions)
+		osprintf(os, "    std::exception_ptr eptr;\n");
 	osprintf(os, "  } %s_data = { &%s };\n", pname.c_str(), pname.c_str());
 	osprintf(os,
 		 "  auto %s_lambda = [](%s) -> %s {\n",
@@ -977,11 +1013,28 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param) {
 	osprintf(os,
 		 "    auto *data = static_cast<struct %s_data *>(arg_%s);\n",
 		 pname.c_str(), last_idx.c_str());
+	if (!noexceptions)
+		osprintf(os, "    try {\n  ");
 	osprintf(os,
-		 "    stat ret = (*data->func)(%s);\n"
-		 "    return isl_stat(ret);\n"
-		 "  };\n",
+		 "    %s(*data->func)(%s);\n",
+		 noexceptions ? "stat ret = " : "",
 		 call_args.c_str());
+	if (!noexceptions)
+		osprintf(os, "  ");
+	if (!noexceptions)
+		osprintf(os, "    return isl_stat_ok;\n");
+	else
+		osprintf(os, "    return isl_stat(ret);\n");
+	if (!noexceptions) {
+		osprintf(os,
+			"    } catch (...) {\n"
+			"      data->eptr = std::current_exception();\n");
+		osprintf(os, "      return isl_stat_error;\n");
+		osprintf(os,
+			"    }\n");
+	}
+	osprintf(os,
+		 "  };\n");
 }
 
 /* An array listing functions that must be renamed and the function name they
@@ -1027,10 +1080,10 @@ string cpp_generator::type2cpp(QualType type)
 		return "isl::" + type2cpp(type->getPointeeType().getAsString());
 
 	if (is_isl_bool(type))
-		return "isl::boolean";
+		return noexceptions ? "isl::boolean" : "bool";
 
 	if (is_isl_stat(type))
-		return "isl::stat";
+		return noexceptions ? "isl::stat" : "void";
 
 	if (type->isIntegerType())
 		return type.getAsString();

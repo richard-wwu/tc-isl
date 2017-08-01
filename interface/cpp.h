@@ -3,12 +3,22 @@
 using namespace std;
 using namespace clang;
 
+/* Generator for C++ bindings.
+ *
+ * "noexceptions" is set if C++ bindings should be generated
+ * that do not use exceptions.
+ */
 class cpp_generator : public generator {
+protected:
+	bool noexceptions;
+
 public:
 	cpp_generator(set<RecordDecl *> &exported_types,
 		set<FunctionDecl *> exported_functions,
-		set<FunctionDecl *> functions) :
-		generator(exported_types, exported_functions, functions) {}
+		set<FunctionDecl *> functions,
+		bool noexceptions = false) :
+		generator(exported_types, exported_functions, functions),
+		noexceptions(noexceptions) {}
 
 	enum function_kind {
 		function_kind_static_method,
