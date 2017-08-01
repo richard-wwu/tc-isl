@@ -387,6 +387,7 @@ public:
   inline isl::set ge_set(isl::aff aff2) const;
   inline isl::space get_space() const;
   inline isl::set le_set(isl::aff aff2) const;
+  inline isl::set lt_set(isl::aff aff2) const;
   inline isl::aff mod_val(isl::val mod) const;
   inline isl::aff mul(isl::aff aff2) const;
   inline isl::aff neg() const;
@@ -766,6 +767,7 @@ public:
   inline isl::space get_domain_space() const;
   inline isl::space get_space() const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
+  inline isl::boolean has_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_aff insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff neg() const;
@@ -832,6 +834,7 @@ public:
   inline isl::pw_aff get_pw_aff(int pos) const;
   inline isl::space get_space() const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
+  inline isl::boolean has_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_pw_aff insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::boolean is_equal(const isl::multi_pw_aff &mpa2) const;
   inline isl::multi_pw_aff mod_multi_val(isl::multi_val mv) const;
@@ -897,10 +900,12 @@ public:
   inline isl::multi_union_pw_aff flat_range_product(isl::multi_union_pw_aff multi2) const;
   inline isl::multi_union_pw_aff flatten_range() const;
   inline isl::multi_union_pw_aff from_range() const;
+  static inline isl::multi_union_pw_aff from_union_map(isl::union_map umap);
   inline isl::space get_domain_space() const;
   inline isl::space get_space() const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::union_pw_aff get_union_pw_aff(int pos) const;
+  inline isl::boolean has_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_union_pw_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff neg() const;
   inline isl::multi_union_pw_aff pullback(isl::union_pw_multi_aff upma) const;
@@ -962,6 +967,7 @@ public:
   inline isl::space get_space() const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::val get_val(int pos) const;
+  inline isl::boolean has_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_val insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_val mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_val neg() const;
@@ -1222,19 +1228,27 @@ public:
   inline bool is_null() const;
   inline std::string to_str() const;
 
+  inline isl::union_set band_get_ast_build_options() const;
   inline isl::multi_union_pw_aff band_get_partial_schedule() const;
+  inline isl::union_map band_get_partial_schedule_union_map() const;
   inline isl::boolean band_get_permutable() const;
   inline isl::space band_get_space() const;
   inline isl::boolean band_member_get_coincident(int pos) const;
   inline isl::schedule_node band_member_set_ast_loop_type(int pos, enum isl::ast_loop_type type) const;
   inline isl::schedule_node band_member_set_coincident(int pos, int coincident) const;
+  inline isl::schedule_node band_member_set_isolate_ast_loop_type(int pos, enum isl::ast_loop_type type) const;
   inline unsigned int band_n_member() const;
+  inline isl::schedule_node band_set_ast_build_options(isl::union_set options) const;
   inline isl::schedule_node band_set_permutable(int permutable) const;
   inline isl::schedule_node band_sink() const;
   inline isl::schedule_node band_split(int pos) const;
   inline isl::schedule_node band_tile(isl::multi_val sizes) const;
   inline isl::schedule_node band_transform_pw_multi_aff(isl::pw_multi_aff pma) const;
   inline isl::schedule_node child(int pos) const;
+  inline isl::set context_get_context() const;
+  inline isl::schedule_node cut() const;
+  inline isl::union_set filter_get_filter() const;
+  inline isl::schedule_node get_child(int pos) const;
   inline isl::union_set get_domain() const;
   inline isl::multi_union_pw_aff get_prefix_schedule_multi_union_pw_aff() const;
   inline isl::union_map get_prefix_schedule_relation() const;
@@ -1247,6 +1261,7 @@ public:
   inline isl::schedule_node insert_filter(isl::union_set filter) const;
   inline isl::schedule_node insert_partial_schedule(isl::multi_union_pw_aff schedule) const;
   inline isl::boolean is_equal(const isl::schedule_node &node2) const;
+  inline int n_children() const;
   inline isl::schedule_node parent() const;
   inline isl::schedule_node root() const;
   typedef isl_schedule_node* isl_ptr_t;
@@ -1598,6 +1613,9 @@ public:
 
   inline isl::union_pw_multi_aff add(isl::union_pw_multi_aff upma2) const;
   inline isl::union_pw_multi_aff flat_range_product(isl::union_pw_multi_aff upma2) const;
+  inline isl::stat foreach_pw_multi_aff(const std::function<isl::stat(isl::pw_multi_aff)> &fn) const;
+  static inline isl::union_pw_multi_aff from(isl::union_map umap);
+  static inline isl::union_pw_multi_aff from_multi_union_pw_aff(isl::multi_union_pw_aff mupa);
   inline isl::union_pw_multi_aff pullback(isl::union_pw_multi_aff upma2) const;
   inline isl::union_pw_multi_aff union_add(isl::union_pw_multi_aff upma2) const;
   typedef isl_union_pw_multi_aff* isl_ptr_t;
@@ -1859,6 +1877,11 @@ isl::space aff::get_space() const {
 
 isl::set aff::le_set(isl::aff aff2) const {
   auto res = isl_aff_le_set(copy(), aff2.release());
+  return manage(res);
+}
+
+isl::set aff::lt_set(isl::aff aff2) const {
+  auto res = isl_aff_lt_set(copy(), aff2.release());
   return manage(res);
 }
 
@@ -3201,6 +3224,11 @@ std::string multi_aff::get_tuple_name(enum isl::dim_type type) const {
   return tmp;
 }
 
+isl::boolean multi_aff::has_tuple_id(enum isl::dim_type type) const {
+  auto res = isl_multi_aff_has_tuple_id(get(), static_cast<enum isl_dim_type>(type));
+  return res;
+}
+
 isl::multi_aff multi_aff::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_aff_insert_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
@@ -3462,6 +3490,11 @@ std::string multi_pw_aff::get_tuple_name(enum isl::dim_type type) const {
   return tmp;
 }
 
+isl::boolean multi_pw_aff::has_tuple_id(enum isl::dim_type type) const {
+  auto res = isl_multi_pw_aff_has_tuple_id(get(), static_cast<enum isl_dim_type>(type));
+  return res;
+}
+
 isl::multi_pw_aff multi_pw_aff::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
   auto res = isl_multi_pw_aff_insert_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
   return manage(res);
@@ -3712,6 +3745,11 @@ isl::multi_union_pw_aff multi_union_pw_aff::from_range() const {
   return manage(res);
 }
 
+isl::multi_union_pw_aff multi_union_pw_aff::from_union_map(isl::union_map umap) {
+  auto res = isl_multi_union_pw_aff_from_union_map(umap.release());
+  return manage(res);
+}
+
 isl::space multi_union_pw_aff::get_domain_space() const {
   auto res = isl_multi_union_pw_aff_get_domain_space(get());
   return manage(res);
@@ -3731,6 +3769,11 @@ std::string multi_union_pw_aff::get_tuple_name(enum isl::dim_type type) const {
 isl::union_pw_aff multi_union_pw_aff::get_union_pw_aff(int pos) const {
   auto res = isl_multi_union_pw_aff_get_union_pw_aff(get(), pos);
   return manage(res);
+}
+
+isl::boolean multi_union_pw_aff::has_tuple_id(enum isl::dim_type type) const {
+  auto res = isl_multi_union_pw_aff_has_tuple_id(get(), static_cast<enum isl_dim_type>(type));
+  return res;
 }
 
 isl::multi_union_pw_aff multi_union_pw_aff::mod_multi_val(isl::multi_val mv) const {
@@ -3967,6 +4010,11 @@ std::string multi_val::get_tuple_name(enum isl::dim_type type) const {
 isl::val multi_val::get_val(int pos) const {
   auto res = isl_multi_val_get_val(get(), pos);
   return manage(res);
+}
+
+isl::boolean multi_val::has_tuple_id(enum isl::dim_type type) const {
+  auto res = isl_multi_val_has_tuple_id(get(), static_cast<enum isl_dim_type>(type));
+  return res;
 }
 
 isl::multi_val multi_val::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const {
@@ -4860,8 +4908,18 @@ std::string schedule_node::to_str() const {
 }
 
 
+isl::union_set schedule_node::band_get_ast_build_options() const {
+  auto res = isl_schedule_node_band_get_ast_build_options(get());
+  return manage(res);
+}
+
 isl::multi_union_pw_aff schedule_node::band_get_partial_schedule() const {
   auto res = isl_schedule_node_band_get_partial_schedule(get());
+  return manage(res);
+}
+
+isl::union_map schedule_node::band_get_partial_schedule_union_map() const {
+  auto res = isl_schedule_node_band_get_partial_schedule_union_map(get());
   return manage(res);
 }
 
@@ -4890,9 +4948,19 @@ isl::schedule_node schedule_node::band_member_set_coincident(int pos, int coinci
   return manage(res);
 }
 
+isl::schedule_node schedule_node::band_member_set_isolate_ast_loop_type(int pos, enum isl::ast_loop_type type) const {
+  auto res = isl_schedule_node_band_member_set_isolate_ast_loop_type(copy(), pos, static_cast<enum isl_ast_loop_type>(type));
+  return manage(res);
+}
+
 unsigned int schedule_node::band_n_member() const {
   auto res = isl_schedule_node_band_n_member(get());
   return res;
+}
+
+isl::schedule_node schedule_node::band_set_ast_build_options(isl::union_set options) const {
+  auto res = isl_schedule_node_band_set_ast_build_options(copy(), options.release());
+  return manage(res);
 }
 
 isl::schedule_node schedule_node::band_set_permutable(int permutable) const {
@@ -4922,6 +4990,26 @@ isl::schedule_node schedule_node::band_transform_pw_multi_aff(isl::pw_multi_aff 
 
 isl::schedule_node schedule_node::child(int pos) const {
   auto res = isl_schedule_node_child(copy(), pos);
+  return manage(res);
+}
+
+isl::set schedule_node::context_get_context() const {
+  auto res = isl_schedule_node_context_get_context(get());
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::cut() const {
+  auto res = isl_schedule_node_cut(copy());
+  return manage(res);
+}
+
+isl::union_set schedule_node::filter_get_filter() const {
+  auto res = isl_schedule_node_filter_get_filter(get());
+  return manage(res);
+}
+
+isl::schedule_node schedule_node::get_child(int pos) const {
+  auto res = isl_schedule_node_get_child(get(), pos);
   return manage(res);
 }
 
@@ -4982,6 +5070,11 @@ isl::schedule_node schedule_node::insert_partial_schedule(isl::multi_union_pw_af
 
 isl::boolean schedule_node::is_equal(const isl::schedule_node &node2) const {
   auto res = isl_schedule_node_is_equal(get(), node2.get());
+  return res;
+}
+
+int schedule_node::n_children() const {
+  auto res = isl_schedule_node_n_children(get());
   return res;
 }
 
@@ -6254,6 +6347,27 @@ isl::union_pw_multi_aff union_pw_multi_aff::add(isl::union_pw_multi_aff upma2) c
 
 isl::union_pw_multi_aff union_pw_multi_aff::flat_range_product(isl::union_pw_multi_aff upma2) const {
   auto res = isl_union_pw_multi_aff_flat_range_product(copy(), upma2.release());
+  return manage(res);
+}
+
+isl::stat union_pw_multi_aff::foreach_pw_multi_aff(const std::function<isl::stat(isl::pw_multi_aff)> &fn) const {
+  auto fn_p = &fn;
+  auto fn_lambda = [](isl_pw_multi_aff *arg_0, void *arg_1) -> isl_stat {
+    auto *func = *static_cast<const std::function<isl::stat(isl::pw_multi_aff)> **>(arg_1);
+    stat ret = (*func)(isl::manage(arg_0));
+    return isl_stat(ret);
+  };
+  auto res = isl_union_pw_multi_aff_foreach_pw_multi_aff(get(), fn_lambda, &fn_p);
+  return isl::stat(res);
+}
+
+isl::union_pw_multi_aff union_pw_multi_aff::from(isl::union_map umap) {
+  auto res = isl_union_pw_multi_aff_from_union_map(umap.release());
+  return manage(res);
+}
+
+isl::union_pw_multi_aff union_pw_multi_aff::from_multi_union_pw_aff(isl::multi_union_pw_aff mupa) {
+  auto res = isl_union_pw_multi_aff_from_multi_union_pw_aff(mupa.release());
   return manage(res);
 }
 
