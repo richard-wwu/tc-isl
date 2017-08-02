@@ -8,8 +8,6 @@
  * Ecole Normale Superieure, 45 rue d'Ulm, 75230 Paris, France
  */
 
-#include <string.h>
-
 #include <isl_schedule_constraints.h>
 #include <isl/schedule.h>
 #include <isl/set.h>
@@ -44,6 +42,15 @@ struct isl_schedule_constraints {
 	isl_set *context;
 
 	isl_union_map *constraint[isl_edge_last + 1];
+
+        __isl_give isl_basic_set *(*add_constraint)(
+		__isl_take isl_basic_set *, int, int,
+		__isl_keep isl_id_list *, int *, int *, void *);
+        void *add_constraint_data;
+
+	isl_bool (*merge_callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *);
+	void *merge_callback_data;
 };
 
 __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
@@ -68,6 +75,9 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
 		if (!sc_copy->constraint[i])
 			return isl_schedule_constraints_free(sc_copy);
 	}
+
+	sc_copy->add_constraint = sc->add_constraint;
+	sc_copy->add_constraint_data = sc->add_constraint_data;
 
 	return sc_copy;
 }
@@ -111,6 +121,12 @@ static __isl_give isl_schedule_constraints *isl_schedule_constraints_init(
 
 	if (!sc->domain || !sc->context)
 		return isl_schedule_constraints_free(sc);
+
+	sc->add_constraint = NULL;
+	sc->add_constraint_data = NULL;
+	
+	sc->merge_callback = NULL;
+	sc->merge_callback_data = NULL;
 
 	return sc;
 }
@@ -238,6 +254,60 @@ isl_schedule_constraints_set_conditional_validity(
 	return sc;
 }
 
+/* Replace the callback for introducing additional schedule constraints of "sc"
+ * by "callback".  When called, the last argument of the callback will be
+ * user-specified object "data".  The caller is responsible for maintaining
+ * "data" alive long enough, at least as long as "sc".
+ *
+ * The callback receives
+ * - a basic set representing the current LP (takes ownership);
+ * - the number of symbolic parameters in the LP bounding function;
+ * - the index of the schedule dimension being constructed;
+ * - the list of statement IDs (does not take ownership);
+ * - an array containing the number of symbolic parameters used for each
+ *   statement, in the same order as they appear in the list;
+ * - an array containing the domain dimension for each statement, in the same
+ *   order as they appear in the list;
+ * - a "data" pointer provided in this call.
+ */
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_custom_constraint_callback(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_give isl_basic_set *(*callback)(isl_basic_set *, int, int,
+		__isl_give isl_id_list *, int *, int *, void *),
+	void *data)
+{
+	sc->add_constraint = callback;
+	sc->add_constraint_data = data;
+	return sc;
+}
+
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_merge_callback(
+	__isl_take isl_schedule_constraints *sc,
+	isl_bool (*callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *),
+	void *data)
+{
+	sc->merge_callback = callback;
+	sc->merge_callback_data = data;
+
+	return sc;
+}
+
+isl_bool (*isl_schedule_constraints_get_merge_callback(
+	__isl_keep isl_schedule_constraints *sc))
+(__isl_give isl_union_map *, __isl_give isl_union_map *, int, int, int, void *)
+{
+	return sc->merge_callback;
+}
+
+void *isl_schedule_constraints_get_merge_callback_data(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	return sc->merge_callback_data;
+}
+
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc)
 {
@@ -334,6 +404,26 @@ isl_schedule_constraints_get_conditional_validity_condition(
 	__isl_keep isl_schedule_constraints *sc)
 {
 	return isl_schedule_constraints_get(sc, isl_edge_condition);
+}
+
+/* Return the callback to introduce additional schedule constraints of "sc".
+ */
+__isl_give isl_basic_set *
+(*isl_schedule_constraints_get_custom_constraint_callback(
+	__isl_keep isl_schedule_constraints *sc))
+	(__isl_take isl_basic_set *, int, int,
+	 __isl_keep isl_id_list *, int *, int *, void *)
+{
+	return sc->add_constraint;
+}
+
+/* Return the custom user data passed to the callback to introduce additional
+ * schedule constraints of "sc".  Ownership is not transferred.
+ */
+void *isl_schedule_constraints_get_custom_constraint_callback_user(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	return sc->add_constraint_data;
 }
 
 /* Add "c" to the constraints of type "type" in "sc".
@@ -526,58 +616,13 @@ __isl_give isl_printer *isl_printer_print_schedule_constraints(
 #define BASE schedule_constraints
 #include <print_templ_yaml.c>
 
-/* Extract a mapping key from the token "tok".
- * Return isl_sc_key_error on error, i.e., if "tok" does not
- * correspond to any known key.
- */
-static enum isl_sc_key extract_key(__isl_keep isl_stream *s,
-	struct isl_token *tok)
-{
-	int type;
-	char *name;
-	isl_ctx *ctx;
-	enum isl_sc_key key;
-
-	if (!tok)
-		return isl_sc_key_error;
-	type = isl_token_get_type(tok);
-	if (type != ISL_TOKEN_IDENT && type != ISL_TOKEN_STRING) {
-		isl_stream_error(s, tok, "expecting key");
-		return isl_sc_key_error;
-	}
-
-	ctx = isl_stream_get_ctx(s);
-	name = isl_token_get_str(ctx, tok);
-	if (!name)
-		return isl_sc_key_error;
-
-	for (key = 0; key < isl_sc_key_end; ++key) {
-		if (!strcmp(name, key_str[key]))
-			break;
-	}
-	free(name);
-
-	if (key >= isl_sc_key_end)
-		isl_die(ctx, isl_error_invalid, "unknown key",
-			return isl_sc_key_error);
-	return key;
-}
-
-/* Read a key from "s" and return the corresponding enum.
- * Return isl_sc_key_error on error, i.e., if the first token
- * on the stream does not correspond to any known key.
- */
-static enum isl_sc_key get_key(__isl_keep isl_stream *s)
-{
-	struct isl_token *tok;
-	enum isl_sc_key key;
-
-	tok = isl_stream_next_token(s);
-	key = extract_key(s, tok);
-	isl_token_free(tok);
-
-	return key;
-}
+#undef KEY
+#define KEY enum isl_sc_key
+#undef KEY_ERROR
+#define KEY_ERROR isl_sc_key_error
+#undef KEY_END
+#define KEY_END isl_sc_key_end
+#include "extract_key.c"
 
 #undef BASE
 #define BASE set

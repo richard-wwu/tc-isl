@@ -189,7 +189,9 @@ void python_generator::print_arg_in_call(FunctionDecl *fd, int arg, int skip)
  *
  * If the return type is a (const) char *, then convert the result
  * to a Python string, raising an error on NULL and freeing
- * the C string if needed.
+ * the C string if needed.  For python 3 compatibility, the string returned
+ * by isl is explicitly decoded as an 'ascii' string.  This is correct
+ * as all strings returned by isl are expected to be 'ascii'.
  *
  * If the return type is isl_bool, then convert the result to
  * a Python boolean, raising an error on isl_bool_error.
@@ -206,7 +208,8 @@ void python_generator::print_method_return(FunctionDecl *method)
 	} else if (is_string(return_type)) {
 		printf("        if res == 0:\n");
 		printf("            raise\n");
-		printf("        string = str(cast(res, c_char_p).value)\n");
+		printf("        string = "
+		       "cast(res, c_char_p).value.decode('ascii')\n");
 
 		if (gives(method))
 			printf("        libc.free(res)\n");
@@ -397,6 +400,10 @@ void python_generator::print_method(const isl_class &clazz,
  *
  * If the function consumes a reference, then we pass it a copy of
  * the actual argument.
+ *
+ * If the function takes a string argument, the python string is first
+ * encoded as a byte sequence, using 'ascii' as encoding.  This assumes
+ * that all strings passed to isl can be converted to 'ascii'.
  */
 void python_generator::print_constructor(const isl_class &clazz,
 	FunctionDecl *cons)
@@ -428,9 +435,10 @@ void python_generator::print_constructor(const isl_class &clazz,
 		printf("self.ctx");
 	for (int i = drop_ctx; i < num_params; ++i) {
 		ParmVarDecl *param = cons->getParamDecl(i);
+		QualType type = param->getOriginalType();
 		if (i)
 			printf(", ");
-		if (is_isl_type(param->getOriginalType())) {
+		if (is_isl_type(type)) {
 			if (takes(param)) {
 				string type;
 				type = extract_type(param->getOriginalType());
@@ -438,8 +446,11 @@ void python_generator::print_constructor(const isl_class &clazz,
 					type.c_str(), i - drop_ctx);
 			} else
 				printf("args[%d].ptr", i - drop_ctx);
-		} else
+		} else if (is_string(type)) {
+			printf("args[%d].encode('ascii')", i - drop_ctx);
+		} else {
 			printf("args[%d]", i - drop_ctx);
+		}
 	}
 	printf(")\n");
 	printf("            return\n");
@@ -535,6 +546,9 @@ void python_generator::print_method_type(FunctionDecl *fd)
  *
  * Check the type of the argument before calling the *_to_str function
  * on it in case the method was called on an object from a subclass.
+ *
+ * The return value of the *_to_str function is decoded to a python string
+ * assuming an 'ascii' encoding.  This is necessary for python 3 compatibility.
  */
 void python_generator::print_representation(const isl_class &clazz,
 	const string &python_name)
@@ -546,7 +560,7 @@ void python_generator::print_representation(const isl_class &clazz,
 	print_type_check(python_name, 0, false, "", "", -1);
 	printf("        ptr = isl.%s(arg0.ptr)\n",
 		string(clazz.fn_to_str->getName()).c_str());
-	printf("        res = str(cast(ptr, c_char_p).value)\n");
+	printf("        res = cast(ptr, c_char_p).value.decode('ascii')\n");
 	printf("        libc.free(ptr)\n");
 	printf("        return res\n");
 	printf("    def __repr__(self):\n");
@@ -564,7 +578,7 @@ void python_generator::print_representation(const isl_class &clazz,
  * To be able to call C functions it is necessary to explicitly set their
  * argument and result types.  Do this for all exported constructors and
  * methods, as well as for the *_to_str method, if it exists.
- * Assuming each exported class has a *_free method,
+ * Assuming each exported class has a *_copy and a *_free method,
  * also unconditionally set the type of such methods.
  */
 void python_generator::print_method_types(const isl_class &clazz)
@@ -580,6 +594,7 @@ void python_generator::print_method_types(const isl_class &clazz)
 		for (in = it->second.begin(); in != it->second.end(); ++in)
 			print_method_type(*in);
 
+	print_method_type(clazz.fn_copy);
 	print_method_type(clazz.fn_free);
 	if (clazz.fn_to_str)
 		print_method_type(clazz.fn_to_str);

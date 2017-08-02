@@ -47,28 +47,49 @@ int isl_options_get_schedule_serialize_sccs(isl_ctx *ctx);
 isl_stat isl_options_set_schedule_whole_component(isl_ctx *ctx, int val);
 int isl_options_get_schedule_whole_component(isl_ctx *ctx);
 
+isl_stat isl_options_set_schedule_carry_self_first(isl_ctx *ctx, int val);
+int isl_options_get_schedule_carry_self_first(isl_ctx *ctx);
+
 __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
 	__isl_keep isl_schedule_constraints *sc);
+__isl_export
 __isl_give isl_schedule_constraints *isl_schedule_constraints_on_domain(
 	__isl_take isl_union_set *domain);
+__isl_export
 __isl_give isl_schedule_constraints *isl_schedule_constraints_set_context(
 	__isl_take isl_schedule_constraints *sc, __isl_take isl_set *context);
+__isl_export
 __isl_give isl_schedule_constraints *isl_schedule_constraints_set_validity(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_union_map *validity);
+__isl_export
 __isl_give isl_schedule_constraints *isl_schedule_constraints_set_coincidence(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_union_map *coincidence);
+__isl_export
 __isl_give isl_schedule_constraints *isl_schedule_constraints_set_proximity(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_union_map *proximity);
+__isl_export
 __isl_give isl_schedule_constraints *
 isl_schedule_constraints_set_conditional_validity(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_union_map *condition,
 	__isl_take isl_union_map *validity);
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_custom_constraint_callback(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_give isl_basic_set *(*callback)(__isl_take isl_basic_set *,
+		int, int, __isl_keep isl_id_list *, int *, int *, void *),
+	void *data);
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc);
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_merge_callback(
+	__isl_take isl_schedule_constraints *sc,
+	isl_bool (*callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *),
+	void *data);
 
 isl_ctx *isl_schedule_constraints_get_ctx(
 	__isl_keep isl_schedule_constraints *sc);
@@ -110,6 +131,7 @@ void isl_schedule_constraints_dump(__isl_keep isl_schedule_constraints *sc);
 __isl_give char *isl_schedule_constraints_to_str(
 	__isl_keep isl_schedule_constraints *sc);
 
+__isl_export
 __isl_give isl_schedule *isl_schedule_constraints_compute_schedule(
 	__isl_take isl_schedule_constraints *sc);
 

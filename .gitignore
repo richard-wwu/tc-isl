@@ -62,3 +62,9 @@ interface/test/build/
 isl_codegen
 isl_schedule
 isl_test_int
+
+*~
+flow_test.sh
+isl_flow
+isl_flow_cmp
+build/*

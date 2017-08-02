@@ -15,6 +15,7 @@ using namespace clang;
  * "type" is the declaration that introduces the type.
  * "methods" contains the set of methods, grouped by method name.
  * "fn_to_str" is a reference to the *_to_str method of this class, if any.
+ * "fn_copy" is a reference to the *_copy method of this class, if any.
  * "fn_free" is a reference to the *_free method of this class, if any.
  */
 struct isl_class {
@@ -23,6 +24,7 @@ struct isl_class {
 	set<FunctionDecl *> constructors;
 	map<string, set<FunctionDecl *> > methods;
 	FunctionDecl *fn_to_str;
+	FunctionDecl *fn_copy;
 	FunctionDecl *fn_is_equal;
 	FunctionDecl *fn_free;
 };
@@ -66,6 +68,7 @@ protected:
 	bool is_string(QualType type);
 	bool is_static(const isl_class &clazz, FunctionDecl *method);
 	string extract_type(QualType type);
+	FunctionDecl *find_by_name(const string &name, bool required);
 };
 
 #endif /* ISL_INTERFACE_GENERATOR_H */

@@ -37,6 +37,7 @@ int isl_options_get_gbr_only_first(isl_ctx *ctx);
 
 #define		ISL_SCHEDULE_ALGORITHM_ISL		0
 #define		ISL_SCHEDULE_ALGORITHM_FEAUTRIER	1
+#define		ISL_SCHEDULE_ALGORITHM_OUTERPAR		2
 isl_stat isl_options_set_schedule_algorithm(isl_ctx *ctx, int val);
 int isl_options_get_schedule_algorithm(isl_ctx *ctx);
 
