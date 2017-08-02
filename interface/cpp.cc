@@ -1106,16 +1106,18 @@ string cpp_generator::type2cpp(QualType type)
 		return "isl::stat";
 
         if (extensions) {
-			  if (type->isEnumeralType()) {
-				  string typestr = type.getAsString();
-				  return typestr.replace(typestr.find("isl_"), sizeof("isl::")-2, "isl::");
-			  }
-          if (is_isl_ctx(type))
+          if (type->isEnumeralType()) {
+            string typestr = type.getAsString();
+            return typestr.replace(
+                typestr.find("isl_"), sizeof("isl::") - 2, "isl::");
+          }
+          else if (is_isl_ctx(type)) {
             return "isl::ctx";
+          }
         }
 
-	if (type->isIntegerType())
-		return type.getAsString();
+        if (type->isIntegerType())
+          return type.getAsString();
 
 	if (is_string(type))
 		return "std::string";
