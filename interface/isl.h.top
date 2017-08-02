@@ -92,36 +92,6 @@ class id;
 
 inline isl::id manage(__isl_take isl_id *ptr);
 
-template <typename T>
-struct isl_id_user {
-	T *usr;
-	std::function<void (T *)> deleter;
-};
-
-template <typename T>
-static void *allocate_isl_id_user(T *u, std::function<void (T *)> d) {
-	isl_id_user<T> *iiu = new isl_id_user<T>;
-	iiu->usr = u;
-	iiu->deleter = d;
-	return iiu;
-}
-
-template <typename T>
-struct DeleteIslId {
-  static void delete_isl_id_user(void *v) {
-    auto iiu = static_cast<isl_id_user<T> *>(v);
-  	iiu->deleter(iiu->usr);
-  	delete iiu;
-  }
-};
-
-template <typename T>
-std::function<void (T *)> make_default_deleter() {
-  return [](T *t) {
-    delete t;
-  };
-}
-
 class id {
 private:
   friend inline isl::id manage(__isl_take isl_id *ptr);
@@ -133,16 +103,6 @@ private:
 public:
   inline /* implicit */ id();
   inline /* implicit */ id(const isl::id &obj);
-
-  template <typename T>
-  explicit id(isl::ctx ctx, const std::string &str, T *obj,
-              std::function<void (T *)> deleter = make_default_deleter<T>())
-  {
-    void *usr = allocate_isl_id_user(obj, deleter);
-    auto res = isl_id_alloc(ctx.release(), str.c_str(), usr);
-    res = isl_id_set_free_user(res, &DeleteIslId<T>::delete_isl_id_user);
-    ptr = res;
-  }
 
   explicit id(isl::ctx ctx, const std::string &str) {
     auto res = isl_id_alloc(ctx.release(), str.c_str(), NULL);
@@ -157,13 +117,6 @@ public:
     return S;
   }
 
-  template <typename T>
-  T *get_user() const {
-    auto iiu = static_cast<isl_id_user<T> *>(isl_id_get_user(ptr));
-    return iiu->usr;
-  }
-
-  //inline explicit id(isl::ctx ctx, const std::string &str, std::shared_ptr<void> obj);
   inline isl::id &operator=(isl::id obj);
   inline ~id();
   inline __isl_give isl_id *copy() const &;
