@@ -800,7 +800,7 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 		osprintf(os, "  return tmp;\n");
 	} else if (is_isl_enum(return_type)) {
 		string typestr = return_type.getAsString();
-		typestr = typestr.replace(typestr.find("isl_"), sizeof("isl::")-2, "isl::");
+		typestr = typestr.replace(typestr.find("isl_"), sizeof("isl_")-1, "isl::");
 		osprintf(os, "  return static_cast<%s>(res);\n", typestr.c_str());
 
 	} else {
@@ -1109,7 +1109,7 @@ string cpp_generator::type2cpp(QualType type)
           if (type->isEnumeralType()) {
             string typestr = type.getAsString();
             return typestr.replace(
-                typestr.find("isl_"), sizeof("isl::") - 2, "isl::");
+                typestr.find("isl_"), sizeof("isl_")-1, "isl::");
           }
           else if (is_isl_ctx(type)) {
             return "isl::ctx";
