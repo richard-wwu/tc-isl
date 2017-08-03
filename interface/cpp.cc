@@ -1102,9 +1102,6 @@ string cpp_generator::type2cpp(QualType type)
 	if (is_isl_bool(type))
 		return "isl::boolean";
 
-	if (is_isl_stat(type))
-		return "isl::stat";
-
         if (extensions) {
           if (type->isEnumeralType()) {
             string typestr = type.getAsString();

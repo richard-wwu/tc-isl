@@ -62,7 +62,6 @@ protected:
 	bool first_arg_is_isl_ctx(FunctionDecl *fd);
 	bool is_isl_type(QualType type);
 	bool is_isl_bool(QualType type);
-	bool is_isl_stat(QualType type);
 	bool is_isl_enum(QualType type);
 	bool is_callback(QualType type);
 	bool is_string(QualType type);
