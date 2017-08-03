@@ -1298,6 +1298,10 @@ error:
 	return NULL;
 }
 
+/* Apply pw multi aff function pma on the schedule band and 
+* reset permutable and coincident flags
+*/
+
 __isl_give isl_schedule_band *isl_schedule_band_band_transform_pw_multi_aff(
 	__isl_take isl_schedule_band *band, __isl_take isl_pw_multi_aff *pma)
 {
