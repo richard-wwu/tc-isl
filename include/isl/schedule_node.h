@@ -161,9 +161,6 @@ __isl_give isl_schedule_node *isl_schedule_node_band_sink(
 __isl_export
 __isl_give isl_schedule_node *isl_schedule_node_band_split(
 	__isl_take isl_schedule_node *node, int pos);
-__isl_export
-__isl_give isl_schedule_node *isl_schedule_node_band_transform_pw_multi_aff(
-	__isl_take isl_schedule_node *node, __isl_take isl_pw_multi_aff *pma);
 
 __isl_export
 __isl_give isl_set *isl_schedule_node_context_get_context(

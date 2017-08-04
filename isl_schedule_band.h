@@ -113,8 +113,6 @@ __isl_give isl_schedule_band *isl_schedule_band_drop(
 	__isl_take isl_schedule_band *band, int pos, int n);
 __isl_give isl_schedule_band *isl_schedule_band_gist(
 	__isl_take isl_schedule_band *band, __isl_take isl_union_set *context);
-__isl_give isl_schedule_band *isl_schedule_band_band_transform_pw_multi_aff(
-	__isl_take isl_schedule_band *band, __isl_take isl_pw_multi_aff *pma);
 
 __isl_give isl_schedule_band *isl_schedule_band_reset_user(
 	__isl_take isl_schedule_band *band);

@@ -2314,28 +2314,6 @@ error:
 	return NULL;
 }
 
-
-__isl_give isl_schedule_tree *isl_schedule_tree_band_transform_pw_multi_aff(
-	__isl_take isl_schedule_tree *tree, __isl_take isl_pw_multi_aff *pma)
-{
-	if (tree->type != isl_schedule_node_band)
-		isl_die(isl_schedule_tree_get_ctx(tree), isl_error_invalid,
-			"not a band node", return isl_schedule_tree_free(tree));
-	tree = isl_schedule_tree_cow(tree);
-	if (!tree || !pma)
-		goto error;
-	tree->band = isl_schedule_band_band_transform_pw_multi_aff(tree->band,
-								    pma);
-	if (!tree->band)
-		return isl_schedule_tree_free(tree);
-
-	return tree;
-error:
-	isl_schedule_tree_free(tree);
-	isl_pw_multi_aff_free(pma);
-	return NULL;
-}
-
 /* Attach "tree2" at each of the leaves of "tree1".
  *
  * If "tree1" does not have any explicit children, then make "tree2"
