@@ -20,6 +20,7 @@
 #include <isl/union_set.h>
 #include <isl/val.h>
 #include <isl/constraint.h>
+#include <isl/id.h>
 
 #include <functional>
 #include <string>
@@ -86,6 +87,154 @@ public:
     return ptr;
   }
 };
+
+class id {
+  isl_id *ptr;
+public:
+  id(isl::ctx ctx, const std::string &name) {
+    ptr = isl_id_alloc(ctx.release(), name.c_str(), nullptr);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, const std::string &name, T *usr,
+     void (*deleter)(void *) = nullptr) {
+    ptr = isl_id_alloc(ctx.release(), name.c_str(), usr);
+    if (deleter)
+      ptr = isl_id_set_free_user(ptr, deleter);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, T *usr,
+     void (*deleter)(void *) = nullptr) {
+    ptr = isl_id_alloc(ctx.release(), nullptr, usr);
+    if (deleter)
+      ptr = isl_id_set_free_user(ptr, deleter);
+  }
+
+  template <typename T>
+  T *get_user() {
+    if (!ptr)
+      return nullptr;
+    return static_cast<T *>(isl_id_get_user(ptr));
+  }
+
+  /* implicit */ id();
+  /* implicit */ id(isl_id *id);
+  inline /* implicit */ id(const isl::id &obj);
+  inline isl::id &operator=(isl::id obj);
+  inline ~id();
+  inline __isl_give isl_id *copy() const &;
+  inline __isl_give isl_id *copy() && = delete;
+  inline __isl_keep isl_id *get() const;
+  inline __isl_give isl_id *release();
+  inline __isl_keep isl_id *keep() const;
+  inline __isl_give isl_id *take();
+  inline explicit operator bool() const;
+  inline isl::ctx get_ctx() const;
+  inline bool is_null() const;
+  inline std::string to_str() const;
+  
+  inline std::string get_name() const;
+
+  inline bool has_name() const;
+  inline isl::id set_free_user(void (*deleter)(void *)) const;
+  inline bool operator== (const isl::id &obj) const;
+  inline bool operator!= (const isl::id &obj) const;
+};
+
+isl::id manage(__isl_take isl_id *ptr) {
+  return id(ptr);
+}
+
+id::id()
+    : ptr(nullptr) {}
+
+id::id(const isl::id &obj)
+    : ptr(obj.copy()) {}
+
+id::id(__isl_take isl_id *ptr)
+    : ptr(ptr) {}
+
+id &id::operator=(isl::id obj) {
+  std::swap(this->ptr, obj.ptr);
+  return *this;
+}
+
+id::~id() {
+  if (ptr)
+    isl_id_free(ptr);
+}
+
+__isl_give isl_id *id::copy() const & {
+  return isl_id_copy(ptr);
+}
+
+__isl_keep isl_id *id::get() const {
+  return ptr;
+}
+
+__isl_give isl_id *id::release() {
+  isl_id *tmp = ptr;
+  ptr = nullptr;
+  return tmp;
+}
+
+__isl_keep isl_id *id::keep() const {
+  return get();
+}
+
+__isl_give isl_id *id::take() {
+  return release();
+}
+
+id::operator bool() const {
+  return !is_null();
+}
+
+isl::ctx id::get_ctx() const {
+  return isl::ctx(isl_id_get_ctx(ptr));
+}
+
+bool id::is_null() const {
+  return ptr == nullptr;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const id& C) {
+  os << C.to_str();
+  return os;
+}
+
+std::string id::to_str() const {
+  char *Tmp = isl_id_to_str(get());
+  if (!Tmp)
+    return "";
+  std::string S(Tmp);
+  free(Tmp);
+  return S;
+}
+
+std::string id::get_name() const {
+  auto res = isl_id_get_name(get());
+  std::string tmp(res);
+  return tmp;
+}
+
+bool id::has_name() const {
+  return isl_id_get_name(get()) != nullptr;
+}
+
+id id::set_free_user(void (*deleter)(void *)) const {
+  auto res = isl_id_set_free_user(copy(), deleter);
+  return manage(res);
+}
+
+bool id::operator==(const id &obj) const {
+  return ptr == obj.ptr;
+}
+
+bool id::operator!=(const id &obj) const {
+  return !operator==(obj);
+}
 
 enum class stat {
   ok = isl_stat_ok,
