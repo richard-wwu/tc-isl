@@ -23,6 +23,7 @@
 
 #include <functional>
 #include <string>
+#include <unordered_map>
 
 namespace isl {
 inline namespace noexceptions {
@@ -72,8 +73,62 @@ inline isl::boolean manage(isl_bool val) {
   return isl::boolean(val);
 }
 
+namespace detail {
+
+template <typename T>
+struct isl_id_user {
+	const char *type_address;                                                
+	T *usr;
+	std::function<void (T *)> deleter;
+	std::unordered_map<void *, void *> *mapping;
+        static const char type_token; 
+};
+
+template <typename T>
+const char isl_id_user<T>::type_token = '\0';
+
+template <typename T>
+struct DeleteIslId {
+  static void delete_isl_id_user(void *v) {
+    auto iiu = static_cast<isl_id_user<T> *>(v);
+    iiu->mapping->erase(iiu->usr);
+    if (iiu->deleter)
+      iiu->deleter(iiu->usr);
+    delete iiu;
+  }
+};
+
+}
+class id;
+
 class ctx {
   isl_ctx *ptr;
+
+  // Ensure single-definition through template instantiation, as we further define this in
+  // header file.  We actually only use "void" instantiaton, but never instantiate the
+  // definition explicitly.
+  template <typename T>
+  struct mapper {
+    static std::unordered_map<isl_ctx *, std::unordered_map<void *, void *>> id_user_fields;
+  };
+
+  template <typename T>
+  void *get_user_field_match(T *t, std::function<void (T *)> deleter) {
+    void *user = static_cast<void *>(t);
+    std::unordered_map<void *, void *> &mapping = ctx::mapper<void>::id_user_fields[ptr];
+    if (!mapping.count(user)) {
+      detail::isl_id_user<T> *iiu = new detail::isl_id_user<T>;
+      iiu->usr = t;
+      iiu->deleter = deleter;
+      iiu->mapping = &mapping;
+      iiu->type_address = &detail::isl_id_user<T>::type_token;
+      mapping[user] = static_cast<void *>(iiu);
+    }
+    return mapping[user];
+  }
+
+  friend class id;
+
 public:
   /* implicit */ ctx(isl_ctx *ctx)
       : ptr(ctx) {}
@@ -85,7 +140,227 @@ public:
   isl_ctx *get() {
     return ptr;
   }
+
+  void dispose() {
+    if (!ptr)
+      return;
+
+    mapper<void>::id_user_fields.erase(ptr);
+    isl_ctx_free(ptr);
+    ptr = nullptr;
+  }
 };
+
+// this will be only defined once thanks to templates.
+template <typename T>
+std::unordered_map<isl_ctx *, std::unordered_map<void *, void *>> ctx::mapper<T>::id_user_fields;
+
+inline isl::id manage(__isl_take isl_id *ptr);
+
+template <typename T>
+std::function<void (T *)> make_default_deleter() {
+  return [](T *t) {
+    delete t;
+  };
+}
+
+class id {
+private:
+  friend inline isl::id manage(__isl_take isl_id *ptr);
+
+  isl_id *ptr = nullptr;
+
+  inline explicit id(__isl_take isl_id *ptr);
+
+  template <typename T>
+  void init(isl::ctx ctx, const char *name, T *obj,
+            std::function<void (T *)> deleter) {
+    void *usr = nullptr;
+    if (obj) {
+      usr = ctx.get_user_field_match(obj, deleter);
+    }
+    ptr = isl_id_alloc(ctx.get(), name, usr);
+    if (obj) {
+      ptr = isl_id_set_free_user(ptr, &detail::DeleteIslId<T>::delete_isl_id_user);
+    }
+  }
+
+public:
+  inline /* implicit */ id();
+  inline /* implicit */ id(const isl::id &obj);
+
+  id(isl::ctx ctx, const char *str)
+  {
+    ptr = isl_id_alloc(ctx.get(), str, nullptr);
+  }
+
+  id(isl::ctx ctx, const std::string &str)
+  {
+    ptr = isl_id_alloc(ctx.get(), str.c_str(), nullptr);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, T *obj,
+     std::function<void (T *)> deleter = nullptr)
+  {
+    init(ctx, nullptr, obj, deleter);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, const std::string &str, T *obj,
+     std::function<void (T *)> deleter = nullptr)
+  {
+    init(ctx, str.c_str(), obj, deleter);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, const char *str, T *obj,
+     std::function<void (T *)> deleter = nullptr)
+  {
+    init(ctx, str, obj, deleter);
+  }
+
+  struct default_deleter_t {};
+  static default_deleter_t default_deleter;
+
+  template <typename T>
+  id(isl::ctx ctx, T *obj, default_deleter_t)
+  {
+    init(ctx, nullptr, obj, make_default_deleter<T>());
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, const std::string &str, T *obj,
+     default_deleter_t)
+  {
+    init(ctx, str.c_str(), obj, make_default_deleter<T>());
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, const char *str, T *obj,
+     default_deleter_t)
+  {
+    init(ctx, str, obj, make_default_deleter<T>());
+  }
+
+  bool has_user() const {
+    return isl_id_get_user(ptr) != nullptr;
+  }
+
+  bool has_name() const {
+    return isl_id_get_name(ptr) != nullptr;
+  }
+
+  template <typename T>
+  T *get_user() const {
+    auto iiu = static_cast<detail::isl_id_user<T> *>(isl_id_get_user(ptr));
+    ISLPP_ASSERT(iiu->type_address == &detail::isl_id_user<T>::type_token,
+                 "Unexpected type identifier"); 
+    return iiu->usr;
+  }
+
+  std::string name() const {
+    ISLPP_ASSERT(has_name(), "id does not have a name");
+    return std::string(isl_id_get_name(ptr));
+  }
+
+  //inline explicit id(isl::ctx ctx, const std::string &str, std::shared_ptr<void> obj);
+  inline isl::id &operator=(isl::id obj);
+  inline ~id();
+  inline __isl_give isl_id *copy() const &;
+  inline __isl_give isl_id *copy() && = delete;
+  inline __isl_keep isl_id *get() const;
+  inline __isl_give isl_id *release();
+  inline __isl_keep isl_id *keep() const;
+  inline __isl_give isl_id *take();
+  inline explicit operator bool() const;
+  inline isl::ctx get_ctx() const;
+  inline bool is_null() const;
+  inline std::string to_str() const;
+
+  bool operator==(const isl::id &other) const {
+    return ptr == other.ptr;
+  }
+
+  bool operator!=(const isl::id &other) const {
+    return !operator== (other);
+  }
+
+  typedef isl_id* isl_ptr_t;
+};
+
+// implementations for isl::id
+isl::id manage(__isl_take isl_id *ptr) {
+  return id(ptr);
+}
+
+id::id()
+    : ptr(nullptr) {}
+
+id::id(const isl::id &obj)
+    : ptr(obj.copy()) {}
+
+id::id(__isl_take isl_id *ptr)
+    : ptr(ptr) {}
+
+id &id::operator=(isl::id obj) {
+  std::swap(this->ptr, obj.ptr);
+  return *this;
+}
+
+id::~id() {
+  if (ptr)
+    isl_id_free(ptr);
+}
+
+__isl_give isl_id *id::copy() const & {
+  return isl_id_copy(ptr);
+}
+
+__isl_keep isl_id *id::get() const {
+  return ptr;
+}
+
+__isl_give isl_id *id::release() {
+  isl_id *tmp = ptr;
+  ptr = nullptr;
+  return tmp;
+}
+
+__isl_keep isl_id *id::keep() const {
+  return get();
+}
+
+__isl_give isl_id *id::take() {
+  return release();
+}
+
+id::operator bool() const {
+  return !is_null();
+}
+
+isl::ctx id::get_ctx() const {
+  return isl::ctx(isl_id_get_ctx(ptr));
+}
+
+bool id::is_null() const {
+  return ptr == nullptr;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const id& C) {
+  os << C.to_str();
+  return os;
+}
+
+
+std::string id::to_str() const {
+  char *Tmp = isl_id_to_str(get());
+  if (!Tmp)
+    return "";
+  std::string S(Tmp);
+  free(Tmp);
+  return S;
+}
 
 enum class stat {
   ok = isl_stat_ok,

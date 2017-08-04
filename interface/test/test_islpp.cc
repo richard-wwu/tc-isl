@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "interface/isl-noexceptions.h"
 
 #include <cassert>
@@ -316,6 +318,38 @@ TEST(ISLPP, SimpleEval) {
       return isl::stat::ok;
     });
   ASSERT_EQ(39, val) << "error";
+}
+
+TEST(ISLPP, Id) {
+  isl::ctx ctx(isl_ctx_alloc());
+  ScopeGuard g([&]() { ctx.dispose(); });
+
+  isl::id id_whatever(ctx, "whatever");
+  ASSERT_EQ("whatever", id_whatever.name());
+
+  // Two ids with the same name and no user field must compare.  
+  isl::id id_other(ctx, "whatever");
+  ASSERT_EQ(id_whatever, id_other);
+
+  // Two ids with the same name and different user fileds
+  // are different.
+  int fourtytwo = 42;
+  isl::id id_whatever_42(ctx, "whatever", &fourtytwo, std::function<void(int*)>());
+  ASSERT_NE(id_whatever, id_whatever_42);
+
+  // Copy-constructed ids must compare.
+  isl::id id_whatever_42_copy(id_whatever_42);
+  ASSERT_EQ(id_whatever_42, id_whatever_42_copy);
+
+  // Constructing an id with the same name and user field as an existing id
+  // should give the same id.
+  isl::id id_whatever_42_other(ctx, "whatever", &fourtytwo, std::function<void(int*)>());
+  ASSERT_EQ(id_whatever_42, id_whatever_42_other);
+
+  // Mixing C and C++ interface is bad.
+  isl_id *cid = isl_id_alloc(ctx.get(), "whatever", &fourtytwo);
+  ASSERT_NE(cid, id_whatever_42.get());
+  isl_id_free(cid);
 }
 
 int main(int argc, char** argv) {
