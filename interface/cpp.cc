@@ -1063,6 +1063,7 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param) {
  */
 static const char *rename_map[][2] = {
 	{ "union", "unite" },
+	{ "delete", "del" },
 };
 
 /* Rename method "name" in case the method name in the C++ bindings should not

@@ -234,6 +234,7 @@ __isl_give isl_schedule_node *isl_schedule_node_insert_set(
 __isl_export
 __isl_give isl_schedule_node *isl_schedule_node_cut(
 	__isl_take isl_schedule_node *node);
+__isl_export
 __isl_give isl_schedule_node *isl_schedule_node_delete(
 	__isl_take isl_schedule_node *node);
 
