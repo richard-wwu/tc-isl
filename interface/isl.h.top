@@ -118,8 +118,8 @@ public:
     return static_cast<T *>(isl_id_get_user(ptr));
   }
 
-  /* implicit */ id();
-  /* implicit */ id(isl_id *id);
+  inline /* implicit */ id();
+  inline /* implicit */ id(isl_id *id);
   inline /* implicit */ id(const isl::id &obj);
   inline isl::id &operator=(isl::id obj);
   inline ~id();
@@ -142,7 +142,7 @@ public:
   inline bool operator!= (const isl::id &obj) const;
 };
 
-isl::id manage(__isl_take isl_id *ptr) {
+inline isl::id manage(__isl_take isl_id *ptr) {
   return id(ptr);
 }
 
