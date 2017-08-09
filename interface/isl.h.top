@@ -22,8 +22,10 @@
 #include <isl/constraint.h>
 #include <isl/id.h>
 
+#include <iostream>
 #include <functional>
 #include <string>
+#include <utility>
 
 namespace isl {
 inline namespace noexceptions {
@@ -251,5 +253,319 @@ enum class dim {
   all = isl_dim_all
 };
 
+template <typename T>
+struct isl_list;
+
+class id;
+class basic_set;
+
+id manage(__isl_take isl_id*);
+basic_set manage(__isl_take isl_basic_set*);
+
+template <typename T>
+struct isl_list_elem_traits {
+};
+
+template <>
+struct isl_list_elem_traits<isl::id> {
+  typedef isl::id elem_type;
+  typedef isl_id c_elem_type;
+  typedef isl_list<isl::id> list_type;
+  typedef isl_id_list c_list_type;
+};
+
+template <>
+struct isl_list_elem_traits<isl::basic_set> {
+  typedef isl::basic_set elem_type;
+  typedef isl_id c_elem_type;
+  typedef isl_list<isl::basic_set> list_type;
+  typedef isl_basic_set_list c_list_type;
+};
+
+template <typename T>
+struct isl_list_traits {
+};
+
+template <>
+struct isl_list_traits<isl_id_list *> {
+  typedef isl_list<isl::id> list_type;
+};
+
+template <>
+struct isl_list_traits<isl_basic_set_list *> {
+  typedef isl_list<isl::basic_set> list_type;
+};
+
+namespace detail {
+
+inline int list_n(__isl_keep isl_id_list *list) {
+  return isl_id_list_n_id(list);
+}
+
+inline int list_n(__isl_keep isl_basic_set_list *list) {
+  return isl_basic_set_list_n_basic_set(list);
+}
+
+inline __isl_give isl_id *list_get(__isl_keep isl_id_list *list, int pos) {
+  return isl_id_list_get_id(list, pos);
+}
+
+inline __isl_give isl_basic_set *list_get(__isl_keep isl_basic_set_list *list, int pos) {
+  return isl_basic_set_list_get_basic_set(list, pos);
+}
+
+inline __isl_give isl_id_list *list_copy(__isl_keep isl_id_list *list) {
+  return isl_id_list_copy(list);
+}
+
+inline __isl_give isl_basic_set_list *list_copy(__isl_keep isl_basic_set_list *list) {
+  return isl_basic_set_list_copy(list);
+}
+
+inline __isl_null isl_id_list *list_free(__isl_take isl_id_list *list) {
+  return isl_id_list_free(list);
+}
+
+inline __isl_null isl_basic_set_list *list_free(__isl_take isl_basic_set_list *list) {
+  return isl_basic_set_list_free(list);
+}
+
+}
+
+template <typename T, typename Container>
+class isl_seq_iterator {
+};
+
+template <typename T>
+class isl_seq_iterator<T, isl::isl_list<T>> {
+  const isl::isl_list<T> *list;
+  int position;
+
+  inline isl_seq_iterator(const isl::isl_list<T> *l, int p);
+
+  friend class isl_list<T>;
+public:
+  typedef T value_type;
+  typedef int difference_type;
+  typedef std::forward_iterator_tag iterator_category;
+  typedef const T *pointer;
+  typedef T reference;  // FIXME: this is incompatible with the standard
+
+  inline isl_seq_iterator();
+  inline isl_seq_iterator(const isl_seq_iterator &it);
+  inline ~isl_seq_iterator();
+  inline isl_seq_iterator &operator =(const isl_seq_iterator &it);
+
+  inline reference operator* () const;
+  inline reference operator-> () const;
+  inline isl_seq_iterator operator++(int);
+  inline isl_seq_iterator &operator++();
+  inline bool operator== (const isl_seq_iterator &it) const;
+  inline bool operator!= (const isl_seq_iterator &it) const;
+  
+  static inline void swap(isl_seq_iterator &it1, isl_seq_iterator &it2);
+};
+
+template <typename T>
+isl_seq_iterator<T, isl::isl_list<T>>::isl_seq_iterator(
+    const isl::isl_list<T> *l, int p) : list(l), position(p) {
+}
+
+template <typename T>
+isl_seq_iterator<T, isl::isl_list<T>>::isl_seq_iterator() :
+    list(nullptr), position(0) {
+}
+
+template <typename T>
+isl_seq_iterator<T, isl::isl_list<T>>::isl_seq_iterator(
+    const isl_seq_iterator<T, isl_list<T>> &other) :
+    list(other.list), position(other.position) {
+}
+
+template <typename T>
+isl_seq_iterator<T, isl::isl_list<T>>::~isl_seq_iterator() {
+}
+
+template <typename T>
+isl_seq_iterator<T, isl::isl_list<T>> &
+isl_seq_iterator<T, isl::isl_list<T>>::operator =(
+    const isl_seq_iterator<T, isl::isl_list<T>> &it) {
+  list = it.list;
+  position = it.position;
+  return *this;
+}
+
+template <typename T>
+typename isl_seq_iterator<T, isl_list<T>>::reference
+isl_seq_iterator<T, isl::isl_list<T>>::operator* () const {
+  return list->at(position);
+}
+
+template <typename T>
+typename isl_seq_iterator<T, isl_list<T>>::reference
+isl_seq_iterator<T, isl::isl_list<T>>::operator-> () const {
+  return operator* ();
+}
+
+template <typename T>
+isl_seq_iterator<T, isl::isl_list<T>>
+isl_seq_iterator<T, isl::isl_list<T>>::operator++ (int) {
+  ++position;
+  return *this;
+}
+
+template <typename T>
+isl_seq_iterator<T, isl::isl_list<T>> &
+isl_seq_iterator<T, isl::isl_list<T>>::operator++ () {
+  position++;
+  return *this;
+}
+
+template <typename T>
+bool isl_seq_iterator<T, isl::isl_list<T>>::operator==(
+    const isl_seq_iterator &it) const {
+  if (!list && !it.list)
+    return true;
+  if (!list || !it.list)
+    return false;
+  ISLPP_ASSERT(list == it.list,
+               "Cannot compare iterators for different lists");
+  return position == it.position;
+}
+
+template <typename T>
+bool isl_seq_iterator<T, isl::isl_list<T>>::operator!=(
+    const isl_seq_iterator &it) const {
+  return !operator== (it);
+}
+
+template <typename T>
+void isl_seq_iterator<T, isl::isl_list<T>>::swap(
+    isl_seq_iterator<T, isl::isl_list<T>> &it1,
+    isl_seq_iterator<T, isl::isl_list<T>> &it2) {
+  std::swap(it1.list, it2.list);
+  std::swap(it1.position, it2.position);
+}
+
+template <typename T>
+void swap(isl_seq_iterator<T, isl::isl_list<T>> &it1,
+    isl_seq_iterator<T, isl::isl_list<T>> &it2) {
+  isl_seq_iterator<T, isl::isl_list<T>>::swap(it1, it2);
+}
+
+template <typename T>
+typename isl_list_traits<T>::list_type manage(T);
+
+template <typename T>
+class isl_list {
+public:
+  typedef typename isl_list_elem_traits<T>::c_list_type *isl_ptr_t;
+  typedef int size_type;
+  typedef isl_seq_iterator<T, isl_list<T>> iterator;
+  typedef typename iterator::value_type value_type;
+  typedef typename iterator::difference_type difference_type;
+
+  friend isl_list<T> manage<isl_ptr_t>(isl_ptr_t);
+
+private:
+  isl_ptr_t ptr;
+
+  inline explicit isl_list(isl_ptr_t list);
+
+public:
+  inline isl_list();
+  inline isl_list(const isl_list &other);
+  inline ~isl_list();
+  inline isl_list &operator= (const isl_list &other);
+
+  inline isl_ptr_t get() const;
+  inline isl_ptr_t release();
+
+  inline size_type size() const;
+  inline value_type at(size_type pos) const;
+  inline value_type operator[] (size_type pos) const;
+
+  inline iterator begin() const;
+  inline iterator end() const;
+};
+
+template <typename T>
+isl_list<T>::isl_list() : ptr(nullptr) {
+}
+
+template <typename T>
+isl_list<T>::isl_list(isl_list<T>::isl_ptr_t list) : ptr(list) {
+}
+
+template <typename T>
+isl_list<T>::isl_list(const isl_list<T> &other) {
+  if (ptr)
+    detail::list_free(ptr);
+  ptr = detail::list_copy(other.ptr);
+}
+
+template <typename T>
+isl_list<T>::~isl_list() {
+  if (!ptr)
+    return;
+  ptr = detail::list_free(ptr);
+}
+
+template <typename T>
+isl_list<T> &isl_list<T>::operator= (const isl_list<T> &other) {
+  if (ptr)
+    detail::list_free(ptr);
+  ptr = detail::list_copy(other.ptr);
+}
+
+template <typename T>
+__isl_keep typename isl_list<T>::isl_ptr_t isl_list<T>::get() const {
+  return ptr;
+}
+
+template <typename T>
+__isl_give typename isl_list<T>::isl_ptr_t isl_list<T>::release() {
+  isl_list<T>::isl_ptr_t ret = ptr;
+  ptr = nullptr;
+  return ptr;
+}
+
+template <typename T>
+typename isl_list<T>::size_type isl_list<T>::size() const {
+  return detail::list_n(ptr);
+}
+
+template <typename T>
+typename isl_list<T>::value_type 
+isl_list<T>::at(typename isl_list<T>::size_type pos) const {
+  ISLPP_ASSERT(ptr != nullptr,
+               "accessing to a null list");
+  ISLPP_ASSERT(pos >= 0 && pos < detail::list_n(ptr),
+               "index out of range");
+  return manage(detail::list_get(ptr, pos));
+}
+
+template <typename T>
+typename isl_list<T>::value_type
+isl_list<T>::operator[] (typename isl_list<T>::size_type pos) const {
+  return manage(detail::list_get(ptr, pos));
+}
+
+template <typename T>
+typename isl_list<T>::iterator isl_list<T>::begin() const {
+  return isl_list<T>::iterator(this, 0);
+}
+
+template <typename T>
+typename isl_list<T>::iterator isl_list<T>::end() const {
+  return isl_list<T>::iterator(this, size());
+}
+
+template <typename T>
+typename isl_list_traits<T>::list_type manage(T t) {
+  return typename isl_list_traits<T>::list_type(t);
+}
+
 }
 } // namespace isl
+

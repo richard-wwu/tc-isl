@@ -1,5 +1,6 @@
 #include "interface/isl-noexceptions.h"
 
+#include <deque>
 #include <cassert>
 #include <iostream>
 #include <limits>
@@ -381,6 +382,33 @@ TEST(ISLPP, IdLifetime) {
   // the space object, so the deleter should not be called and the flag
   // must remain zero.
   EXPECT_EQ(0, *flag);
+}
+
+TEST(ISLPP, IdList) {
+  isl::ctx ctx(isl_ctx_alloc());
+  ScopeGuard g([&]() { isl_ctx_free(ctx.release()); });
+
+  isl_id_list *c_list = isl_id_list_alloc(ctx.get(), 2);
+  isl::id id1(ctx, std::string("id1")), id2(ctx, std::string("id2"));
+  isl::id id1c(id1), id2c(id2);
+  isl_id *id3 = isl_id_alloc(ctx.get(), "foo", NULL);
+  isl::id id3c(isl_id_copy(id3));
+  c_list = isl_id_list_add(c_list, id1.release());
+  c_list = isl_id_list_add(c_list, id2.release());
+  c_list = isl_id_list_add(c_list, id3);
+
+  isl::isl_list<isl::id> id_list = isl::manage(c_list);
+  std::deque<isl::id> id_vector;
+  id_vector.push_back(id1c);
+  id_vector.push_back(id2c);
+  id_vector.push_back(id3c);
+
+  ASSERT_EQ(id_vector.size(), id_list.size());
+
+  for (auto id : id_list) {
+    EXPECT_EQ(id_vector.front().get_name(), id.get_name());
+    id_vector.pop_front();
+  }
 }
 
 int main(int argc, char** argv) {
