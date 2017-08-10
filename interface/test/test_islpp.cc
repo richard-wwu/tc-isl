@@ -411,6 +411,32 @@ TEST(ISLPP, IdList) {
   }
 }
 
+TEST(ISLPP, IdListVectorEquality) {
+  isl::ctx ctx(isl_ctx_alloc());
+  ScopeGuard g([&]() { isl_ctx_free(ctx.release()); });
+
+  isl::id id1(ctx, std::string("id1"));
+  isl::id id2(ctx, std::string("id2"));
+  isl::id id3(ctx, std::string("id3"));
+
+  std::vector<isl::id> idVector {{ id1, id2, id3 }};
+  isl::isl_list<isl::id> idList(ctx, std::begin(idVector), std::end(idVector));
+  ASSERT_EQ(idVector.size(), idList.size());
+  for (size_t i = 0; i < idVector.size(); ++i) {
+    EXPECT_EQ(idVector[i], idList[i]);
+  } 
+  std::vector<isl::id> otherVector(std::begin(idList), std::end(idList));
+  ASSERT_EQ(idVector.size(), otherVector.size());
+  ASSERT_TRUE(std::equal(std::begin(idVector), std::end(idVector),
+                         std::begin(otherVector)));
+  isl::isl_list<isl::id> otherList(ctx, std::begin(otherVector), std::end(otherVector));
+  ASSERT_EQ(otherList.size(), otherVector.size());
+  ASSERT_TRUE(std::equal(std::begin(otherList), std::end(otherList),
+                         std::begin(otherVector)));
+  ASSERT_TRUE(std::equal(std::begin(otherList), std::end(otherList),
+                         std::begin(idList)));
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

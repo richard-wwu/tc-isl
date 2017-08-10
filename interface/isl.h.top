@@ -330,6 +330,25 @@ inline __isl_null isl_basic_set_list *list_free(__isl_take isl_basic_set_list *l
   return isl_basic_set_list_free(list);
 }
 
+// The third argument is necessary for overload resolution and is ignored.
+// These functions are internal the bindings and are not supposed to be used
+// separately.
+inline __isl_give isl_id_list *list_alloc(isl_ctx *ctx, int n, isl_id_list *) {
+  return isl_id_list_alloc(ctx, n);
+}
+
+inline __isl_give isl_basic_set_list *list_alloc(isl_ctx *ctx, int n, isl_basic_set_list *) {
+  return isl_basic_set_list_alloc(ctx, n);
+}
+
+inline __isl_give isl_id_list *list_add(isl_id_list *list, isl_id *id) {
+  return isl_id_list_add(list, id);
+}
+
+inline __isl_give isl_basic_set_list *list_add(isl_basic_set_list *list, isl_basic_set *bset) {
+  return isl_basic_set_list_add(list, bset);
+}
+
 }
 
 template <typename T, typename Container>
@@ -347,9 +366,9 @@ class isl_seq_iterator<T, isl::isl_list<T>> {
 public:
   typedef T value_type;
   typedef int difference_type;
-  typedef std::forward_iterator_tag iterator_category;
+  typedef std::input_iterator_tag iterator_category;
   typedef const T *pointer;
-  typedef T reference;  // FIXME: this is incompatible with the standard
+  typedef T reference;
 
   inline isl_seq_iterator();
   inline isl_seq_iterator(const isl_seq_iterator &it);
@@ -478,6 +497,13 @@ public:
   inline ~isl_list();
   inline isl_list &operator= (const isl_list &other);
 
+  template <typename InputIt1, typename InputIt2,
+            typename = typename std::enable_if<std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt1>::iterator_category>::value &&
+                                               std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt2>::iterator_category>::value
+                                              >::type
+           >
+  inline isl_list(isl::ctx ctx, InputIt1 from, InputIt2 to);
+
   inline isl_ptr_t get() const;
   inline isl_ptr_t release();
 
@@ -502,6 +528,16 @@ isl_list<T>::isl_list(const isl_list<T> &other) {
   if (ptr)
     detail::list_free(ptr);
   ptr = detail::list_copy(other.ptr);
+}
+
+template <typename T>
+template <typename InputIt1, typename InputIt2, typename>
+isl_list<T>::isl_list(isl::ctx ctx, InputIt1 from, InputIt2 to) {
+  ptr = detail::list_alloc(ctx.release(), std::distance(from, to),
+      static_cast<typename isl_list<T>::isl_ptr_t>(nullptr));
+  for ( ; from != to; ++from) {
+    ptr = detail::list_add(ptr, from->copy());
+  }
 }
 
 template <typename T>
