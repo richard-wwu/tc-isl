@@ -3935,6 +3935,8 @@ static struct isl_sched_node *graph_find_compressed_node(isl_ctx *ctx,
 	node = isl_id_get_user(id);
 	isl_id_free(id);
 
+	node = graph_find_node(ctx, graph, node->space);
+
 	if (!node)
 		return NULL;
 
@@ -5524,11 +5526,12 @@ static __isl_give isl_schedule_node *compute_schedule_finish_band(
 			return compute_split_schedule(node, graph);
 		if (!empty)
 			return compute_next_band(node, graph, 1);
-		if (graph->scc > 1)
+		if (graph->scc > 1) {
 			if (graph->merge_callback)
 				return compute_schedule_wcc_clustering(node, graph);
 			else
 				return compute_component_schedule(node, graph, 1);
+		}
 		if (!initialized && compute_maxvar(graph) < 0)
 			return isl_schedule_node_free(node);
 
@@ -6636,32 +6639,33 @@ static isl_bool ok_to_merge(isl_ctx *ctx, struct isl_sched_graph *graph,
 	n_coincident_before_after(c, merge_graph, &n_coincident_before,
 		&n_coincident_after);
 	
-	space = isl_space_params(isl_space_copy(graph->node[0].space));
-	original_schedule = isl_union_map_empty(isl_space_copy(space));
-	updated_schedule = isl_union_map_empty(space);
+	if (graph->merge_callback) {
+		space = isl_space_params(isl_space_copy(graph->node[0].space));
+		original_schedule = isl_union_map_empty(isl_space_copy(space));
+		updated_schedule = isl_union_map_empty(space);
 	
-	for (i = 0; i < graph->n; ++i) {
-		struct isl_sched_node *node = &graph->node[i];
-		isl_map *node_original_schedule;
-		isl_map *node_updated_schedule;
+		for (i = 0; i < graph->n; ++i) {
+			struct isl_sched_node *node = &graph->node[i];
+			isl_map *node_original_schedule;
+			isl_map *node_updated_schedule;
+	
+			if (!c->scc_in_merge[node->scc])
+				continue;
+	
+			node_original_schedule = node_extract_schedule(node);
+			original_schedule = isl_union_map_add_map(
+				original_schedule, node_original_schedule);
+			node_updated_schedule = extract_node_transformation(
+				ctx, node, c, merge_graph);
+			updated_schedule = isl_union_map_add_map(
+				updated_schedule, node_updated_schedule);
+		}
 
-		if (!c->scc_in_merge[node->scc])
-			continue;
-
-		node_original_schedule = node_extract_schedule(node);
-		original_schedule = isl_union_map_add_map(original_schedule,
-			node_original_schedule);
-		node_updated_schedule = extract_node_transformation(ctx, node,
-			c, merge_graph);
-		updated_schedule = isl_union_map_add_map(updated_schedule,
-			node_updated_schedule);
-	}
-
-	if (graph->merge_callback)
 		return (graph->merge_callback)(original_schedule,
 			updated_schedule, n_coincident_after,
 			n_coincident_before, c->is_along_edge,
 			graph->merge_callback_data);
+	}
 
 	if (isl_options_get_schedule_maximize_band_depth(ctx) &&
 	    merge_graph->n_total_row < merge_graph->maxvar)
@@ -7360,11 +7364,12 @@ static __isl_give isl_schedule_node *compute_schedule(isl_schedule_node *node,
 			return isl_schedule_node_free(node);
 	}
 
-	if (graph->scc > 1)
+	if (graph->scc > 1) {
 		if (graph->merge_callback)
 			return compute_schedule_wcc_clustering(node, graph);
 		else
 			return compute_component_schedule(node, graph, 1);
+	}
 
 	return compute_schedule_wcc(node, graph);
 }
