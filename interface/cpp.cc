@@ -808,6 +808,11 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 		if (gives(method))
 			osprintf(os, "  free(res);\n");
 		osprintf(os, "  return tmp;\n");
+	} else if (is_isl_enum(return_type)) {
+		string typestr = return_type.getAsString();
+		typestr = typestr.replace(typestr.find("isl_"), sizeof("isl_")-1, "isl::");
+		osprintf(os, "  return static_cast<%s>(res);\n", typestr.c_str());
+
 	} else {
 		osprintf(os, "  return res;\n");
 	}
@@ -1068,6 +1073,7 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param) {
  */
 static const char *rename_map[][2] = {
 	{ "union", "unite" },
+	{ "delete", "del" },
 };
 
 /* Rename method "name" in case the method name in the C++ bindings should not
@@ -1107,19 +1113,19 @@ string cpp_generator::type2cpp(QualType type)
 	if (is_isl_bool(type))
 		return "isl::boolean";
 
-	if (is_isl_stat(type))
-		return "isl::stat";
-
         if (extensions) {
-          if (type->isEnumeralType())
-            return "isl::dim";
-
-          if (is_isl_ctx(type))
+          if (type->isEnumeralType()) {
+            string typestr = type.getAsString();
+            return typestr.replace(
+                typestr.find("isl_"), sizeof("isl_")-1, "isl::");
+          }
+          else if (is_isl_ctx(type)) {
             return "isl::ctx";
+          }
         }
 
-	if (type->isIntegerType())
-		return type.getAsString();
+        if (type->isIntegerType())
+          return type.getAsString();
 
 	if (is_string(type))
 		return "std::string";

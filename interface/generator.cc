@@ -275,17 +275,14 @@ bool generator::is_isl_bool(QualType type)
 	return s == "isl_bool";
 }
 
-/* Is "type" the type isl_stat?
+/* Is "type" the type isl_enum?
  */
-bool generator::is_isl_stat(QualType type)
+bool generator::is_isl_enum(QualType type)
 {
-	string s;
-
-	if (type->isPointerType())
+	if (is_isl_bool(type))
 		return false;
 
-	s = type.getAsString();
-	return s == "isl_stat";
+	return type->isEnumeralType(); 
 }
 
 

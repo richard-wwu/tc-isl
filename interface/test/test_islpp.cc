@@ -119,15 +119,15 @@ isl::point makePoint(
 
 long evalIntegerAt(const isl::aff& a, const isl::point& pt) {
   // Parametric only
-  assert(isl::set(pt).dim(isl::dim::in) == 0);
-  assert(isl_aff_dim(a.get(), isl_dim_in) == isl::set(pt).dim(isl::dim::in));
-  assert(isl_aff_dim(a.get(), isl_dim_param) == isl::set(pt).dim(isl::dim::param));
+  assert(isl::set(pt).dim(isl::dim_type::in) == 0);
+  assert(isl_aff_dim(a.get(), isl_dim_in) == isl::set(pt).dim(isl::dim_type::in));
+  assert(isl_aff_dim(a.get(), isl_dim_param) == isl::set(pt).dim(isl::dim_type::param));
   auto aff_map = isl::manage(isl_map_from_aff(a.copy()));
   auto pt_map = isl::manage(isl_map_from_domain(isl::set(pt).release()));
   auto m = pt_map.apply_domain(aff_map);
   assert(m.is_single_valued().is_true());
   // Project out all parameters and only keep the value
-  m = m.project_out(isl::dim::param, 0, isl::set(pt).dim(isl::dim::param));
+  m = m.project_out(isl::dim_type::param, 0, isl::set(pt).dim(isl::dim_type::param));
   auto v = isl::manage(
     isl_map_plain_get_val_if_fixed(m.get(), isl_dim_in, 0));
   assert(isl_val_get_den_si(v.get()) == 1); // not a rational
@@ -193,8 +193,8 @@ TEST(ISLPP, SimpleParams) {
   // Create a simple 2-D parametric domain
   isl::space ContextSpace(ctx, 2);
   isl::local_space Context(ContextSpace);
-  isl::aff p0(Context, isl::dim::param, 0);
-  isl::aff p1(Context, isl::dim::param, 1);
+  isl::aff p0(Context, isl::dim_type::param, 0);
+  isl::aff p1(Context, isl::dim_type::param, 1);
   // With range [0-10] x [0-20]
   isl::set S2 = 0 <= p0 & p0 <= 10 & 0 <= p1 & p1 <= 20;
   ss << S2 << std::endl;
@@ -207,7 +207,7 @@ TEST(ISLPP, SimpleSet) {
   // From string
   isl::set S1(ctx, R"S([p0, p1] -> {  : 0 <= p0 <= 10 and 0 <= p1 <= 20 })S");
   // Add dim::set dimensions
-  isl::set D = S1.add_dims(isl::dim::set, 2);
+  isl::set D = S1.add_dims(isl::dim_type::set, 2);
   ASSERT_EQ(std::string(
               "[p0, p1] -> { [i0, i1] : 0 <= p0 <= 10 and 0 <= p1 <= 20 }"),
             D.to_str());
@@ -219,8 +219,8 @@ TEST(ISLPP, SimpleCodegen) {
   std::stringstream ss;
   isl::space ContextSpace(ctx, 0, 2);
   isl::local_space Context(ContextSpace);
-  isl::aff i0(Context, isl::dim::set, 0);
-  isl::aff i1(Context, isl::dim::set, 1);
+  isl::aff i0(Context, isl::dim_type::set, 0);
+  isl::aff i1(Context, isl::dim_type::set, 1);
   // With range [0-10] x [0-20]
   isl::set S2 = 0 <= i0 & i0 <= 10 & 0 <= i1 & i1 <= 20;
   ss << S2 << std::endl;
@@ -362,10 +362,10 @@ TEST(ISLPP, IdLifetime) {
     ptr = value;
     isl::id id(ctx, std::string("whatever"), value,
                [](void *x) { delete static_cast<int *>(x); } );
-    space = space.set_tuple_id(isl::dim::in, id);
+    space = space.set_tuple_id(isl::dim_type::in, id);
   } // C++ object goes out of scope, but the user object must survive
 
-  isl::id other = space.get_tuple_id(isl::dim::in);
+  isl::id other = space.get_tuple_id(isl::dim_type::in);
   ASSERT_TRUE(other.has_name());
   EXPECT_EQ(std::string("whatever"), other.get_name());
   EXPECT_EQ(ptr, other.get_user<void>());  // casting to void* is safe
@@ -375,7 +375,7 @@ TEST(ISLPP, IdLifetime) {
   int *flag = new int(0);
   {
     isl::id id(ctx, flag, [](void *x) { *static_cast<int *>(x) = 1; });
-    space = space.set_tuple_id(isl::dim::in, id);
+    space = space.set_tuple_id(isl::dim_type::in, id);
   }
   // Although C++ object goes out of scope, its C equivalent survives within
   // the space object, so the deleter should not be called and the flag
