@@ -20,6 +20,7 @@
 #include <isl/union_set.h>
 #include <isl/val.h>
 #include <isl/constraint.h>
+#include <isl/id.h>
 
 #include <functional>
 #include <string>
@@ -87,36 +88,39 @@ public:
   }
 };
 
-
-class id;
-
-inline isl::id manage(__isl_take isl_id *ptr);
-
 class id {
-private:
-  friend inline isl::id manage(__isl_take isl_id *ptr);
-
-  isl_id *ptr = nullptr;
-
-  inline explicit id(__isl_take isl_id *ptr);
-
+  isl_id *ptr;
 public:
+  id(isl::ctx ctx, const std::string &name) {
+    ptr = isl_id_alloc(ctx.release(), name.c_str(), nullptr);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, const std::string &name, T *usr,
+     void (*deleter)(void *) = nullptr) {
+    ptr = isl_id_alloc(ctx.release(), name.c_str(), usr);
+    if (deleter)
+      ptr = isl_id_set_free_user(ptr, deleter);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, T *usr,
+     void (*deleter)(void *) = nullptr) {
+    ptr = isl_id_alloc(ctx.release(), nullptr, usr);
+    if (deleter)
+      ptr = isl_id_set_free_user(ptr, deleter);
+  }
+
+  template <typename T>
+  T *get_user() {
+    if (!ptr)
+      return nullptr;
+    return static_cast<T *>(isl_id_get_user(ptr));
+  }
+
   inline /* implicit */ id();
+  inline /* implicit */ id(isl_id *id);
   inline /* implicit */ id(const isl::id &obj);
-
-  explicit id(isl::ctx ctx, const std::string &str) {
-    auto res = isl_id_alloc(ctx.release(), str.c_str(), NULL);
-    ptr = res;
-  }
-
-  std::string get_name() const {
-    const char *Tmp = isl_id_get_name(get());
-    if (!Tmp)
-      return "";
-    std::string S(Tmp);
-    return S;
-  }
-
   inline isl::id &operator=(isl::id obj);
   inline ~id();
   inline __isl_give isl_id *copy() const &;
@@ -129,12 +133,17 @@ public:
   inline isl::ctx get_ctx() const;
   inline bool is_null() const;
   inline std::string to_str() const;
+  
+  inline std::string get_name() const;
+  inline int get_hash() const;
 
-  typedef isl_id* isl_ptr_t;
+  inline bool has_name() const;
+  inline isl::id set_free_user(void (*deleter)(void *)) const;
+  inline bool operator== (const isl::id &obj) const;
+  inline bool operator!= (const isl::id &obj) const;
 };
 
-// implementations for isl::id
-isl::id manage(__isl_take isl_id *ptr) {
+inline isl::id manage(__isl_take isl_id *ptr) {
   return id(ptr);
 }
 
@@ -196,7 +205,6 @@ inline std::ostream& operator<<(std::ostream& os, const id& C) {
   return os;
 }
 
-
 std::string id::to_str() const {
   char *Tmp = isl_id_to_str(get());
   if (!Tmp)
@@ -206,6 +214,32 @@ std::string id::to_str() const {
   return S;
 }
 
+int id::get_hash() const {
+  return isl_id_get_hash(get());
+}
+
+std::string id::get_name() const {
+  auto res = isl_id_get_name(get());
+  std::string tmp(res);
+  return tmp;
+}
+
+bool id::has_name() const {
+  return isl_id_get_name(get()) != nullptr;
+}
+
+id id::set_free_user(void (*deleter)(void *)) const {
+  auto res = isl_id_set_free_user(copy(), deleter);
+  return manage(res);
+}
+
+bool id::operator==(const id &obj) const {
+  return ptr == obj.ptr;
+}
+
+bool id::operator!=(const id &obj) const {
+  return !operator==(obj);
+}
 
 enum class stat {
   ok = isl_stat_ok,

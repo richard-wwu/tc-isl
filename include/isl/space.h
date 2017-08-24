@@ -57,12 +57,14 @@ isl_bool isl_space_has_tuple_name(__isl_keep isl_space *space,
 __isl_export
 __isl_keep const char *isl_space_get_tuple_name(__isl_keep isl_space *dim,
 				 enum isl_dim_type type);
+__isl_export
 __isl_give isl_space *isl_space_set_tuple_id(__isl_take isl_space *dim,
 	enum isl_dim_type type, __isl_take isl_id *id);
 __isl_give isl_space *isl_space_reset_tuple_id(__isl_take isl_space *dim,
 	enum isl_dim_type type);
 isl_bool isl_space_has_tuple_id(__isl_keep isl_space *dim,
 	enum isl_dim_type type);
+__isl_export
 __isl_give isl_id *isl_space_get_tuple_id(__isl_keep isl_space *dim,
 	enum isl_dim_type type);
 __isl_give isl_space *isl_space_reset_user(__isl_take isl_space *space);

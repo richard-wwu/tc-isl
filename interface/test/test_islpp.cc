@@ -318,6 +318,71 @@ TEST(ISLPP, SimpleEval) {
   ASSERT_EQ(39, val) << "error";
 }
 
+TEST(ISLPP, IdUniqueness) {
+  isl::ctx ctx(isl_ctx_alloc());
+  ScopeGuard g([&]() { isl_ctx_free(ctx.release()); });
+
+  isl::id id_whatever(ctx, std::string("whatever"));
+  ASSERT_EQ(std::string("whatever"), id_whatever.get_name());
+
+  // Two ids with the same name and no user field must compare.  
+  isl::id id_other(ctx, std::string("whatever"));
+  ASSERT_EQ(id_whatever, id_other);
+
+  // Two ids with the same name and different user fileds
+  // are different.
+  int fourtytwo = 42;
+  isl::id id_whatever_42(ctx, std::string("whatever"), &fourtytwo);
+  ASSERT_NE(id_whatever, id_whatever_42);
+
+  // Copy-constructed ids must compare.
+  isl::id id_whatever_42_copy(id_whatever_42);
+  ASSERT_EQ(id_whatever_42, id_whatever_42_copy);
+
+  // Constructing an id with the same name and user field as an existing id
+  // should give the same id.
+  isl::id id_whatever_42_other(ctx, std::string("whatever"), &fourtytwo);
+  ASSERT_EQ(id_whatever_42, id_whatever_42_other);
+
+  // Can mix C and C++ interfaces.
+  isl_id *cid = isl_id_alloc(ctx.get(), "whatever", &fourtytwo);
+  ASSERT_EQ(cid, id_whatever_42.get());
+  isl_id_free(cid);
+}
+
+TEST(ISLPP, IdLifetime) {
+  isl::ctx ctx(isl_ctx_alloc());
+  ScopeGuard g([&]() { isl_ctx_free(ctx.release()); });
+
+  isl::space space(ctx, 1, 1);
+  void *ptr;
+
+  {
+    int *value = new int(42);
+    ptr = value;
+    isl::id id(ctx, std::string("whatever"), value,
+               [](void *x) { delete static_cast<int *>(x); } );
+    space = space.set_tuple_id(isl::dim_type::in, id);
+  } // C++ object goes out of scope, but the user object must survive
+
+  isl::id other = space.get_tuple_id(isl::dim_type::in);
+  ASSERT_TRUE(other.has_name());
+  EXPECT_EQ(std::string("whatever"), other.get_name());
+  EXPECT_EQ(ptr, other.get_user<void>());  // casting to void* is safe
+  int *other_value = other.get_user<int>();
+  EXPECT_EQ(42, *other_value);
+
+  int *flag = new int(0);
+  {
+    isl::id id(ctx, flag, [](void *x) { *static_cast<int *>(x) = 1; });
+    space = space.set_tuple_id(isl::dim_type::in, id);
+  }
+  // Although C++ object goes out of scope, its C equivalent survives within
+  // the space object, so the deleter should not be called and the flag
+  // must remain zero.
+  EXPECT_EQ(0, *flag);
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

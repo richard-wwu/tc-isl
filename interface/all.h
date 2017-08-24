@@ -10,3 +10,4 @@
 #include <isl/schedule_node.h>
 #include <isl/ast_build.h>
 #include <isl/constraint.h>
+#include <isl/id.h>

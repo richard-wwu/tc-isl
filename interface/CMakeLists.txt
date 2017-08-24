@@ -69,6 +69,7 @@ set(LIST_SYSTEM_INCLUDES ${SYSTEM_INCLUDES})
 
 add_custom_command(
   OUTPUT isl-noexceptions.h
+  DEPENDS ${CMAKE_CURRENT_LIST_DIR}/isl.h.top
   COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/isl.h.top > isl-noexceptions.h
   COMMAND extract_interface --language=cpp
   -I${CMAKE_CURRENT_BINARY_DIR} -I${CMAKE_CURRENT_BINARY_DIR}/../include
