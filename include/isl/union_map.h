@@ -31,6 +31,7 @@ __isl_give isl_union_map *isl_union_map_copy(__isl_keep isl_union_map *umap);
 __isl_null isl_union_map *isl_union_map_free(__isl_take isl_union_map *umap);
 
 isl_ctx *isl_union_map_get_ctx(__isl_keep isl_union_map *umap);
+__isl_export
 __isl_give isl_space *isl_union_map_get_space(__isl_keep isl_union_map *umap);
 
 __isl_give isl_union_map *isl_union_map_reset_user(
@@ -39,6 +40,7 @@ __isl_give isl_union_map *isl_union_map_reset_user(
 int isl_union_map_find_dim_by_name(__isl_keep isl_union_map *umap,
 	enum isl_dim_type type, const char *name);
 
+__isl_export
 __isl_give isl_union_map *isl_union_map_universe(
 	__isl_take isl_union_map *umap);
 __isl_give isl_set *isl_union_map_params(__isl_take isl_union_map *umap);
@@ -55,6 +57,7 @@ __isl_give isl_union_pw_multi_aff *isl_union_map_domain_map_union_pw_multi_aff(
 __isl_export
 __isl_give isl_union_map *isl_union_map_range_map(
 	__isl_take isl_union_map *umap);
+__isl_export
 __isl_give isl_union_map *isl_union_set_wrapped_domain_map(
 	__isl_take isl_union_set *uset);
 __isl_give isl_union_map *isl_union_map_from_domain(
@@ -83,6 +86,7 @@ __isl_give isl_union_map *isl_union_map_lexmin(__isl_take isl_union_map *umap);
 __isl_export
 __isl_give isl_union_map *isl_union_map_lexmax(__isl_take isl_union_map *umap);
 
+__isl_export
 __isl_give isl_union_map *isl_union_map_add_map(__isl_take isl_union_map *umap,
 	__isl_take isl_map *map);
 __isl_export
@@ -165,6 +169,7 @@ __isl_give isl_union_map *isl_union_map_apply_range(
 	__isl_take isl_union_map *umap1, __isl_take isl_union_map *umap2);
 __isl_give isl_union_map *isl_union_map_preimage_domain_multi_aff(
 	__isl_take isl_union_map *umap, __isl_take isl_multi_aff *ma);
+__isl_export
 __isl_give isl_union_map *isl_union_map_preimage_range_multi_aff(
 	__isl_take isl_union_map *umap, __isl_take isl_multi_aff *ma);
 __isl_give isl_union_map *isl_union_map_preimage_domain_pw_multi_aff(
@@ -235,6 +240,7 @@ isl_bool isl_union_map_contains(__isl_keep isl_union_map *umap,
 	__isl_keep isl_space *space);
 __isl_give isl_map *isl_union_map_extract_map(__isl_keep isl_union_map *umap,
 	__isl_take isl_space *dim);
+__isl_export
 __isl_give isl_map *isl_map_from_union_map(__isl_take isl_union_map *umap);
 
 __isl_give isl_basic_map *isl_union_map_sample(__isl_take isl_union_map *umap);

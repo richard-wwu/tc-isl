@@ -402,7 +402,9 @@ __isl_constructor
 __isl_give isl_multi_aff *isl_multi_aff_from_aff(__isl_take isl_aff *aff);
 __isl_constructor
 __isl_give isl_multi_aff *isl_multi_aff_identity(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_domain_map(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_range_map(__isl_take isl_space *space);
 __isl_give isl_multi_aff *isl_multi_aff_project_out_map(
 	__isl_take isl_space *space, enum isl_dim_type type,
@@ -775,6 +777,7 @@ __isl_give char *isl_union_pw_multi_aff_to_str(
 
 uint32_t isl_multi_pw_aff_get_hash(__isl_keep isl_multi_pw_aff *mpa);
 
+__isl_export
 __isl_give isl_multi_pw_aff *isl_multi_pw_aff_identity(
 	__isl_take isl_space *space);
 __isl_constructor
