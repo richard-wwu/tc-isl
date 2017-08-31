@@ -3,6 +3,7 @@
 
 #include <isl/union_set_type.h>
 #include <isl/union_map_type.h>
+#include <isl/schedule_tree.h>
 #include <isl/schedule_type.h>
 #include <isl/aff_type.h>
 #include <isl/band.h>
@@ -214,6 +215,10 @@ __isl_give char *isl_schedule_to_str(__isl_keep isl_schedule *schedule);
 
 int isl_schedule_foreach_band(__isl_keep isl_schedule *sched,
 	int (*fn)(__isl_keep isl_band *band, void *user), void *user);
+
+
+__isl_keep isl_schedule_tree *isl_schedule_get_tree(
+	__isl_keep isl_schedule *schedule);
 
 #if defined(__cplusplus)
 }

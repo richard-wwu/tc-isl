@@ -14,7 +14,9 @@
 #include <isl/ilp.h>
 #include <isl/map.h>
 #include <isl/schedule.h>
+#include <isl/schedule_band.h>
 #include <isl/schedule_node.h>
+#include <isl/schedule_tree.h>
 #include <isl/set.h>
 #include <isl/union_map.h>
 #include <isl/union_set.h>
@@ -75,9 +77,18 @@ inline isl::boolean manage(isl_bool val) {
 
 class ctx {
   isl_ctx *ptr;
+  bool own{false};
 public:
-  /* implicit */ ctx(isl_ctx *ctx)
-      : ptr(ctx) {}
+  ctx() : ptr(isl_ctx_alloc()), own(true) {}
+  /* implicit */ ctx(isl_ctx *c) : ptr(c), own(false) {}
+  ctx(const ctx &c) : ptr(c.ptr), own(false) {}
+  ctx operator=(const ctx &c) { return ctx(c.ptr); }
+  ~ctx() {
+    if (own) {
+      isl_ctx_free(release());
+      own = false;
+    }
+  }
   isl_ctx *release() {
     auto tmp = ptr;
     ptr = nullptr;
@@ -133,7 +144,7 @@ public:
   inline isl::ctx get_ctx() const;
   inline bool is_null() const;
   inline std::string to_str() const;
-  
+
   inline std::string get_name() const;
   inline int get_hash() const;
 
@@ -302,5 +313,21 @@ enum class ast_loop_type {
 	unroll = isl_ast_loop_unroll,
 	separate = isl_ast_loop_separate
 };
+
+enum class schedule_node_type {
+        error = isl_schedule_node_error,
+        band = isl_schedule_node_band,
+        context = isl_schedule_node_context,
+        domain = isl_schedule_node_domain,
+        expansion = isl_schedule_node_expansion,
+        extension = isl_schedule_node_extension,
+        filter = isl_schedule_node_filter,
+        leaf = isl_schedule_node_leaf,
+        guard = isl_schedule_node_guard,
+        mark = isl_schedule_node_mark,
+        sequence = isl_schedule_node_sequence,
+        set = isl_schedule_node_set
+};
+
 }
 } // namespace isl
