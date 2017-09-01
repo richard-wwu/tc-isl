@@ -25,6 +25,7 @@
 #include <isl/id.h>
 
 #include <functional>
+#include <memory>
 #include <string>
 
 namespace isl {
@@ -77,18 +78,8 @@ inline isl::boolean manage(isl_bool val) {
 
 class ctx {
   isl_ctx *ptr;
-  bool own{false};
 public:
-  ctx() : ptr(isl_ctx_alloc()), own(true) {}
-  /* implicit */ ctx(isl_ctx *c) : ptr(c), own(false) {}
-  ctx(const ctx &c) : ptr(c.ptr), own(false) {}
-  ctx operator=(const ctx &c) { return ctx(c.ptr); }
-  ~ctx() {
-    if (own) {
-      isl_ctx_free(release());
-      own = false;
-    }
-  }
+  /* implicit */ ctx(isl_ctx *ctx) : ptr(ctx) {}
   isl_ctx *release() {
     auto tmp = ptr;
     ptr = nullptr;
@@ -96,6 +87,17 @@ public:
   }
   isl_ctx *get() {
     return ptr;
+  }
+
+  struct CtxUPtrDeleter {
+    void operator()(ctx* c) {
+      isl_ctx_free(c->release());
+      delete c;
+    }
+  };
+  typedef std::unique_ptr<ctx, CtxUPtrDeleter> ctxUPtr;
+  inline static ctxUPtr makeCtx() {
+    return ctxUPtr(new ctx(isl_ctx_alloc()));
   }
 };
 
