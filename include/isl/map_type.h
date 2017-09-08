@@ -19,12 +19,14 @@ ISL_DECLARE_LIST_TYPE(map)
 #ifndef isl_basic_set
 struct __isl_subclass(isl_set) isl_basic_set;
 typedef struct isl_basic_set isl_basic_set;
+struct __isl_list(isl_basic_set) isl_basic_set_list;
 ISL_DECLARE_LIST_TYPE(basic_set)
 #endif
 
 #ifndef isl_set
 struct __isl_subclass(isl_union_set) isl_set;
 typedef struct isl_set isl_set;
+struct __isl_list(isl_set) isl_set_list;
 ISL_DECLARE_LIST_TYPE(set)
 #endif
 

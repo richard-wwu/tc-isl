@@ -45,24 +45,6 @@ isl::aff operator+(const isl::aff& A, int i) {
   return i + A;
 }
 
-isl::set operator>=(const isl::aff& A, int i) {
-  isl_ctx *ctx = A.get_ctx().get();
-  isl::aff T(isl::local_space(A.get_space().domain()), isl::val(ctx, i));
-  return A.ge_set(T);
-}
-
-isl::set operator<=(const isl::aff& A, int i) {
-  return A.neg() >= -i;
-}
-
-isl::set operator<=(int i, const isl::aff& A) {
-  return A >= i;
-}
-
-isl::set operator>=(int i, const isl::aff& A) {
-  return A <= i;
-}
-
 isl::set operator&(const isl::set& S1, const isl::set& S2) {
   return S1.intersect(S2);
 }
@@ -81,6 +63,67 @@ isl::set operator&(const isl::set& S1, isl::point P2) {
 
 isl::set operator&(isl::point P1, const isl::set& S2) {
   return S2 & P1;
+}
+
+namespace isl {
+
+// Thin wrapper around aff to disambiguate types for operators and avoid case
+// where return type overloading occurs
+struct aff_set {
+  isl::aff aff;
+  aff_set(isl::aff a) : aff(a) {}
+};
+
+} // namespace isl
+
+isl::set operator>=(isl::aff_set A, int i) {
+  isl_ctx* ctx = A.aff.get_ctx().get();
+  isl::aff T(isl::local_space(A.aff.get_space().domain()), isl::val(ctx, i));
+  return A.aff.ge_set(T);
+}
+
+isl::set operator>=(int i, isl::aff_set A) {
+  return A.aff.neg() >= -i;
+}
+
+isl::set operator>=(isl::aff_set A, isl::aff B) {
+  return A.aff.ge_set(B);
+}
+
+isl::set operator>=(isl::aff A, isl::aff_set B) {
+  return A.ge_set(B.aff);
+}
+
+isl::set operator<=(isl::aff_set A, int i) {
+  return A.aff.neg() >= -i;
+}
+
+isl::set operator<=(int i, isl::aff_set A) {
+  return A >= i;
+}
+
+isl::set operator<=(isl::aff_set A, isl::aff B) {
+  return A.aff.le_set(B);
+}
+
+isl::set operator<=(isl::aff A, isl::aff_set B) {
+  return A.le_set(B.aff);
+}
+
+isl::set operator==(isl::aff_set A, int i) {
+  return (A <= i) & (A >= i);
+}
+
+isl::set operator==(int i, isl::aff_set A) {
+  return A == i;
+}
+
+isl::set operator==(isl::aff_set A, isl::aff B) {
+  return (A <= B) & (A >= B);
+}
+
+isl::set operator==(isl::aff A, isl::aff_set B) {
+  return (A <= B) & (A >= B);
 }
 
 isl::set makeUniverseSet(const isl::ctx& ctx, std::vector<const char*> pNames) {
@@ -196,7 +239,10 @@ TEST(ISLPP, SimpleParams) {
   isl::aff p0(Context, isl::dim_type::param, 0);
   isl::aff p1(Context, isl::dim_type::param, 1);
   // With range [0-10] x [0-20]
-  isl::set S2 = 0 <= p0 & p0 <= 10 & 0 <= p1 & p1 <= 20;
+  isl::set S2 = 0                <= isl::aff_set(p0) &
+                0                <= isl::aff_set(p1) &
+                isl::aff_set(p0) <=          10 &
+                isl::aff_set(p1) <=          20 ;
   ss << S2 << std::endl;
   EXPECT_EQ(S1.to_str(), S2.to_str());
 }
@@ -222,7 +268,10 @@ TEST(ISLPP, SimpleCodegen) {
   isl::aff i0(Context, isl::dim_type::set, 0);
   isl::aff i1(Context, isl::dim_type::set, 1);
   // With range [0-10] x [0-20]
-  isl::set S2 = 0 <= i0 & i0 <= 10 & 0 <= i1 & i1 <= 20;
+  isl::set S2 = 0                <= isl::aff_set(i0) &
+                0                <= isl::aff_set(i1) &
+                isl::aff_set(i0) <=          10 &
+                isl::aff_set(i1) <=          20 ;
   ss << S2 << std::endl;
   auto B = isl::ast_build::from_context(isl::set(ctx, "{:}"));
   auto sched = isl::schedule::from_domain(S2);
@@ -325,7 +374,7 @@ TEST(ISLPP, IdUniqueness) {
   isl::id id_whatever(ctx, std::string("whatever"));
   ASSERT_EQ(std::string("whatever"), id_whatever.get_name());
 
-  // Two ids with the same name and no user field must compare.  
+  // Two ids with the same name and no user field must compare.
   isl::id id_other(ctx, std::string("whatever"));
   ASSERT_EQ(id_whatever, id_other);
 

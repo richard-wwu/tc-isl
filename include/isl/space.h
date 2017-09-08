@@ -106,10 +106,13 @@ __isl_give isl_space *isl_space_insert_dims(__isl_take isl_space *dim,
 	enum isl_dim_type type, unsigned pos, unsigned n);
 __isl_give isl_space *isl_space_join(__isl_take isl_space *left,
 	__isl_take isl_space *right);
+__isl_export
 __isl_give isl_space *isl_space_product(__isl_take isl_space *left,
 	__isl_take isl_space *right);
+__isl_export
 __isl_give isl_space *isl_space_domain_product(__isl_take isl_space *left,
 	__isl_take isl_space *right);
+__isl_export
 __isl_give isl_space *isl_space_range_product(__isl_take isl_space *left,
 	__isl_take isl_space *right);
 __isl_give isl_space *isl_space_factor_domain(__isl_take isl_space *space);
