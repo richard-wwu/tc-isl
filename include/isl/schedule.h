@@ -182,6 +182,7 @@ __isl_give isl_schedule *isl_schedule_insert_guard(
 __isl_export
 __isl_give isl_schedule *isl_schedule_sequence(
 	__isl_take isl_schedule *schedule1, __isl_take isl_schedule *schedule2);
+__isl_export
 __isl_give isl_schedule *isl_schedule_set(
 	__isl_take isl_schedule *schedule1, __isl_take isl_schedule *schedule2);
 __isl_give isl_schedule *isl_schedule_intersect_domain(
