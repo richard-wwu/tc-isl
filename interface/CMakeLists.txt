@@ -52,8 +52,10 @@ add_definitions(-DHAVE_SETMAINFILEID)
 ################################################################################
 include_directories(..)
 include_directories(${ISL_BINARY_DIR})
-include_directories(${CLANG_PREFIX}/include)
-link_directories(${CLANG_PREFIX}/lib)
+execute_process(COMMAND ${CLANG_PREFIX}/bin/llvm-config --includedir OUTPUT_VARIABLE LLVM_INCDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND ${CLANG_PREFIX}/bin/llvm-config --libdir  OUTPUT_VARIABLE LLVM_LIBDIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+include_directories(${LLVM_INCDIR})
+link_directories(${LLVM_LIBDIR})
 add_executable(extract_interface cpp.cc extract_interface.cc generator.cc python.cc)
 
 target_link_libraries(extract_interface isl clangFrontend clangParse clangSema clangEdit clangAnalysis clangAST clangLex clangBasic clangDriver clangSerialization clang LLVMOption LLVMX86Disassembler LLVMX86AsmParser LLVMX86CodeGen LLVMX86Desc LLVMX86Info LLVMX86AsmPrinter LLVMX86Utils LLVMMCDisassembler LLVMGlobalISel LLVMSelectionDAG LLVMAsmPrinter LLVMDebugInfoCodeView LLVMDebugInfoMSF LLVMCodeGen LLVMTarget LLVMScalarOpts LLVMInstCombine LLVMTransformUtils LLVMBitWriter LLVMAnalysis LLVMObject LLVMBitReader LLVMProfileData LLVMCore LLVMMCParser LLVMMC LLVMSupport LLVMDemangle rt dl pthread z m tinfo)
