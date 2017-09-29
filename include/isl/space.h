@@ -69,13 +69,17 @@ __isl_give isl_id *isl_space_get_tuple_id(__isl_keep isl_space *dim,
 	enum isl_dim_type type);
 __isl_give isl_space *isl_space_reset_user(__isl_take isl_space *space);
 
+__isl_export
 __isl_give isl_space *isl_space_set_dim_id(__isl_take isl_space *dim,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
+__isl_export
 isl_bool isl_space_has_dim_id(__isl_keep isl_space *dim,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_id *isl_space_get_dim_id(__isl_keep isl_space *dim,
 	enum isl_dim_type type, unsigned pos);
 
+__isl_export
 int isl_space_find_dim_by_id(__isl_keep isl_space *dim, enum isl_dim_type type,
 	__isl_keep isl_id *id);
 __isl_export
@@ -188,8 +192,10 @@ isl_bool isl_space_is_range(__isl_keep isl_space *space1,
 __isl_export
 isl_bool isl_space_is_equal(__isl_keep isl_space *space1,
 	__isl_keep isl_space *space2);
+__isl_export
 isl_bool isl_space_has_equal_params(__isl_keep isl_space *space1,
 	__isl_keep isl_space *space2);
+__isl_export
 isl_bool isl_space_has_equal_tuples(__isl_keep isl_space *space1,
 	__isl_keep isl_space *space2);
 isl_bool isl_space_tuple_is_equal(__isl_keep isl_space *space1,

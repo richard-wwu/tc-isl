@@ -88,16 +88,15 @@ public:
   isl_ctx *get() {
     return ptr;
   }
-
   struct CtxUPtrDeleter {
     void operator()(ctx* c) {
       isl_ctx_free(c->release());
       delete c;
     }
   };
-  typedef std::unique_ptr<ctx, CtxUPtrDeleter> ctxUPtr;
-  inline static ctxUPtr makeCtx() {
-    return ctxUPtr(new ctx(isl_ctx_alloc()));
+  typedef std::unique_ptr<ctx, CtxUPtrDeleter> CtxUPtr;
+  static inline CtxUPtr makeCtx() {
+    return CtxUPtr(new ctx(isl_ctx_alloc()));
   }
 };
 
@@ -429,5 +428,5 @@ bool list_iterator<T>::operator!=(const list_iterator<T> &it) const {
   return !(*this == it);
 }
 
-}
+} // namespace noexceptions
 } // namespace isl

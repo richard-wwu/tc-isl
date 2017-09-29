@@ -93,6 +93,7 @@ __isl_give isl_union_set *isl_union_set_preimage_union_pw_multi_aff(
 	__isl_take isl_union_set *uset,
 	__isl_take isl_union_pw_multi_aff *upma);
 
+__isl_export
 __isl_give isl_union_set *isl_union_set_project_out(
 	__isl_take isl_union_set *uset,
 	enum isl_dim_type type, unsigned first, unsigned n);
@@ -126,8 +127,8 @@ __isl_give isl_basic_set_list *isl_union_set_get_basic_set_list(
 	__isl_keep isl_union_set *uset);
 isl_bool isl_union_set_contains(__isl_keep isl_union_set *uset,
 	__isl_keep isl_space *space);
-__isl_give isl_set *isl_union_set_extract_set(__isl_keep isl_union_set *uset,
-	__isl_take isl_space *dim);
+__isl_export __isl_give isl_set *isl_union_set_extract_set(
+        __isl_keep isl_union_set *uset, __isl_take isl_space *dim);
 __isl_export
 __isl_give isl_set *isl_set_from_union_set(__isl_take isl_union_set *uset);
 __isl_export

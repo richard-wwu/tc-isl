@@ -200,6 +200,7 @@ __isl_give isl_union_map *isl_union_map_deltas_map(
 __isl_export
 __isl_give isl_union_map *isl_union_set_identity(__isl_take isl_union_set *uset);
 
+__isl_export
 __isl_give isl_union_map *isl_union_map_project_out(
 	__isl_take isl_union_map *umap,
 	enum isl_dim_type type, unsigned first, unsigned n);
@@ -238,6 +239,7 @@ isl_stat isl_union_map_foreach_map(__isl_keep isl_union_map *umap,
 	isl_stat (*fn)(__isl_take isl_map *map, void *user), void *user);
 isl_bool isl_union_map_contains(__isl_keep isl_union_map *umap,
 	__isl_keep isl_space *space);
+__isl_export
 __isl_give isl_map *isl_union_map_extract_map(__isl_keep isl_union_map *umap,
 	__isl_take isl_space *dim);
 __isl_export

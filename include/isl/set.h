@@ -79,23 +79,32 @@ __isl_export
 __isl_give isl_set *isl_set_set_dim_name(__isl_take isl_set *set,
 	enum isl_dim_type type, unsigned pos, const char *s);
 
+__isl_export
 __isl_give isl_id *isl_basic_set_get_dim_id(__isl_keep isl_basic_set *bset,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_basic_set *isl_basic_set_set_tuple_id(
 	__isl_take isl_basic_set *bset, __isl_take isl_id *id);
 __isl_give isl_set *isl_set_set_dim_id(__isl_take isl_set *set,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
+__isl_export
 isl_bool isl_set_has_dim_id(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_id *isl_set_get_dim_id(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_set *isl_set_set_tuple_id(__isl_take isl_set *set,
 	__isl_take isl_id *id);
+__isl_export
 __isl_give isl_set *isl_set_reset_tuple_id(__isl_take isl_set *set);
+__isl_export
 isl_bool isl_set_has_tuple_id(__isl_keep isl_set *set);
+__isl_export
 __isl_give isl_id *isl_set_get_tuple_id(__isl_keep isl_set *set);
 __isl_give isl_set *isl_set_reset_user(__isl_take isl_set *set);
 
+__isl_export
 int isl_set_find_dim_by_id(__isl_keep isl_set *set, enum isl_dim_type type,
 	__isl_keep isl_id *id);
 __isl_export
@@ -357,9 +366,11 @@ __isl_give isl_basic_set *isl_basic_set_move_dims(__isl_take isl_basic_set *bset
 __isl_give isl_set *isl_set_move_dims(__isl_take isl_set *set,
 	enum isl_dim_type dst_type, unsigned dst_pos,
 	enum isl_dim_type src_type, unsigned src_pos, unsigned n);
+__isl_export
 __isl_give isl_basic_set *isl_basic_set_project_out(
 		__isl_take isl_basic_set *bset,
 		enum isl_dim_type type, unsigned first, unsigned n);
+__isl_export
 __isl_give isl_set *isl_set_project_out(__isl_take isl_set *set,
 		enum isl_dim_type type, unsigned first, unsigned n);
 __isl_give isl_map *isl_set_project_onto_map(__isl_take isl_set *set,
