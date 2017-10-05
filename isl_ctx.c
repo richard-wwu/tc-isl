@@ -46,7 +46,8 @@ int isl_ctx_next_operation(isl_ctx *ctx)
 		return -1;
 	if (ctx->abort) {
 		isl_ctx_set_error(ctx, isl_error_abort);
-		return -1;
+		isl_die(ctx, isl_error_abort,
+			"ctx aborted", return -1);
 	}
 	if (ctx->max_operations && ctx->operations >= ctx->max_operations)
 		isl_die(ctx, isl_error_quota,
