@@ -50,8 +50,10 @@ __isl_give isl_ast_build *isl_ast_build_alloc(isl_ctx *ctx);
 __isl_export
 __isl_give isl_ast_build *isl_ast_build_from_context(__isl_take isl_set *set);
 
+__isl_export
 __isl_give isl_space *isl_ast_build_get_schedule_space(
 	__isl_keep isl_ast_build *build);
+__isl_export
 __isl_give isl_union_map *isl_ast_build_get_schedule(
 	__isl_keep isl_ast_build *build);
 

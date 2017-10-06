@@ -659,6 +659,7 @@ __isl_give isl_printer *isl_printer_print_pw_multi_aff(__isl_take isl_printer *p
 	__isl_keep isl_pw_multi_aff *pma);
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_from_set(__isl_take isl_set *set);
+__isl_constructor
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_from_map(__isl_take isl_map *map);
 
 __isl_constructor
