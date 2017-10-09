@@ -698,6 +698,7 @@ __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_add_pw_multi_aff(
 
 isl_ctx *isl_union_pw_multi_aff_get_ctx(
 	__isl_keep isl_union_pw_multi_aff *upma);
+__isl_export
 __isl_give isl_space *isl_union_pw_multi_aff_get_space(
 	__isl_keep isl_union_pw_multi_aff *upma);
 

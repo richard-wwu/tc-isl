@@ -161,6 +161,7 @@ __isl_give isl_space *isl_space_params(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_space *isl_space_set_from_params(__isl_take isl_space *space);
 
+__isl_export
 __isl_give isl_space *isl_space_align_params(__isl_take isl_space *dim1,
 	__isl_take isl_space *dim2);
 
