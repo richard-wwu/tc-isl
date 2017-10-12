@@ -50,15 +50,15 @@ isl::set operator&(const isl::set& S1, const isl::set& S2) {
 }
 
 isl::union_set operator&(isl::union_set S1, const isl::set& S2) {
-  return S1.intersect(S2);
+  return S1.intersect(isl::union_set(S2));
 }
 
 isl::union_set operator&(const isl::set& S1, isl::union_set S2) {
-  return S2.intersect(S1);
+  return S2 & S1;
 }
 
 isl::set operator&(const isl::set& S1, isl::point P2) {
-  return S1.intersect(P2);
+  return S1.intersect(isl::set(P2));
 }
 
 isl::set operator&(isl::point P1, const isl::set& S2) {
@@ -198,7 +198,7 @@ TEST(ISLPP, SimpleUnionSet) {
   auto S2 = isl::union_set(ctx, "{ A[2, 8, 1]; B[1] }");
   ss << S2 << std::endl;
   ss << (S2 & S1) << std::endl;
-  EXPECT_TRUE(bool(S1 == (S2 & S1)));
+  EXPECT_TRUE(bool(isl::union_set(S1) == (S2 & S1)));
   std::string expected(R"RES({ A[2, 8, 1] }
 { B[1]; A[2, 8, 1] }
 { A[2, 8, 1] }
@@ -274,9 +274,10 @@ TEST(ISLPP, SimpleCodegen) {
                 isl::aff_set(i1) <=          20 ;
   ss << S2 << std::endl;
   auto B = isl::ast_build::from_context(isl::set(ctx, "{:}"));
-  auto sched = isl::schedule::from_domain(S2);
+  auto sched = isl::schedule::from_domain(isl::union_set(S2));
   auto N1 = B.node_from_schedule(sched);
-  auto um = isl::union_map::from_domain_and_range(S2, S2);
+  auto um = isl::union_map::from_domain_and_range(
+    isl::union_set(S2), isl::union_set(S2));
   auto N2 = B.node_from_schedule_map(um);
   ss << "SCHED: " << sched << std::endl;
   ss << to_c(N1);

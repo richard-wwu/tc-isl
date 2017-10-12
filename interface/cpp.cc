@@ -1031,9 +1031,9 @@ void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
 		osprintf(os, "inline ");
 
 		if (kind == function_kind_constructor) {
-			if (is_implicit_conversion(clazz, method))
-				osprintf(os, "/* implicit */ ");
-			else
+			// if (is_implicit_conversion(clazz, method))
+			// 	osprintf(os, "/* implicit */ ");
+			// else
 				osprintf(os, "explicit ");
 		}
 	}

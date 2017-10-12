@@ -85,7 +85,7 @@ void test_constructors(isl::ctx ctx)
 
 	isl::basic_set bs(ctx, "{ [1] }");
 	isl::set result(ctx, "{ [1] }");
-	isl::set s = bs;
+	isl::set s(bs);
 	assert(s.is_equal(result));
 	isl::set s2(bs);
 	assert(s.unite(s2).is_equal(result));
@@ -133,7 +133,7 @@ void test_parameters_obj(isl::ctx ctx)
 	assert(res_rvalue_param.is_equal(expected));
 
 	isl::basic_set a2(ctx, "{ [0] }");
-	assert(a.is_equal(a2));
+	assert(a.is_equal(isl::set(a2)));
 
 	isl::val two(ctx, 2);
 	isl::val half(ctx, "1/2");
