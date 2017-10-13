@@ -7950,6 +7950,36 @@ __isl_give isl_map *isl_map_intersect_range_factor_range(
 					    &map_intersect_range_factor_range);
 }
 
+/* Given a map "map" in a space [A -> B] -> C and a set "domain"
+ * in the space A, return the intersection.
+ * "map" and "domain" are assumed to have the same parameters.
+ *
+ * The set "domain" is extended to a set living in the space [A -> B] and
+ * the domain of "map" is intersected with this set.
+ */
+static __isl_give isl_map *map_intersect_domain_wrapped_domain(
+	__isl_take isl_map *map, __isl_take isl_set *domain)
+{
+	isl_space *space;
+	isl_set *factor;
+
+	space = isl_map_get_space(map);
+	space = isl_space_domain_wrapped_range(space);
+	factor = isl_set_universe(space);
+	domain = isl_set_product(domain, factor);
+	return isl_map_intersect_domain(map, domain);
+}
+
+/* Given a map "map" in a space [A -> B] -> C and a set "domain"
+ * in the space A, return the intersection.
+ */
+__isl_give isl_map *isl_map_intersect_domain_wrapped_domain(
+	__isl_take isl_map *map, __isl_take isl_set *domain)
+{
+	return isl_map_align_params_map_map_and(map, domain,
+					&map_intersect_domain_wrapped_domain);
+}
+
 static __isl_give isl_map *map_apply_domain(__isl_take isl_map *map1,
 	__isl_take isl_map *map2)
 {
