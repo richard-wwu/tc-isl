@@ -147,6 +147,8 @@ __isl_give isl_union_map *isl_union_map_intersect_range(
 	__isl_take isl_union_map *umap, __isl_take isl_union_set *uset);
 __isl_give isl_union_map *isl_union_map_intersect_range_factor_range(
 	__isl_take isl_union_map *umap, __isl_take isl_union_map *factor);
+__isl_give isl_union_map *isl_union_map_intersect_domain_wrapped_domain(
+	__isl_take isl_union_map *umap, __isl_take isl_union_set *domain);
 
 __isl_export
 __isl_give isl_union_map *isl_union_map_subtract_domain(
