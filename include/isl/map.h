@@ -317,6 +317,8 @@ __isl_give isl_map *isl_map_intersect_range_factor_range(
 	__isl_take isl_map *map, __isl_take isl_map *factor);
 __isl_give isl_map *isl_map_intersect_domain_wrapped_domain(
 	__isl_take isl_map *map, __isl_take isl_set *domain);
+__isl_give isl_map *isl_map_intersect_range_wrapped_domain(
+	__isl_take isl_map *map, __isl_take isl_set *domain);
 __isl_export
 __isl_give isl_map *isl_map_apply_domain(
 		__isl_take isl_map *map1,
