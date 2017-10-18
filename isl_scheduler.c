@@ -4047,8 +4047,6 @@ static struct isl_sched_node *graph_find_compressed_node(isl_ctx *ctx,
 	node = isl_id_get_user(id);
 	isl_id_free(id);
 
-	node = graph_find_node(ctx, graph, node->space);
-
 	if (!node)
 		return NULL;
 
