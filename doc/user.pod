@@ -586,9 +586,6 @@ in which the object was created.
 	isl_ctx *isl_schedule_node_get_ctx(
 		__isl_keep isl_schedule_node *node);
 
-	#include <isl/band.h>
-	isl_ctx *isl_band_get_ctx(__isl_keep isl_band *band);
-
 	#include <isl/ast_build.h>
 	isl_ctx *isl_ast_build_get_ctx(
 		__isl_keep isl_ast_build *build);
@@ -721,6 +718,11 @@ The following binary properties are defined on pairs of C<isl_val>s.
 	isl_bool isl_val_abs_eq(__isl_keep isl_val *v1,
 		__isl_keep isl_val *v2);
 
+Comparisons to NaN always return false.
+That is, a NaN is not considered to hold any relative position
+with respect to any value.  In particular, a NaN
+is neither considered to be equal to nor to be different from
+any value (including another NaN).
 The function C<isl_val_abs_eq> checks whether its two arguments
 are equal in absolute value.
 
@@ -2169,19 +2171,30 @@ no explicit representation is known.
 
 To iterate over all the sets or maps in a union set or map, use
 
+	#include <isl/union_set.h>
 	isl_stat isl_union_set_foreach_set(
 		__isl_keep isl_union_set *uset,
 		isl_stat (*fn)(__isl_take isl_set *set, void *user),
 		void *user);
+
+	#include <isl/union_map.h>
 	isl_stat isl_union_map_foreach_map(
 		__isl_keep isl_union_map *umap,
 		isl_stat (*fn)(__isl_take isl_map *map, void *user),
+		void *user);
+	isl_bool isl_union_map_every_map(
+		__isl_keep isl_union_map *umap,
+		isl_bool (*test)(__isl_keep isl_map *map,
+			void *user),
 		void *user);
 
 These functions call the callback function once for each
 (pair of) space(s) for which there are elements in the input.
 The argument to the callback contains all elements in the input
 with that (pair of) space(s).
+The C<isl_union_map_every_map> variant check whether each
+call to the callback returns true and stops checking as soon as one
+of these calls returns false.
 
 The number of sets or maps in a union set or map can be obtained
 from
@@ -2209,9 +2222,9 @@ To iterate over all the basic sets or maps in a set or map, use
 			void *user),
 		void *user);
 
-The callback function C<fn> should return 0 if successful and
--1 if an error occurs.  In the latter case, or if any other error
-occurs, the above functions will return -1.
+The callback function C<fn> should return C<isl_stat_ok> if successful and
+C<isl_stat_error> if an error occurs.  In the latter case, or if any other error
+occurs, the above functions will return C<isl_stat_error>.
 
 It should be noted that C<isl> does not guarantee that
 the basic sets or maps passed to C<fn> are disjoint.
@@ -2268,9 +2281,10 @@ To iterate over the constraints of a basic set or map, use
 	__isl_null isl_constraint *isl_constraint_free(
 		__isl_take isl_constraint *c);
 
-Again, the callback function C<fn> should return 0 if successful and
--1 if an error occurs.  In the latter case, or if any other error
-occurs, the above functions will return -1.
+Again, the callback function C<fn> should return C<isl_stat_ok>
+if successful and
+C<isl_stat_error> if an error occurs.  In the latter case, or if any other error
+occurs, the above functions will return C<isl_stat_error>.
 The constraint C<c> represents either an equality or an inequality.
 Use the following function to find out whether a constraint
 represents an equality.  If not, it represents an inequality.
@@ -2419,11 +2433,11 @@ the following functions.
 The function C<fn> is called for each integer point in
 C<set> with as second argument the last argument of
 the C<isl_set_foreach_point> call.  The function C<fn>
-should return C<0> on success and C<-1> on failure.
+should return C<isl_stat_ok> on success and C<isl_stat_error> on failure.
 In the latter case, C<isl_set_foreach_point> will stop
-enumerating and return C<-1> as well.
+enumerating and return C<isl_stat_error> as well.
 If the enumeration is performed successfully and to completion,
-then C<isl_set_foreach_point> returns C<0>.
+then C<isl_set_foreach_point> returns C<isl_stat_ok>.
 
 To obtain a single point of a (basic or union) set, use
 
@@ -3142,8 +3156,8 @@ use the following functions.
 			  __isl_take isl_qpolynomial_fold *fold,
 			  void *user), void *user);
 
-As usual, the function C<fn> should return C<0> on success
-and C<-1> on failure.  The difference between
+As usual, the function C<fn> should return C<isl_stat_ok> on success
+and C<isl_stat_error> on failure.  The difference between
 C<isl_pw_qpolynomial_foreach_piece> and
 C<isl_pw_qpolynomial_foreach_lifted_piece> is that
 C<isl_pw_qpolynomial_foreach_lifted_piece> will first
@@ -3789,6 +3803,7 @@ contains any integer points.  The ``plain'' variants do not perform
 any computations, but simply check if the given set or relation
 is already known to be empty.
 
+	#include <isl/set.h>
 	isl_bool isl_basic_set_plain_is_empty(
 		__isl_keep isl_basic_set *bset);
 	isl_bool isl_basic_set_is_empty(
@@ -3796,8 +3811,12 @@ is already known to be empty.
 	isl_bool isl_set_plain_is_empty(
 		__isl_keep isl_set *set);
 	isl_bool isl_set_is_empty(__isl_keep isl_set *set);
+
+	#include <isl/union_set.h>
 	isl_bool isl_union_set_is_empty(
 		__isl_keep isl_union_set *uset);
+
+	#include <isl/map.h>
 	isl_bool isl_basic_map_plain_is_empty(
 		__isl_keep isl_basic_map *bmap);
 	isl_bool isl_basic_map_is_empty(
@@ -3805,6 +3824,10 @@ is already known to be empty.
 	isl_bool isl_map_plain_is_empty(
 		__isl_keep isl_map *map);
 	isl_bool isl_map_is_empty(__isl_keep isl_map *map);
+
+	#include <isl/union_map.h>
+	isl_bool isl_union_map_plain_is_empty(
+		__isl_keep isl_union_map *umap);
 	isl_bool isl_union_map_is_empty(
 		__isl_keep isl_union_map *umap);
 
@@ -4752,6 +4775,18 @@ dimensions have opposite values.
 
 Intersect the relation with the half-space where the given
 dimensions satisfy the given ordering.
+
+	#include <isl/union_set.h>
+	__isl_give isl_union_map *isl_union_map_remove_map_if(
+		__isl_take isl_union_map *umap,
+		isl_bool (*fn)(__isl_keep isl_map *map,
+			void *user), void *user);
+
+This function calls the callback function once for each
+pair of spaces for which there are elements in the input.
+If the callback returns C<isl_bool_true>, then all those elements
+are removed from the result.  The only remaining elements in the output
+are then those for which the callback returns C<isl_bool_false>.
 
 =item * Locus
 
@@ -6325,6 +6360,9 @@ into the first expression.
 	__isl_give isl_set *isl_aff_eq_set(
 		__isl_take isl_aff *aff1,
 		__isl_take isl_aff *aff2);
+	__isl_give isl_set *isl_aff_ne_set(
+		__isl_take isl_aff *aff1,
+		__isl_take isl_aff *aff2);
 	__isl_give isl_basic_set *isl_aff_le_basic_set(
 		__isl_take isl_aff *aff1,
 		__isl_take isl_aff *aff2);
@@ -6344,6 +6382,9 @@ into the first expression.
 		__isl_take isl_aff *aff1,
 		__isl_take isl_aff *aff2);
 	__isl_give isl_basic_set *isl_aff_gt_basic_set(
+		__isl_take isl_aff *aff1,
+		__isl_take isl_aff *aff2);
+	__isl_give isl_set *isl_aff_gt_set(
 		__isl_take isl_aff *aff1,
 		__isl_take isl_aff *aff2);
 	__isl_give isl_set *isl_pw_aff_eq_set(
@@ -7637,10 +7678,14 @@ Vectors can be created, copied and freed using the following functions.
 	#include <isl/vec.h>
 	__isl_give isl_vec *isl_vec_alloc(isl_ctx *ctx,
 		unsigned size);
+	__isl_give isl_vec *isl_vec_zero(isl_ctx *ctx,
+		unsigned size);
 	__isl_give isl_vec *isl_vec_copy(__isl_keep isl_vec *vec);
 	__isl_null isl_vec *isl_vec_free(__isl_take isl_vec *vec);
 
-Note that the elements of a newly created vector may have arbitrary values.
+Note that the elements of a vector created by C<isl_vec_alloc>
+may have arbitrary values.
+A vector created by C<isl_vec_zero> has elements with value zero.
 The elements can be changed and inspected using the following functions.
 
 	int isl_vec_size(__isl_keep isl_vec *vec);
@@ -7689,8 +7734,11 @@ The elements can be changed and inspected using the following functions.
 		__isl_take isl_mat *mat, int row, int col,
 		__isl_take isl_val *v);
 
-C<isl_mat_get_element> will return a negative value if anything went wrong.
-In that case, the value of C<*v> is undefined.
+The following function computes the rank of a matrix.
+The return value may be -1 if some error occurred.
+
+	#include <isl/mat.h>
+	int isl_mat_rank(__isl_keep isl_mat *mat);
 
 The following function can be used to compute the (right) inverse
 of a matrix, i.e., a matrix such that the product of the original
@@ -7704,6 +7752,29 @@ The following function can be used to compute the (right) kernel
 the original and the kernel (in that order) is the zero matrix.
 
 	__isl_give isl_mat *isl_mat_right_kernel(__isl_take isl_mat *mat);
+
+The following function computes a basis for the space spanned
+by the rows of a matrix.
+
+	__isl_give isl_mat *isl_mat_row_basis(
+		__isl_take isl_mat *mat);
+
+The following function computes rows that extend a basis of C<mat1>
+to a basis that also covers C<mat2>.
+
+	__isl_give isl_mat *isl_mat_row_basis_extension(
+		__isl_take isl_mat *mat1,
+		__isl_take isl_mat *mat2);
+
+The following function checks whether there is no linear dependence
+among the combined rows of "mat1" and "mat2" that is not already present
+in "mat1" or "mat2" individually.
+If "mat1" and "mat2" have linearly independent rows by themselves,
+then this means that there is no linear dependence among all rows together.
+
+	isl_bool isl_mat_has_linearly_independent_rows(
+		__isl_keep isl_mat *mat1,
+		__isl_keep isl_mat *mat2);
 
 =head2 Bounds on Piecewise Quasipolynomials and Piecewise Quasipolynomial Reductions
 
@@ -7895,6 +7966,8 @@ active domain elements for which an AST needs to be generated.
 The conditions under which some domain elements are still active
 may however not be completely described by the outer AST nodes
 generated at that point.
+Since an extension node references the outer band nodes, any tree
+containing an extension node is considered to be anchored.
 
 An extension node may also appear as the root of a schedule tree,
 when it is intended to be inserted into another tree
@@ -7910,6 +7983,8 @@ The guard describes constraints on the parameters and
 the schedule dimensions of outer
 bands that need to be enforced by the outer nodes
 in the generated AST.
+That is, the part of the AST that is generated from descendants
+of the guard node can assume that these constraints are satisfied.
 The space of the guard is that of the flat product of the outer
 band nodes.  In particular, if there are no outer band nodes, then
 this space is the unnamed zero-dimensional space.
@@ -8234,6 +8309,16 @@ or failure (negative result), but also indicates whether the children
 of the given node should be visited.  In particular, if the callback
 returns a positive value, then the children are visited, but if
 the callback returns zero, then the children are not visited.
+
+The following functions checks whether
+all descendants of a specific node (including the node itself)
+satisfy a user-specified test.
+
+	#include <isl/schedule_node.h>
+	isl_bool isl_schedule_node_every_descendant(
+		__isl_keep isl_schedule_node *node,
+		isl_bool (*test)(__isl_keep isl_schedule_node *node,
+			void *user), void *user)
 
 The ancestors of a node in a schedule tree can be visited from
 the root down to and including the parent of the node using
@@ -9237,7 +9322,7 @@ considered adjacent to each other if the entire wrapped relation matches.
 In particular, a relation with a tag will never be considered adjacent
 to a relation without a tag.
 
-The function C<isl_schedule_constraints_compute_schedule> takes
+The function C<isl_schedule_constraints_apply> takes
 schedule constraints that are defined on some set of domain elements
 and transforms them to schedule constraints on the elements
 to which these domain elements are mapped by the given transformation.
@@ -10438,7 +10523,7 @@ They can be set using the following function.
 	#include <isl/ast_build.h>
 	__isl_give isl_ast_build *
 	isl_ast_build_set_options(
-		__isl_take isl_ast_build *control,
+		__isl_take isl_ast_build *build,
 		__isl_take isl_union_map *options);
 
 The options are encoded in an C<isl_union_map>.
@@ -10628,7 +10713,7 @@ Additional control is available through the following functions.
 	#include <isl/ast_build.h>
 	__isl_give isl_ast_build *
 	isl_ast_build_set_iterators(
-		__isl_take isl_ast_build *control,
+		__isl_take isl_ast_build *build,
 		__isl_take isl_id_list *iterators);
 
 The function C<isl_ast_build_set_iterators> allows the user to
@@ -10646,7 +10731,7 @@ names are automatically generated.
 	#include <isl/ast_build.h>
 	__isl_give isl_ast_build *
 	isl_ast_build_set_create_leaf(
-		__isl_take isl_ast_build *control,
+		__isl_take isl_ast_build *build,
 		__isl_give isl_ast_node *(*fn)(
 			__isl_take isl_ast_build *build,
 			void *user), void *user);
@@ -10729,7 +10814,7 @@ pre-order, while the second will be called in depth-first post-order.
 Since the callback set by C<isl_ast_build_set_before_each_mark>
 is called before the mark AST node is actually constructed, it is passed
 the identifier of the mark node.
-All callbacks should C<NULL> (or -1) on failure.
+All callbacks should C<NULL> (or C<isl_stat_error>) on failure.
 The given C<isl_ast_build> can be used to create new
 C<isl_ast_expr> objects using C<isl_ast_build_expr_from_pw_aff>
 or C<isl_ast_build_call_from_pw_multi_aff>.

@@ -190,6 +190,8 @@ struct {
 	{ "{ [x] -> [] : exists (a, b: 0 <= a <= 1 and 0 <= b <= 3 and "
 			    "2b <= x - 8a and 2b >= -1 + x - 8a) }",
 	  "{ [x] -> [] : 0 <= x <= 15 }" },
+	{ "{ [x] -> [x] : }",
+	  "{ [x] -> [x] }" },
 };
 
 int test_parse(struct isl_ctx *ctx)
@@ -513,14 +515,17 @@ static int test_un_val(isl_ctx *ctx)
 	int i;
 	isl_val *v, *res;
 	__isl_give isl_val *(*fn)(__isl_take isl_val *v);
-	int ok;
+	isl_bool ok, is_nan;
 
 	for (i = 0; i < ARRAY_SIZE(val_un_tests); ++i) {
 		v = isl_val_read_from_str(ctx, val_un_tests[i].arg);
 		res = isl_val_read_from_str(ctx, val_un_tests[i].res);
 		fn = val_un_tests[i].op;
 		v = fn(v);
-		if (isl_val_is_nan(res))
+		is_nan = isl_val_is_nan(res);
+		if (is_nan < 0)
+			ok = isl_bool_error;
+		else if (is_nan)
 			ok = isl_val_is_nan(v);
 		else
 			ok = isl_val_eq(v, res);
@@ -1946,6 +1951,11 @@ struct {
 			"2e0 < -a + 2b) }" },
 	{ 1, "{ [i, j, i - 8j] : 8 <= i <= 63 and -7 + i <= 8j <= i; "
 		"[i, 0, i] : 0 <= i <= 7 }" },
+	{ 1, "{ [a, b] : a >= 0 and 0 <= b <= 1 - a; [1, 1] }" },
+	{ 0, "{ [a, b] : a >= 0 and 0 <= b <= 1 - a; [0, 2] }" },
+	{ 0, "{ [a, b] : a >= 0 and 0 <= b <= 1 - a; [-1, 3] }" },
+	{ 1, "{ [a, b] : a, b >= 0 and a + 2b <= 2; [1, 1] }" },
+	{ 0, "{ [a, b] : a, b >= 0 and a + 2b <= 2; [2, 1] }" },
 };
 
 /* A specialized coalescing test case that would result
@@ -4092,8 +4102,8 @@ static int test_bounded_coefficients_schedule_whole(isl_ctx *ctx)
 	sched1 = isl_schedule_get_map(schedule);
 	isl_schedule_free(schedule);
 
-	str = "{ S_4[i, j, k] -> [i, j, 10 - k, 1]; "
-	    "S_2[i, j] -> [0, i, j, 0]; S_6[i, j] -> [0, 10 + i, j, 2] }";
+	str = "{ S_4[i, j, k] -> [i, j, 10 - k]; "
+	    "S_2[i, j] -> [0, i, j]; S_6[i, j] -> [0, 10 + i, j] }";
 	sched2 = isl_union_map_read_from_str(ctx, str);
 	equal = isl_union_map_is_equal(sched1, sched2);
 	isl_union_map_free(sched1);
@@ -4882,23 +4892,12 @@ int test_aff(isl_ctx *ctx)
 	return 0;
 }
 
-/* Check that the computation below results in a single expression.
- * One or two expressions may result depending on which constraint
- * ends up being considered as redundant with respect to the other
- * constraints after the projection that is performed internally
- * by isl_set_dim_min.
+/* Check that "pa" consists of a single expression.
  */
-static int test_dim_max_1(isl_ctx *ctx)
+static int check_single_piece(isl_ctx *ctx, __isl_take isl_pw_aff *pa)
 {
-	const char *str;
-	isl_set *set;
-	isl_pw_aff *pa;
 	int n;
 
-	str = "[n] -> { [a, b] : n >= 0 and 4a >= -4 + n and b >= 0 and "
-				"-4a <= b <= 3 and b < n - 4a }";
-	set = isl_set_read_from_str(ctx, str);
-	pa = isl_set_dim_min(set, 0);
 	n = isl_pw_aff_n_piece(pa);
 	isl_pw_aff_free(pa);
 
@@ -4911,6 +4910,47 @@ static int test_dim_max_1(isl_ctx *ctx)
 	return 0;
 }
 
+/* Check that the computation below results in a single expression.
+ * One or two expressions may result depending on which constraint
+ * ends up being considered as redundant with respect to the other
+ * constraints after the projection that is performed internally
+ * by isl_set_dim_min.
+ */
+static int test_dim_max_1(isl_ctx *ctx)
+{
+	const char *str;
+	isl_set *set;
+	isl_pw_aff *pa;
+
+	str = "[n] -> { [a, b] : n >= 0 and 4a >= -4 + n and b >= 0 and "
+				"-4a <= b <= 3 and b < n - 4a }";
+	set = isl_set_read_from_str(ctx, str);
+	pa = isl_set_dim_min(set, 0);
+	return check_single_piece(ctx, pa);
+}
+
+/* Check that the computation below results in a single expression.
+ * The PIP problem corresponding to these constraints has a row
+ * that causes a split of the solution domain.  The solver should
+ * first pick rows that split off empty parts such that the actual
+ * solution domain does not get split.
+ * Note that the description contains some redundant constraints.
+ * If these constraints get removed first, then the row mentioned
+ * above does not appear in the PIP problem.
+ */
+static int test_dim_max_2(isl_ctx *ctx)
+{
+	const char *str;
+	isl_set *set;
+	isl_pw_aff *pa;
+
+	str = "[P, N] -> { [a] : a < N and a >= 0 and N > P and a <= P and "
+				"N > 0 and P >= 0 }";
+	set = isl_set_read_from_str(ctx, str);
+	pa = isl_set_dim_max(set, 0);
+	return check_single_piece(ctx, pa);
+}
+
 int test_dim_max(isl_ctx *ctx)
 {
 	int equal;
@@ -4921,6 +4961,8 @@ int test_dim_max(isl_ctx *ctx)
 	isl_pw_aff *pwaff;
 
 	if (test_dim_max_1(ctx) < 0)
+		return -1;
+	if (test_dim_max_2(ctx) < 0)
 		return -1;
 
 	str = "[N] -> { [i] : 0 <= i <= min(N,10) }";
@@ -5438,6 +5480,16 @@ static int test_eval(isl_ctx *ctx)
  */
 const char *output_tests[] = {
 	"{ [1, y] : 0 <= y <= 1; [x, -x] : 0 <= x <= 1 }",
+	"{ [x] : 1 = 0 }",
+	"{ [x] : false }",
+	"{ [x] : x mod 2 = 0 }",
+	"{ [x] : x mod 2 = 1 }",
+	"{ [x, y] : x mod 2 = 0 and 3*floor(y/2) < x }",
+	"{ [y, x] : x mod 2 = 0 and 3*floor(y/2) < x }",
+	"{ [x, y] : x mod 2 = 0 and 3*floor(y/2) = x + y }",
+	"{ [y, x] : x mod 2 = 0 and 3*floor(y/2) = x + y }",
+	"[n] -> { [y, x] : 2*((x + 2y) mod 3) = n }",
+	"{ [x, y] : (2*floor(x/3) + 3*floor(y/4)) mod 5 = x }",
 };
 
 /* Check that printing a set and reparsing a set from the printed output
@@ -5721,6 +5773,8 @@ static int test_list(isl_ctx *ctx)
 	list = isl_id_list_add(list, d);
 	list = isl_id_list_drop(list, 1, 1);
 
+	if (!list)
+		return -1;
 	if (isl_id_list_n_id(list) != 3) {
 		isl_id_list_free(list);
 		isl_die(ctx, isl_error_unknown,
