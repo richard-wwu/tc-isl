@@ -44,6 +44,7 @@ __isl_give isl_local_space *isl_aff_get_local_space(__isl_keep isl_aff *aff);
 
 const char *isl_aff_get_dim_name(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_val *isl_aff_get_constant_val(__isl_keep isl_aff *aff);
 __isl_give isl_val *isl_aff_get_coefficient_val(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, int pos);
@@ -246,6 +247,7 @@ __isl_export
 isl_bool isl_pw_aff_involves_dims(__isl_keep isl_pw_aff *pwaff,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
+__isl_export
 isl_bool isl_pw_aff_is_cst(__isl_keep isl_pw_aff *pwaff);
 
 __isl_export
@@ -661,6 +663,7 @@ __isl_give isl_printer *isl_printer_print_pw_multi_aff(__isl_take isl_printer *p
 	__isl_keep isl_pw_multi_aff *pma);
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_from_set(__isl_take isl_set *set);
+__isl_constructor
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_from_map(__isl_take isl_map *map);
 
 __isl_constructor

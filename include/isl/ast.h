@@ -134,6 +134,7 @@ __isl_export
 __isl_give isl_ast_node *isl_ast_node_if_get_else(
 	__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_ast_node_list *isl_ast_node_block_get_children(
 	__isl_keep isl_ast_node *node);
 

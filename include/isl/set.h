@@ -351,6 +351,7 @@ struct isl_set *isl_set_fix_dim_si(struct isl_set *set,
 __isl_give isl_basic_set *isl_basic_set_insert_dims(
 	__isl_take isl_basic_set *bset,
 	enum isl_dim_type type, unsigned pos, unsigned n);
+__isl_export
 __isl_give isl_set *isl_set_insert_dims(__isl_take isl_set *set,
 		enum isl_dim_type type, unsigned pos, unsigned n);
 __isl_export
@@ -416,6 +417,7 @@ __isl_give isl_set *isl_set_drop_constraints_not_involving_dims(
 
 isl_bool isl_basic_set_involves_dims(__isl_keep isl_basic_set *bset,
 	enum isl_dim_type type, unsigned first, unsigned n);
+__isl_export
 isl_bool isl_set_involves_dims(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
@@ -459,6 +461,7 @@ isl_bool isl_set_dim_is_bounded(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
 isl_bool isl_set_dim_has_lower_bound(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 isl_bool isl_set_dim_has_upper_bound(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
 isl_bool isl_set_dim_has_any_lower_bound(__isl_keep isl_set *set,
@@ -528,6 +531,7 @@ int isl_set_size(__isl_keep isl_set *set);
 
 __isl_give isl_basic_set *isl_basic_set_align_params(
 	__isl_take isl_basic_set *bset, __isl_take isl_space *model);
+__isl_export
 __isl_give isl_set *isl_set_align_params(__isl_take isl_set *set,
 	__isl_take isl_space *model);
 
@@ -553,6 +557,7 @@ __isl_give isl_basic_set *isl_basic_set_solutions(
 	__isl_take isl_basic_set *bset);
 __isl_give isl_basic_set *isl_set_solutions(__isl_take isl_set *set);
 
+__isl_export
 __isl_give isl_pw_aff *isl_set_dim_max(__isl_take isl_set *set, int pos);
 __isl_give isl_pw_aff *isl_set_dim_min(__isl_take isl_set *set, int pos);
 
