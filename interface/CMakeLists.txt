@@ -71,8 +71,8 @@ set(LIST_SYSTEM_INCLUDES ${SYSTEM_INCLUDES})
 
 add_custom_command(
   OUTPUT isl-noexceptions.h
-  DEPENDS ${CMAKE_CURRENT_LIST_DIR}/isl.h.top
-  COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/isl.h.top > isl-noexceptions.h
+  DEPENDS ${CMAKE_CURRENT_LIST_DIR}/isl-noexceptions.h.top
+  COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/isl-noexceptions.h.top > isl-noexceptions.h
   COMMAND extract_interface --language=cpp
   -I${CMAKE_CURRENT_BINARY_DIR} -I${CMAKE_CURRENT_BINARY_DIR}/../include
   -I${CMAKE_CURRENT_LIST_DIR}/.. -I${CMAKE_CURRENT_LIST_DIR}/../include
@@ -91,7 +91,7 @@ add_custom_target(generate_isl-noexceptions DEPENDS isl-noexceptions.h)
 # isl_test_cpp (no gtest yet here)
 ################################################################################
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-add_executable(isl_test_cpp isl_test_cpp.cpp)
+add_executable(isl_test_cpp isl_test_cpp-noexceptions.cc)
 target_link_libraries(isl_test_cpp isl)
 add_dependencies(isl_test_cpp generate_isl-noexceptions)
 

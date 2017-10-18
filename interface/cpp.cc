@@ -231,13 +231,13 @@ void cpp_generator::print_class_forward_decl(ostream &os,
  * Each class has two global factory functions:
  *
  * 	isl::set manage(__isl_take isl_set *ptr);
- * 	isl::set managed_copy(__isl_keep isl_set *ptr);
+ * 	isl::set manage_copy(__isl_keep isl_set *ptr);
  *
  * A user can construct isl C++ objects from a raw pointer and indicate whether
  * they intend to take the ownership of the object or not through these global
  * factory functions. This ensures isl object creation is very explicit and
  * pointers are not converted by accident. Thanks to overloading, manage() and
- * managed_copy() can be called on any isl raw pointer and the corresponding
+ * manage_copy() can be called on any isl raw pointer and the corresponding
  * object is automatically created, without the user having to choose the right
  * isl object type.
  */
@@ -252,7 +252,7 @@ void cpp_generator::print_class_factory_decl(ostream &os,
 	osprintf(os, "inline isl::%s manage(__isl_take %s *ptr);\n", cppname,
 		 name);
 	os << prefix;
-	osprintf(os, "inline isl::%s managed_copy(__isl_keep %s *ptr);\n",
+	osprintf(os, "inline isl::%s manage_copy(__isl_keep %s *ptr);\n",
 		cppname, name);
 }
 
@@ -267,7 +267,7 @@ void cpp_generator::print_class_factory_decl(ostream &os,
  * 	set(__isl_take isl_set *ptr);
  *
  * The raw pointer constructor is kept private. Object creation is only
- * possible through isl::manage() or isl::managed_copy().
+ * possible through isl::manage() or isl::manage_copy().
  */
 void cpp_generator::print_private_constructors_decl(ostream &os,
 	const isl_class &clazz)
@@ -539,8 +539,8 @@ void cpp_generator::print_class_factory_impl(ostream &os,
 	osprintf(os, "isl::%s manage(__isl_take %s *ptr) {\n", cppname, name);
 	osprintf(os, "  return %s(ptr);\n", cppname);
 	osprintf(os, "}\n");
-	osprintf(os, "\n");
-	osprintf(os, "isl::%s managed_copy(__isl_keep %s *ptr) {\n", cppname,
+
+	osprintf(os, "isl::%s manage_copy(__isl_keep %s *ptr) {\n", cppname,
 		name);
 	osprintf(os, "  return %s(%s_copy(ptr));\n", cppname, name);
 	osprintf(os, "}\n");
@@ -1201,7 +1201,7 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param) {
 			call_args += ", ";
 	}
 
-	osprintf(os, "  auto %s_p = &fn;\n", pname.c_str());
+	osprintf(os, "  auto %s_p = &%s;\n", pname.c_str(), pname.c_str());
 	osprintf(os,
 		 "  auto %s_lambda = [](%s) -> %s {\n"
 		 "    auto *func = *static_cast<const %s **>(arg_%s);\n"

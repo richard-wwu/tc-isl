@@ -10,6 +10,7 @@
 #include <isl/space.h>
 #include <isl/set_type.h>
 #include <isl/list.h>
+#include <isl/printer_type.h>
 
 #if defined(__cplusplus)
 extern "C" {
