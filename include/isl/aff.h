@@ -32,6 +32,7 @@ uint32_t isl_aff_get_hash(__isl_keep isl_aff *aff);
 
 __isl_export
 int isl_aff_dim(__isl_keep isl_aff *aff, enum isl_dim_type type);
+__isl_export
 isl_bool isl_aff_involves_dims(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
@@ -233,6 +234,7 @@ int isl_pw_aff_find_dim_by_name(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, const char *name);
 
 isl_bool isl_pw_aff_is_empty(__isl_keep isl_pw_aff *pwaff);
+__isl_export
 isl_bool isl_pw_aff_involves_nan(__isl_keep isl_pw_aff *pa);
 int isl_pw_aff_plain_cmp(__isl_keep isl_pw_aff *pa1,
 	__isl_keep isl_pw_aff *pa2);
