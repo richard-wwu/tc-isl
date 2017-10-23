@@ -415,6 +415,7 @@ __isl_give isl_set *isl_set_drop_constraints_not_involving_dims(
 	__isl_take isl_set *set,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
+__isl_export
 isl_bool isl_basic_set_involves_dims(__isl_keep isl_basic_set *bset,
 	enum isl_dim_type type, unsigned first, unsigned n);
 __isl_export
