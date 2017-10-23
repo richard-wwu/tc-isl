@@ -1152,6 +1152,12 @@ __isl_give isl_printer *isl_printer_print_schedule(__isl_take isl_printer *p,
 	return p;
 }
 
+__isl_keep isl_schedule_tree *isl_schedule_get_tree(
+	__isl_keep isl_schedule *schedule)
+{
+	return schedule->root;
+}
+
 #undef BASE
 #define BASE schedule
 #include <print_templ_yaml.c>

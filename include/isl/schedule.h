@@ -3,6 +3,7 @@
 
 #include <isl/union_set_type.h>
 #include <isl/union_map_type.h>
+#include <isl/schedule_tree.h>
 #include <isl/schedule_type.h>
 #include <isl/aff_type.h>
 #include <isl/band.h>
@@ -81,8 +82,20 @@ __isl_export
 __isl_give isl_schedule_constraints *isl_schedule_constraints_set_prefix(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_multi_union_pw_aff *prefix);
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_custom_constraint_callback(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_give isl_basic_set *(*callback)(__isl_take isl_basic_set *,
+		int, int, __isl_keep isl_id_list *, int *, int *, void *),
+	void *data);
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc);
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_merge_callback(
+	__isl_take isl_schedule_constraints *sc,
+	isl_bool (*callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *),
+	void *data);
 
 isl_ctx *isl_schedule_constraints_get_ctx(
 	__isl_keep isl_schedule_constraints *sc);
@@ -139,7 +152,11 @@ __isl_give isl_schedule *isl_union_set_compute_schedule(
 	__isl_take isl_union_map *validity,
 	__isl_take isl_union_map *proximity);
 
+__isl_export
+__isl_give isl_schedule *isl_schedule_from_schedule_tree(isl_ctx *ctx,
+	__isl_take isl_schedule_tree *tree);
 __isl_give isl_schedule *isl_schedule_empty(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_schedule *isl_schedule_from_domain(
 	__isl_take isl_union_set *domain);
 __isl_give isl_schedule *isl_schedule_copy(__isl_keep isl_schedule *sched);
@@ -148,12 +165,14 @@ __isl_export
 __isl_give isl_union_map *isl_schedule_get_map(__isl_keep isl_schedule *sched);
 
 isl_ctx *isl_schedule_get_ctx(__isl_keep isl_schedule *sched);
+__isl_export
 isl_bool isl_schedule_plain_is_equal(__isl_keep isl_schedule *schedule1,
 	__isl_keep isl_schedule *schedule2);
 
 __isl_export
 __isl_give isl_schedule_node *isl_schedule_get_root(
 	__isl_keep isl_schedule *schedule);
+__isl_export
 __isl_give isl_union_set *isl_schedule_get_domain(
 	__isl_keep isl_schedule *schedule);
 
@@ -168,13 +187,16 @@ __isl_give isl_schedule *isl_schedule_map_schedule_node_bottom_up(
 
 __isl_give isl_schedule *isl_schedule_insert_context(
 	__isl_take isl_schedule *schedule, __isl_take isl_set *context);
+__isl_export
 __isl_give isl_schedule *isl_schedule_insert_partial_schedule(
 	__isl_take isl_schedule *schedule,
 	__isl_take isl_multi_union_pw_aff *partial);
 __isl_give isl_schedule *isl_schedule_insert_guard(
 	__isl_take isl_schedule *schedule, __isl_take isl_set *guard);
+__isl_export
 __isl_give isl_schedule *isl_schedule_sequence(
 	__isl_take isl_schedule *schedule1, __isl_take isl_schedule *schedule2);
+__isl_export
 __isl_give isl_schedule *isl_schedule_set(
 	__isl_take isl_schedule *schedule1, __isl_take isl_schedule *schedule2);
 __isl_give isl_schedule *isl_schedule_intersect_domain(
@@ -182,6 +204,7 @@ __isl_give isl_schedule *isl_schedule_intersect_domain(
 __isl_give isl_schedule *isl_schedule_gist_domain_params(
 	__isl_take isl_schedule *schedule, __isl_take isl_set *context);
 
+__isl_export
 __isl_give isl_schedule *isl_schedule_reset_user(
 	__isl_take isl_schedule *schedule);
 __isl_give isl_schedule *isl_schedule_align_params(
@@ -208,6 +231,10 @@ __isl_give char *isl_schedule_to_str(__isl_keep isl_schedule *schedule);
 
 int isl_schedule_foreach_band(__isl_keep isl_schedule *sched,
 	int (*fn)(__isl_keep isl_band *band, void *user), void *user);
+
+
+__isl_keep isl_schedule_tree *isl_schedule_get_tree(
+	__isl_keep isl_schedule *schedule);
 
 #if defined(__cplusplus)
 }

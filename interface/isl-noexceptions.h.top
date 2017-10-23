@@ -14,13 +14,18 @@
 #include <isl/ilp.h>
 #include <isl/map.h>
 #include <isl/schedule.h>
+#include <isl/schedule_band.h>
 #include <isl/schedule_node.h>
+#include <isl/schedule_tree.h>
 #include <isl/set.h>
 #include <isl/union_map.h>
 #include <isl/union_set.h>
 #include <isl/val.h>
+#include <isl/constraint.h>
+#include <isl/id.h>
 
 #include <functional>
+#include <memory>
 #include <string>
 
 namespace isl {
@@ -74,8 +79,7 @@ inline isl::boolean manage(isl_bool val) {
 class ctx {
   isl_ctx *ptr;
 public:
-  /* implicit */ ctx(isl_ctx *ctx)
-      : ptr(ctx) {}
+  /* implicit */ ctx(isl_ctx *ctx) : ptr(ctx) {}
   isl_ctx *release() {
     auto tmp = ptr;
     ptr = nullptr;
@@ -84,12 +88,345 @@ public:
   isl_ctx *get() {
     return ptr;
   }
+  struct CtxUPtrDeleter {
+    void operator()(ctx* c) {
+      isl_ctx_free(c->release());
+      delete c;
+    }
+  };
+  typedef std::unique_ptr<ctx, CtxUPtrDeleter> CtxUPtr;
+  static inline CtxUPtr makeCtx() {
+    return CtxUPtr(new ctx(isl_ctx_alloc()));
+  }
 };
+
+class id {
+  isl_id *ptr;
+public:
+  id(isl::ctx ctx, const std::string &name) {
+    ptr = isl_id_alloc(ctx.release(), name.c_str(), nullptr);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, const std::string &name, T *usr,
+     void (*deleter)(void *) = nullptr) {
+    ptr = isl_id_alloc(ctx.release(), name.c_str(), usr);
+    if (deleter)
+      ptr = isl_id_set_free_user(ptr, deleter);
+  }
+
+  template <typename T>
+  id(isl::ctx ctx, T *usr,
+     void (*deleter)(void *) = nullptr) {
+    ptr = isl_id_alloc(ctx.release(), nullptr, usr);
+    if (deleter)
+      ptr = isl_id_set_free_user(ptr, deleter);
+  }
+
+  template <typename T>
+  T *get_user() {
+    if (!ptr)
+      return nullptr;
+    return static_cast<T *>(isl_id_get_user(ptr));
+  }
+
+  inline /* implicit */ id();
+  inline /* implicit */ id(isl_id *id);
+  inline /* implicit */ id(const isl::id &obj);
+  inline isl::id &operator=(isl::id obj);
+  inline ~id();
+  inline __isl_give isl_id *copy() const &;
+  inline __isl_give isl_id *copy() && = delete;
+  inline __isl_keep isl_id *get() const;
+  inline __isl_give isl_id *release();
+  inline __isl_keep isl_id *keep() const;
+  inline __isl_give isl_id *take();
+  inline explicit operator bool() const;
+  inline isl::ctx get_ctx() const;
+  inline bool is_null() const;
+  inline std::string to_str() const;
+
+  inline std::string get_name() const;
+  inline int get_hash() const;
+
+  inline bool has_name() const;
+  inline isl::id set_free_user(void (*deleter)(void *)) const;
+  inline bool operator== (const isl::id &obj) const;
+  inline bool operator!= (const isl::id &obj) const;
+};
+
+inline isl::id manage(__isl_take isl_id *ptr) {
+  return id(ptr);
+}
+
+id::id()
+    : ptr(nullptr) {}
+
+id::id(const isl::id &obj)
+    : ptr(obj.copy()) {}
+
+id::id(__isl_take isl_id *ptr)
+    : ptr(ptr) {}
+
+id &id::operator=(isl::id obj) {
+  std::swap(this->ptr, obj.ptr);
+  return *this;
+}
+
+id::~id() {
+  if (ptr)
+    isl_id_free(ptr);
+}
+
+__isl_give isl_id *id::copy() const & {
+  return isl_id_copy(ptr);
+}
+
+__isl_keep isl_id *id::get() const {
+  return ptr;
+}
+
+__isl_give isl_id *id::release() {
+  isl_id *tmp = ptr;
+  ptr = nullptr;
+  return tmp;
+}
+
+__isl_keep isl_id *id::keep() const {
+  return get();
+}
+
+__isl_give isl_id *id::take() {
+  return release();
+}
+
+id::operator bool() const {
+  return !is_null();
+}
+
+isl::ctx id::get_ctx() const {
+  return isl::ctx(isl_id_get_ctx(ptr));
+}
+
+bool id::is_null() const {
+  return ptr == nullptr;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const id& C) {
+  os << C.to_str();
+  return os;
+}
+
+std::string id::to_str() const {
+  char *Tmp = isl_id_to_str(get());
+  if (!Tmp)
+    return "";
+  std::string S(Tmp);
+  free(Tmp);
+  return S;
+}
+
+int id::get_hash() const {
+  return isl_id_get_hash(get());
+}
+
+std::string id::get_name() const {
+  auto res = isl_id_get_name(get());
+  std::string tmp(res);
+  return tmp;
+}
+
+bool id::has_name() const {
+  return isl_id_get_name(get()) != nullptr;
+}
+
+id id::set_free_user(void (*deleter)(void *)) const {
+  auto res = isl_id_set_free_user(copy(), deleter);
+  return manage(res);
+}
+
+bool id::operator==(const id &obj) const {
+  return ptr == obj.ptr;
+}
+
+bool id::operator!=(const id &obj) const {
+  return !operator==(obj);
+}
 
 enum class stat {
   ok = isl_stat_ok,
   error = isl_stat_error
 };
 
+enum class dim_type {
+  cst = isl_dim_cst,
+  param = isl_dim_param,
+  in = isl_dim_in,
+  out = isl_dim_out,
+  set = isl_dim_set,
+  div = isl_dim_div,
+  all = isl_dim_all
+};
+
+enum class ast_op_type {
+	error = isl_ast_op_error,
+	_and = isl_ast_op_and,
+	and_then = isl_ast_op_and_then,
+	_or = isl_ast_op_or,
+	or_else = isl_ast_op_or_else,
+	max = isl_ast_op_max,
+	min = isl_ast_op_min,
+	minus = isl_ast_op_minus,
+	add = isl_ast_op_add,
+	sub = isl_ast_op_sub,
+	mul = isl_ast_op_mul,
+	div = isl_ast_op_div,
+	fdiv_q = isl_ast_op_fdiv_q,	/* Round towards -infty */
+	pdiv_q = isl_ast_op_pdiv_q,	/* Dividend is non-negative */
+	pdiv_r = isl_ast_op_pdiv_r,	/* Dividend is non-negative */
+	zdiv_r = isl_ast_op_zdiv_r,	/* Result only compared against zero */
+	cond = isl_ast_op_cond,
+	select = isl_ast_op_select,
+	eq = isl_ast_op_eq,
+	le = isl_ast_op_le,
+	lt = isl_ast_op_lt,
+	ge = isl_ast_op_ge,
+	gt = isl_ast_op_gt,
+	call = isl_ast_op_call,
+	access = isl_ast_op_access,
+	member = isl_ast_op_member,
+	address_of = isl_ast_op_address_of
+};
+
+enum class ast_node_type {
+	error = isl_ast_node_error,
+	_for = isl_ast_node_for,
+	_if = isl_ast_node_if,
+	block = isl_ast_node_block,
+	mark = isl_ast_node_mark,
+	user = isl_ast_node_user
+};
+
+enum class ast_loop_type {
+	error = isl_ast_loop_error,
+	_default = isl_ast_loop_default,
+	atomic = isl_ast_loop_atomic,
+	unroll = isl_ast_loop_unroll,
+	separate = isl_ast_loop_separate
+};
+
+enum class schedule_node_type {
+        error = isl_schedule_node_error,
+        band = isl_schedule_node_band,
+        context = isl_schedule_node_context,
+        domain = isl_schedule_node_domain,
+        expansion = isl_schedule_node_expansion,
+        extension = isl_schedule_node_extension,
+        filter = isl_schedule_node_filter,
+        leaf = isl_schedule_node_leaf,
+        guard = isl_schedule_node_guard,
+        mark = isl_schedule_node_mark,
+        sequence = isl_schedule_node_sequence,
+        set = isl_schedule_node_set
+};
+
+template <typename T>
+class list;
+
+template <typename T>
+class list_iterator {
+  const list<T> *lst;
+  int pos;
+  mutable T elementHolder;
+
+  inline list_iterator(const list<T> *l, int p);
+
+  friend list_iterator list<T>::begin() const;
+  friend list_iterator list<T>::end() const;
+
+public:
+  typedef T value_type;
+  typedef int difference_type;
+  typedef std::input_iterator_tag iterator_category;
+  typedef const T *pointer;
+  typedef T reference;
+
+  inline list_iterator();
+  inline list_iterator(const list_iterator<T> &it);
+  inline ~list_iterator();
+  inline list_iterator &operator=(const list_iterator<T> &it);
+
+  inline reference operator*() const;
+  inline pointer operator->() const;
+  inline list_iterator operator++(int);
+  inline list_iterator &operator++();
+  inline bool operator==(const list_iterator<T> &it) const;
+  inline bool operator!=(const list_iterator<T> &it) const;
+
+  static inline void swap(list_iterator<T> &it1, list_iterator<T> &it2);
+};
+
+template <typename T>
+list_iterator<T>::list_iterator(const list<T> *l, int p) :
+  lst(l), pos(p) {}
+
+template <typename T>
+list_iterator<T>::list_iterator() :
+  lst(nullptr), pos(-1) {}
+
+template <typename T>
+list_iterator<T>::list_iterator(const list_iterator<T> &it) :
+  lst(it.lst), pos(it.pos) {}
+
+template <typename T>
+list_iterator<T> &list_iterator<T>::operator=(const list_iterator<T> &it) {
+  lst = it.lst;
+  pos = it.pos;
+  return *this;
 }
+
+template <typename T>
+list_iterator<T>::~list_iterator() {}
+
+template <typename T>
+typename list_iterator<T>::reference list_iterator<T>::operator*() const {
+  return lst->at(pos);
+}
+
+template <typename T>
+typename list_iterator<T>::pointer list_iterator<T>::operator->() const {
+  elementHolder = lst->at(pos);
+  return &elementHolder;
+}
+
+template <typename T>
+list_iterator<T> list_iterator<T>::operator++(int) {
+  list_iterator<T> it = *this;
+  ++*this;
+  return it;
+}
+
+template <typename T>
+list_iterator<T> &list_iterator<T>::operator++() {
+  if (pos == -1 || !lst || pos >= lst->size() - 1)
+    pos = -1;
+  else
+    ++pos;
+
+  return *this;
+}
+
+template <typename T>
+bool list_iterator<T>::operator==(const list_iterator<T> &it) const {
+  ISLPP_ASSERT(lst == it.lst,
+               "cannot compare iterators from different containers");
+  return pos == it.pos;
+}
+
+template <typename T>
+bool list_iterator<T>::operator!=(const list_iterator<T> &it) const {
+  return !(*this == it);
+}
+
+} // namespace noexceptions
 } // namespace isl

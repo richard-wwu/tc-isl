@@ -50,6 +50,15 @@ struct isl_schedule_constraints {
 	isl_multi_union_pw_aff *prefix;
 
 	isl_union_map *constraint[isl_edge_last + 1];
+
+        __isl_give isl_basic_set *(*add_constraint)(
+		__isl_take isl_basic_set *, int, int,
+		__isl_keep isl_id_list *, int *, int *, void *);
+        void *add_constraint_data;
+
+	isl_bool (*merge_callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *);
+	void *merge_callback_data;
 };
 
 __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
@@ -75,6 +84,9 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
 		if (!sc_copy->constraint[i])
 			return isl_schedule_constraints_free(sc_copy);
 	}
+
+	sc_copy->add_constraint = sc->add_constraint;
+	sc_copy->add_constraint_data = sc->add_constraint_data;
 
 	return sc_copy;
 }
@@ -123,6 +135,12 @@ static __isl_give isl_schedule_constraints *isl_schedule_constraints_init(
 
 	if (!sc->domain || !sc->context || !sc->prefix)
 		return isl_schedule_constraints_free(sc);
+
+	sc->add_constraint = NULL;
+	sc->add_constraint_data = NULL;
+	
+	sc->merge_callback = NULL;
+	sc->merge_callback_data = NULL;
 
 	return sc;
 }
@@ -282,6 +300,60 @@ error:
 	return NULL;
 }
 
+/* Replace the callback for introducing additional schedule constraints of "sc"
+ * by "callback".  When called, the last argument of the callback will be
+ * user-specified object "data".  The caller is responsible for maintaining
+ * "data" alive long enough, at least as long as "sc".
+ *
+ * The callback receives
+ * - a basic set representing the current LP (takes ownership);
+ * - the number of symbolic parameters in the LP bounding function;
+ * - the index of the schedule dimension being constructed;
+ * - the list of statement IDs (does not take ownership);
+ * - an array containing the number of symbolic parameters used for each
+ *   statement, in the same order as they appear in the list;
+ * - an array containing the domain dimension for each statement, in the same
+ *   order as they appear in the list;
+ * - a "data" pointer provided in this call.
+ */
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_custom_constraint_callback(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_give isl_basic_set *(*callback)(isl_basic_set *, int, int,
+		__isl_give isl_id_list *, int *, int *, void *),
+	void *data)
+{
+	sc->add_constraint = callback;
+	sc->add_constraint_data = data;
+	return sc;
+}
+
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_merge_callback(
+	__isl_take isl_schedule_constraints *sc,
+	isl_bool (*callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *),
+	void *data)
+{
+	sc->merge_callback = callback;
+	sc->merge_callback_data = data;
+
+	return sc;
+}
+
+isl_bool (*isl_schedule_constraints_get_merge_callback(
+	__isl_keep isl_schedule_constraints *sc))
+(__isl_give isl_union_map *, __isl_give isl_union_map *, int, int, int, void *)
+{
+	return sc->merge_callback;
+}
+
+void *isl_schedule_constraints_get_merge_callback_data(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	return sc->merge_callback_data;
+}
+
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc)
 {
@@ -390,6 +462,26 @@ __isl_give isl_multi_union_pw_aff *isl_schedule_constraints_get_prefix(
 		return NULL;
 
 	return isl_multi_union_pw_aff_copy(sc->prefix);
+}
+
+/* Return the callback to introduce additional schedule constraints of "sc".
+ */
+__isl_give isl_basic_set *
+(*isl_schedule_constraints_get_custom_constraint_callback(
+	__isl_keep isl_schedule_constraints *sc))
+	(__isl_take isl_basic_set *, int, int,
+	 __isl_keep isl_id_list *, int *, int *, void *)
+{
+	return sc->add_constraint;
+}
+
+/* Return the custom user data passed to the callback to introduce additional
+ * schedule constraints of "sc".  Ownership is not transferred.
+ */
+void *isl_schedule_constraints_get_custom_constraint_callback_user(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	return sc->add_constraint_data;
 }
 
 /* Add "c" to the constraints of type "type" in "sc".

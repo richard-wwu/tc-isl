@@ -25,7 +25,7 @@ isl_ctx *isl_schedule_band_get_ctx(__isl_keep isl_schedule_band *band)
 
 /* Return a new uninitialized isl_schedule_band.
  */
-static __isl_give isl_schedule_band *isl_schedule_band_alloc(isl_ctx *ctx)
+__isl_give isl_schedule_band *isl_schedule_band_alloc(isl_ctx *ctx)
 {
 	isl_schedule_band *band;
 
