@@ -9241,6 +9241,9 @@ whereas C<isl_restriction_empty> is essentially equivalent to
 	__isl_give isl_schedule *
 	isl_schedule_constraints_compute_schedule(
 		__isl_take isl_schedule_constraints *sc);
+	__isl_give isl_schedule_node *isl_schedule_node_schedule(
+		__isl_take isl_schedule_node *node,
+		__isl_take isl_schedule_constraints *sc);
 
 The function C<isl_schedule_constraints_compute_schedule> can be
 used to compute a schedule that satisfies the given schedule constraints.
@@ -9277,6 +9280,13 @@ When using Feautrier's algorithm, the coincidence and proximity constraints
 are only taken into account during the extension to a
 full-dimensional schedule.
 
+The function C<isl_schedule_node_schedule> replaces the specified
+subtree of a schedule tree by a schedule satisfying the given
+schedule constraints.  The schedule constraints need to be formulated
+in terms of the domain elements reaching the node.
+Any expansion or extension inside the replaced subtree is lost.
+The replaced subtree itself is not allowed to be part of an extension.
+
 An C<isl_schedule_constraints> object can be constructed
 and manipulated using the following functions.
 
@@ -9308,6 +9318,10 @@ and manipulated using the following functions.
 		__isl_take isl_schedule_constraints *sc,
 		__isl_take isl_union_map *condition,
 		__isl_take isl_union_map *validity);
+	__isl_give isl_schedule_constraints *
+	isl_schedule_constraints_set_prefix(
+		__isl_take isl_schedule_constraints *sc,
+		__isl_take isl_multi_union_pw_aff *prefix);
 	__isl_give isl_schedule_constraints *
 	isl_schedule_constraints_apply(
 		__isl_take isl_schedule_constraints *sc,
@@ -9357,6 +9371,20 @@ considered adjacent to each other if the entire wrapped relation matches.
 In particular, a relation with a tag will never be considered adjacent
 to a relation without a tag.
 
+The function C<isl_schedule_constraints_set_prefix>
+replaces the prefix schedule.
+Pairs of instances with the same value for the prefix schedule
+are assumed to be executed together already by the scheduler.
+This has two implications.
+First, only dependences between pairs of instances with
+the same prefix value are assumed to be relevant by the scheduler.
+Second, schedule rows that are linear combinations of
+those in the prefix schedule are considered to be redundant and
+will therefore not appear in the generated schedule,
+except to balance out band schedules.
+That is, for each band schedule there will be at least one
+scheduled statement without any redundant rows.
+
 The function C<isl_schedule_constraints_apply> takes
 schedule constraints that are defined on some set of domain elements
 and transforms them to schedule constraints on the elements
@@ -9385,6 +9413,9 @@ using the following functions.
 		__isl_keep isl_schedule_constraints *sc);
 	__isl_give isl_union_map *
 	isl_schedule_constraints_get_conditional_validity_condition(
+		__isl_keep isl_schedule_constraints *sc);
+	__isl_give isl_multi_union_pw_aff *
+	isl_schedule_constraints_get_prefix(
 		__isl_keep isl_schedule_constraints *sc);
 
 An C<isl_schedule_constraints> object can be read from input

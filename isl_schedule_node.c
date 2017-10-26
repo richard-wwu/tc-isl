@@ -17,6 +17,7 @@
 #include <isl_schedule_band.h>
 #include <isl_schedule_private.h>
 #include <isl_schedule_node_private.h>
+#include <isl_schedule_constraints.h>
 
 /* Create a new schedule node in the given schedule, point at the given
  * tree with given ancestors and child positions.
@@ -2722,6 +2723,27 @@ __isl_give isl_schedule_node *isl_schedule_node_delete(
 	return node;
 }
 
+/* Replace the subtree that "pos" points to by the one that "node" points to.
+ */
+__isl_give isl_schedule_node *isl_schedule_node_graft(
+	__isl_take isl_schedule_node *pos, __isl_take isl_schedule_node *node)
+{
+	isl_schedule_tree *tree;
+
+	if (!pos || !node)
+		goto error;
+
+	tree = isl_schedule_tree_copy(node->tree);
+	pos = isl_schedule_node_graft_tree(pos, tree);
+	isl_schedule_node_free(node);
+
+	return pos;
+error:
+	isl_schedule_node_free(pos);
+	isl_schedule_node_free(node);
+	return NULL;
+}
+
 /* Internal data structure for the group_ancestor callback.
  *
  * If "finished" is set, then we no longer need to modify
@@ -4716,6 +4738,85 @@ __isl_give isl_schedule_node *isl_schedule_node_get_shared_ancestor(
 	return isl_schedule_node_ancestor(node1, n1 - i);
 }
 
+/* Reschedule the subtree that "node" points to using
+ * the schedule constraints "sc" in the case where "node"
+ * points to the root of the schedule tree.
+ *
+ * In this case, "node" does not contain any useful information and
+ * a schedule is constructed directly from "sc".
+ */
+static __isl_give isl_schedule_node *complete_schedule(
+	__isl_take isl_schedule_node *node,
+	__isl_take isl_schedule_constraints *sc)
+{
+	isl_schedule *schedule;
+
+	isl_schedule_node_free(node);
+
+	schedule = isl_schedule_constraints_compute_schedule(sc);
+	node = isl_schedule_get_root(schedule);
+	isl_schedule_free(schedule);
+
+	return node;
+}
+
+/* Restrict the domain of "sc" to the domain elements reaching "node".
+ * The original domain is required to include all those elements.
+ */
+static __isl_give isl_schedule_constraints *restrict_domain(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_keep isl_schedule_node *node)
+{
+	isl_bool valid;
+	isl_union_set *node_domain, *sc_domain;
+
+	node_domain = isl_schedule_node_get_domain(node);
+	sc_domain = isl_schedule_constraints_get_domain(sc);
+	valid = isl_union_set_is_subset(node_domain, sc_domain);
+	sc = isl_schedule_constraints_intersect_domain(sc, node_domain);
+	isl_union_set_free(sc_domain);
+
+	if (valid < 0)
+		return isl_schedule_constraints_free(sc);
+	if (!valid)
+		isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
+			"invalid schedule constraints domain",
+			return isl_schedule_constraints_free(sc));
+	return sc;
+}
+
+/* Reschedule the subtree that "node" points to using
+ * the schedule constraints "sc".
+ *
+ * Restrict the domain of "sc" to the domain elements at "node",
+ * compute a schedule taking into account the prefix schedule at "node" and
+ * replace the subtree by the result.
+ *
+ * If "node" points to the root of a schedule tree, then no part
+ * of the schedule tree survives and a fresh schedule is computed instead.
+ */
+__isl_give isl_schedule_node *isl_schedule_node_schedule(
+	__isl_take isl_schedule_node *node,
+	__isl_take isl_schedule_constraints *sc)
+{
+	isl_multi_union_pw_aff *prefix;
+	isl_schedule *schedule;
+	isl_schedule_node *root;
+
+	if (isl_schedule_node_get_type(node) == isl_schedule_node_domain)
+		return complete_schedule(node, sc);
+
+	sc = restrict_domain(sc, node);
+
+	prefix = isl_schedule_node_get_prefix_schedule_multi_union_pw_aff(node);
+	sc = isl_schedule_constraints_set_prefix(sc, prefix);
+	schedule = isl_schedule_constraints_compute_schedule(sc);
+	root = isl_schedule_get_root(schedule);
+	isl_schedule_free(schedule);
+
+	return isl_schedule_node_graft(node, isl_schedule_node_child(root, 0));
+}
+
 /* Print "node" to "p".
  */
 __isl_give isl_printer *isl_printer_print_schedule_node(
@@ -4764,3 +4865,4 @@ __isl_give char *isl_schedule_node_to_str(__isl_keep isl_schedule_node *node)
 
 	return s;
 }
+

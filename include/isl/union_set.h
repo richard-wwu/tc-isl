@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+__isl_export
 unsigned isl_union_set_dim(__isl_keep isl_union_set *uset,
 	enum isl_dim_type type);
 
@@ -16,16 +17,19 @@ __isl_give isl_union_set *isl_union_set_from_basic_set(
 	__isl_take isl_basic_set *bset);
 __isl_constructor
 __isl_give isl_union_set *isl_union_set_from_set(__isl_take isl_set *set);
+__isl_export
 __isl_give isl_union_set *isl_union_set_empty(__isl_take isl_space *space);
 __isl_give isl_union_set *isl_union_set_copy(__isl_keep isl_union_set *uset);
 __isl_null isl_union_set *isl_union_set_free(__isl_take isl_union_set *uset);
 
 isl_ctx *isl_union_set_get_ctx(__isl_keep isl_union_set *uset);
+__isl_export
 __isl_give isl_space *isl_union_set_get_space(__isl_keep isl_union_set *uset);
 
 __isl_give isl_union_set *isl_union_set_reset_user(
 	__isl_take isl_union_set *uset);
 
+__isl_export
 __isl_give isl_union_set *isl_union_set_universe(
 	__isl_take isl_union_set *uset);
 __isl_give isl_set *isl_union_set_params(__isl_take isl_union_set *uset);
@@ -53,7 +57,7 @@ __isl_export
 __isl_give isl_union_set *isl_union_set_lexmin(__isl_take isl_union_set *uset);
 __isl_export
 __isl_give isl_union_set *isl_union_set_lexmax(__isl_take isl_union_set *uset);
-
+__isl_export
 __isl_give isl_union_set *isl_union_set_add_set(__isl_take isl_union_set *uset,
 	__isl_take isl_set *set);
 __isl_export
@@ -80,6 +84,7 @@ __isl_give isl_union_set *isl_union_set_gist_params(
 __isl_export
 __isl_give isl_union_set *isl_union_set_apply(
 	__isl_take isl_union_set *uset, __isl_take isl_union_map *umap);
+__isl_export
 __isl_give isl_union_set *isl_union_set_preimage_multi_aff(
 	__isl_take isl_union_set *uset, __isl_take isl_multi_aff *ma);
 __isl_give isl_union_set *isl_union_set_preimage_pw_multi_aff(
@@ -88,6 +93,7 @@ __isl_give isl_union_set *isl_union_set_preimage_union_pw_multi_aff(
 	__isl_take isl_union_set *uset,
 	__isl_take isl_union_pw_multi_aff *upma);
 
+__isl_export
 __isl_give isl_union_set *isl_union_set_project_out(
 	__isl_take isl_union_set *uset,
 	enum isl_dim_type type, unsigned first, unsigned n);
@@ -112,6 +118,7 @@ isl_bool isl_union_set_is_strict_subset(__isl_keep isl_union_set *uset1,
 
 uint32_t isl_union_set_get_hash(__isl_keep isl_union_set *uset);
 
+__isl_export
 int isl_union_set_n_set(__isl_keep isl_union_set *uset);
 __isl_export
 isl_stat isl_union_set_foreach_set(__isl_keep isl_union_set *uset,
@@ -120,8 +127,9 @@ __isl_give isl_basic_set_list *isl_union_set_get_basic_set_list(
 	__isl_keep isl_union_set *uset);
 isl_bool isl_union_set_contains(__isl_keep isl_union_set *uset,
 	__isl_keep isl_space *space);
-__isl_give isl_set *isl_union_set_extract_set(__isl_keep isl_union_set *uset,
-	__isl_take isl_space *dim);
+__isl_export __isl_give isl_set *isl_union_set_extract_set(
+        __isl_keep isl_union_set *uset, __isl_take isl_space *dim);
+__isl_export
 __isl_give isl_set *isl_set_from_union_set(__isl_take isl_union_set *uset);
 __isl_export
 isl_stat isl_union_set_foreach_point(__isl_keep isl_union_set *uset,

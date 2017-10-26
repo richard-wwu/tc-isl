@@ -23,8 +23,26 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_add(
 	__isl_take isl_schedule_constraints *sc, enum isl_edge_type type,
 	__isl_take isl_union_map *c);
 
+__isl_give isl_schedule_constraints *isl_schedule_constraints_intersect_domain(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_take isl_union_set *domain);
+
+__isl_give
+isl_basic_set *(*isl_schedule_constraints_get_custom_constraint_callback(
+	__isl_keep isl_schedule_constraints *sc))
+	(__isl_take isl_basic_set *, int, int,
+	 __isl_keep isl_id_list *, int *, int *, void *);
+void *isl_schedule_constraints_get_custom_constraint_callback_user(
+	__isl_keep isl_schedule_constraints *sc);
+
 int isl_schedule_constraints_n_basic_map(
 	__isl_keep isl_schedule_constraints *sc);
 int isl_schedule_constraints_n_map(__isl_keep isl_schedule_constraints *sc);
+
+isl_bool (*isl_schedule_constraints_get_merge_callback(
+	__isl_keep isl_schedule_constraints *sc))
+(__isl_give isl_union_map *, __isl_give isl_union_map *, int, int, int, void *);
+void *isl_schedule_constraints_get_merge_callback_data(
+	__isl_keep isl_schedule_constraints *sc);
 
 #endif

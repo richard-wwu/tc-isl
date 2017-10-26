@@ -29,6 +29,10 @@ struct isl_ctx {
 
 	unsigned long		operations;
 	unsigned long		max_operations;
+
+	void 			(*error_handler)(isl_ctx *, enum isl_error,
+					const char *msg, const char *file,
+					int line);
 };
 
 int isl_ctx_next_operation(isl_ctx *ctx);
