@@ -936,11 +936,15 @@ __isl_give isl_set *isl_schedule_band_get_ast_isolate_option(
 
 /* Replace the option "drop" in the AST build options by "add".
  * That is, remove "drop" and add "add".
+ *
+ * Set anchored if the resulting options include an isolate option since the
+ * domain of the wrapped map references the outer band node schedules.
  */
 __isl_give isl_schedule_band *isl_schedule_band_replace_ast_build_option(
 	__isl_take isl_schedule_band *band, __isl_take isl_set *drop,
 	__isl_take isl_set *add)
 {
+	isl_bool has_isolate;
 	isl_union_set *options;
 
 	band = isl_schedule_band_cow(band);
@@ -952,8 +956,10 @@ __isl_give isl_schedule_band *isl_schedule_band_replace_ast_build_option(
 	options = isl_union_set_union(options, isl_union_set_from_set(add));
 	band->ast_build_options = options;
 
-	if (!band->ast_build_options)
+	has_isolate = has_isolate_option(band->ast_build_options);
+	if (has_isolate < 0)
 		return isl_schedule_band_free(band);
+	band->anchored = has_isolate;
 
 	return band;
 error:
