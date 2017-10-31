@@ -389,6 +389,7 @@ add_isl_executable(isl_cat "${ISL_SOURCE_DIR}/cat.c")
 add_isl_executable(isl_closure "${ISL_SOURCE_DIR}/closure.c")
 add_isl_executable(isl_bound "${ISL_SOURCE_DIR}/bound.c")
 add_isl_executable(isl_codegen "${ISL_SOURCE_DIR}/codegen.c")
+add_isl_executable(isl_schedule "${ISL_SOURCE_DIR}/schedule.c")
 
 # Testing
 enable_testing()
