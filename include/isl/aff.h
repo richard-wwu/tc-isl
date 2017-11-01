@@ -41,6 +41,7 @@ __isl_export
 __isl_give isl_space *isl_aff_get_space(__isl_keep isl_aff *aff);
 __isl_give isl_local_space *isl_aff_get_domain_local_space(
 	__isl_keep isl_aff *aff);
+__isl_export
 __isl_give isl_local_space *isl_aff_get_local_space(__isl_keep isl_aff *aff);
 
 const char *isl_aff_get_dim_name(__isl_keep isl_aff *aff,
@@ -95,6 +96,7 @@ isl_bool isl_aff_plain_is_equal(__isl_keep isl_aff *aff1,
 isl_bool isl_aff_plain_is_zero(__isl_keep isl_aff *aff);
 isl_bool isl_aff_is_nan(__isl_keep isl_aff *aff);
 
+__isl_export
 __isl_give isl_aff *isl_aff_get_div(__isl_keep isl_aff *aff, int pos);
 
 __isl_export
