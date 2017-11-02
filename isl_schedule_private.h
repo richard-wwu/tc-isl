@@ -35,4 +35,5 @@ __isl_give isl_union_set *isl_schedule_get_domain(
 	__isl_keep isl_schedule *schedule);
 __isl_keep isl_schedule_tree *isl_schedule_peek_leaf(
 	__isl_keep isl_schedule *schedule);
+
 #endif
