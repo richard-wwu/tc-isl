@@ -151,9 +151,6 @@ __isl_give isl_schedule *isl_union_set_compute_schedule(
 	__isl_take isl_union_map *validity,
 	__isl_take isl_union_map *proximity);
 
-__isl_export
-__isl_give isl_schedule *isl_schedule_from_schedule_tree(isl_ctx *ctx,
-	__isl_take isl_schedule_tree *tree);
 __isl_give isl_schedule *isl_schedule_empty(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_schedule *isl_schedule_from_domain(
