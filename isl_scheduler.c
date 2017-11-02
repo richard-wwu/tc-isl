@@ -49,6 +49,39 @@
  */
 
 
+/* Extract the linear part, i.e., the coefficients of the input variables
+ * and the local variables (if any), from the affine expression "ma".
+ */
+static __isl_give isl_mat *extract_linear(__isl_take isl_multi_aff *ma)
+{
+	int i, n, n_param, n_var, n_div;
+	isl_ctx *ctx;
+	isl_mat *rows;
+
+	ma = isl_multi_aff_align_divs(ma);
+	if (!ma)
+		return NULL;
+
+	ctx = isl_multi_aff_get_ctx(ma);
+	n = isl_multi_aff_dim(ma, isl_dim_out);
+	n_param = isl_multi_aff_dim(ma, isl_dim_param);
+	n_var = isl_multi_aff_dim(ma, isl_dim_in);
+	n_div = 0;
+	if (n > 0)
+		n_div = isl_aff_dim(ma->u.p[0], isl_dim_div);
+	rows = isl_mat_alloc(ctx, n, n_var + n_div);
+	if (!rows)
+		goto error;
+	for (i = 0; i < n; ++i)
+		isl_seq_cpy(rows->row[i],
+			    ma->u.p[i]->v->el + 1 + 1 + n_param, n_var + n_div);
+	isl_multi_aff_free(ma);
+	return rows;
+error:
+	isl_multi_aff_free(ma);
+	return NULL;
+}
+
 /* Internal information about a node that is used during the construction
  * of a schedule.
  * space represents the original space in which the domain lives;
@@ -56,8 +89,8 @@
  * sched is a matrix representation of the schedule being constructed
  *	for this node; if compressed is set, then this schedule is
  *	defined over the compressed domain space
- * sched_map is an isl_map representation of the same (partial) schedule
- *	sched_map may be NULL; if compressed is set, then this map
+ * band_sched is an isl_map representation of the schedule of the current band
+ *	band_sched may be NULL; if compressed is set, then this map
  *	is defined over the uncompressed domain space
  * rank is the number of linearly independent rows in the linear part
  *	of sched
@@ -107,7 +140,7 @@ struct isl_sched_node {
 	isl_multi_aff *compress;
 	isl_multi_aff *decompress;
 	isl_mat *sched;
-	isl_map *sched_map;
+	isl_map *band_sched;
 	int	 rank;
 	isl_mat *indep;
 	isl_mat *vmap;
@@ -315,6 +348,10 @@ static int is_multi_edge_type(struct isl_sched_edge *edge)
  * is the original, uncompressed dependence relation, while
  * the value is the dual of the compressed dependence relation.
  *
+ * prefix is the schedule prefix specified by the user.
+ * This field may be NULL if no (non-trivial) schedule prefix
+ * was specified.
+ *
  * n is the number of nodes
  * node is the list of nodes
  * maxvar is the maximal number of variables over all nodes
@@ -362,6 +399,8 @@ struct isl_sched_graph {
 	isl_map_to_basic_set *intra_hmap_param;
 	isl_map_to_basic_set *inter_hmap;
 
+	isl_multi_union_pw_aff *prefix;
+
 	struct isl_sched_node *node;
 	int n;
 	int maxvar;
@@ -392,6 +431,15 @@ struct isl_sched_graph {
 	int weak;
 
 	int max_weight;
+
+        __isl_give isl_basic_set *(*add_constraint)(
+		__isl_take isl_basic_set *, int, int,
+		__isl_keep isl_id_list *, int *, int *, void *);
+        void *add_constraint_data;
+
+	isl_bool (*merge_callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *);
+	void *merge_callback_data;
 };
 
 /* Initialize node_table based on the list of nodes.
@@ -704,7 +752,7 @@ static void clear_node(struct isl_sched_graph *graph,
 	isl_multi_aff_free(node->compress);
 	isl_multi_aff_free(node->decompress);
 	isl_mat_free(node->sched);
-	isl_map_free(node->sched_map);
+	isl_map_free(node->band_sched);
 	isl_mat_free(node->indep);
 	isl_mat_free(node->vmap);
 	if (graph->root == graph)
@@ -739,6 +787,8 @@ static void graph_free(isl_ctx *ctx, struct isl_sched_graph *graph)
 		isl_hash_table_free(ctx, graph->edge_table[i]);
 	isl_hash_table_free(ctx, graph->node_table);
 	isl_basic_set_free(graph->lp);
+
+	isl_multi_union_pw_aff_free(graph->prefix);
 }
 
 /* For each "set" on which this function is called, increment
@@ -763,13 +813,17 @@ static isl_stat init_n_maxvar(__isl_take isl_set *set, void *user)
  * for each basic map in the dependences.
  * Note that it is practically impossible to exhaust both
  * the number of dependences and the number of variables.
+ * If any prefix schedule was specified, then the initial rows
+ * are initialized from this prefix.  Since the prefix may be
+ * completely trivial, it needs to be taken into account separately.
  */
 static isl_stat compute_max_row(struct isl_sched_graph *graph,
 	__isl_keep isl_schedule_constraints *sc)
 {
-	int n_edge;
+	int n_prefix, n_edge;
 	isl_stat r;
 	isl_union_set *domain;
+	isl_multi_union_pw_aff *prefix;
 
 	graph->n = 0;
 	graph->maxvar = 0;
@@ -778,10 +832,15 @@ static isl_stat compute_max_row(struct isl_sched_graph *graph,
 	isl_union_set_free(domain);
 	if (r < 0)
 		return isl_stat_error;
+	prefix = isl_schedule_constraints_get_prefix(sc);
+	n_prefix = isl_multi_union_pw_aff_dim(prefix, isl_dim_set);
+	isl_multi_union_pw_aff_free(prefix);
+	if (!prefix)
+		return isl_stat_error;
 	n_edge = isl_schedule_constraints_n_basic_map(sc);
 	if (n_edge < 0)
 		return isl_stat_error;
-	graph->max_row = n_edge + graph->maxvar;
+	graph->max_row = n_prefix + n_edge + graph->maxvar;
 
 	return isl_stat_ok;
 }
@@ -1015,7 +1074,7 @@ static isl_stat add_node(struct isl_sched_graph *graph,
 	node->nvar = nvar;
 	node->nparam = nparam;
 	node->sched = sched;
-	node->sched_map = NULL;
+	node->band_sched = NULL;
 	coincident = isl_calloc_array(ctx, int, graph->max_row);
 	node->coincident = coincident;
 	node->compressed = compressed;
@@ -1198,6 +1257,30 @@ static __isl_give isl_map *insert_dummy_tags(__isl_take isl_map *map)
 	return map;
 }
 
+/* Return a map in the same space as that of "map" that relates
+ * the elements with equal schedule prefix.
+ * Use the original schedule prefix specified by the user and
+ * not the linear information extracted from it for the purpose
+ * of avoiding redundant rows in the generated schedule.
+ */
+static __isl_give isl_map *extract_equal_prefix(struct isl_sched_graph *graph,
+	__isl_keep isl_map *map)
+{
+	isl_space *space;
+	isl_union_map *umap;
+	isl_multi_union_pw_aff *prefix;
+
+	space = isl_map_get_space(map);
+	map = isl_map_universe(isl_space_copy(space));
+	umap = isl_union_map_from_map(map);
+	prefix = isl_multi_union_pw_aff_copy(graph->prefix);
+	umap = isl_union_map_eq_at_multi_union_pw_aff(umap, prefix);
+	map = isl_union_map_extract_map(umap, space);
+	isl_union_map_free(umap);
+
+	return map;
+}
+
 /* Given that at least one of "src" or "dst" is compressed, return
  * a map between the spaces of these nodes restricted to the affine
  * hull that was used in the compression.
@@ -1300,6 +1383,11 @@ static isl_stat skip_edge(__isl_take isl_map *map, __isl_take isl_map *tagged)
  * This ensures that there are no schedule constraints defined
  * outside of these domains, while the scheduler no longer has
  * any control over those outside parts.
+ *
+ * If a (non-trivial) prefix schedule was specified by the user,
+ * then only retain dependences between instances with equal
+ * prefix values.  If the specified prefix schedule was incomplete,
+ * then this may result in the removal of all dependences.
  */
 static isl_stat extract_edge(__isl_take isl_map *map, void *user)
 {
@@ -1319,6 +1407,14 @@ static isl_stat extract_edge(__isl_take isl_map *map, void *user)
 		} else {
 			tagged = insert_dummy_tags(isl_map_copy(map));
 		}
+	}
+
+	if (graph->prefix) {
+		isl_map *equal_prefix;
+		equal_prefix = extract_equal_prefix(graph, map);
+		if (tagged)
+			tagged = map_intersect_domains(tagged, equal_prefix);
+		map = isl_map_intersect(map, equal_prefix);
 	}
 
 	src = find_domain_node(ctx, graph, map);
@@ -1376,6 +1472,206 @@ error:
 	return isl_stat_error;
 }
 
+/* Extract (a basis for) the purely linear part of "ma",
+ * i.e., the coefficients of the input variables but not the local variables.
+ *
+ * There may be linear combinations of the elements of "ma"
+ * that do not involve local variables, while the elements themselves
+ * do involve local variables.
+ * Perform Gaussian elimination to remove local variables from
+ * as many rows as possible and subsequently remove the remaining rows
+ * involving local variables as well as the columns corresponding
+ * to the local variables.
+ */
+static __isl_give isl_mat *extract_pure_linear(__isl_take isl_multi_aff *ma)
+{
+	int i, n, n_var, n_div;
+	isl_mat *rows;
+
+	if (!ma)
+		return NULL;
+
+	n_var = isl_multi_aff_dim(ma, isl_dim_in);
+
+	rows = extract_linear(ma);
+	rows = isl_mat_reverse_gauss(rows);
+
+	if (!rows)
+		return NULL;
+
+	n = isl_mat_rows(rows);
+	n_div = isl_mat_cols(rows) - n_var;
+	for (i = n - 1; i >= 0; --i)
+		if (isl_seq_first_non_zero(rows->row[i] + n_var, n_div) == -1)
+			break;
+	rows = isl_mat_drop_rows(rows, i + 1, n - (i + 1));
+	rows = isl_mat_drop_cols(rows, n_var, n_div);
+
+	return rows;
+}
+
+/* Extend "complement" with the complement of the purely linear part of "ma".
+ */
+static isl_stat extend_prefix_complement(__isl_take isl_set *dom,
+	__isl_take isl_multi_aff *ma, void *user)
+{
+	isl_mat *complement_ma;
+	isl_mat **complement = user;
+
+	isl_set_free(dom);
+
+	complement_ma = isl_mat_row_complement(extract_pure_linear(ma));
+
+	*complement = isl_mat_concat(*complement, complement_ma);
+
+	return *complement ? isl_stat_ok : isl_stat_error;
+}
+
+/* Extract a linear prefix schedule from "pma" that is valid
+ * for all pieces.
+ * In particular, if there are multiple pieces, then the result
+ * contains linear combinations that have a fixed value in all pieces.
+ * That is, if there is a direction that is not fixed in one or more pieces,
+ * then it is also not fixed by the entire piecewise expression.
+ * A direction that is not fixed needs to have a component along
+ * the orthogonal complement of the fixed directions.
+ * Collect these orthogonal complements over all pieces and
+ * compute the complement of the result to obtain the desired directions.
+ *
+ * If "pma" is empty (which indicates a missing, and therefore invalid,
+ * prefix schedule), then the result will contain a basis for all directions,
+ * being the complement of an empty complement.
+ */
+static __isl_give isl_mat *extract_prefix_pw_multi_aff(
+	__isl_keep isl_pw_multi_aff *pma)
+{
+	int nvar;
+	isl_ctx *ctx;
+	isl_mat *complement;
+
+	if (!pma)
+		return NULL;
+
+	ctx = isl_pw_multi_aff_get_ctx(pma);
+	nvar = isl_pw_multi_aff_dim(pma, isl_dim_in);
+	complement = isl_mat_alloc(ctx, 0, nvar);
+
+	if (isl_pw_multi_aff_foreach_piece(pma, &extend_prefix_complement,
+						&complement) < 0)
+		complement = isl_mat_free(complement);
+
+	return isl_mat_row_complement(complement);
+}
+
+/* Extract a prefix schedule for "node" from "mupa" and add
+ * it to node->sched.
+ *
+ * "mupa" is formulated in terms of the original (uncompressed) spaces,
+ * while node->sched is formulated in terms of the potentially compressed
+ * space.  If "node" is compressed, then the expression corresponding
+ * to "node" therefore needs to be transformed first.
+ *
+ * The prefix stored in node->sched is only used to avoid linearly
+ * dependent schedule rows from being generated.  Only the linear
+ * part of the prefix is therefore relevant.  Use zero for
+ * the coefficients of the constant term and the parameters.
+ * The extracted linear part may have fewer rows than "mupa",
+ * either because of linear dependences or because some element
+ * of "mupa" involve local variables.
+ * Extend the number of rows of the linear part to the number
+ * of elements in "mupa" to ensure that all nodes have the same
+ * number of rows.
+ *
+ * If "mupa" does not contain a prefix schedule for "node",
+ * then it is invalid.  In the current implementation, this will
+ * cause the scheduler to not construct any further schedule rows
+ * for "node".
+ */
+static isl_stat extract_prefix(struct isl_sched_node *node,
+	__isl_keep isl_multi_union_pw_aff *mupa)
+{
+	isl_space *space;
+	isl_multi_pw_aff *mpa;
+	isl_pw_multi_aff *pma;
+	isl_mat *prefix;
+	int n, n_prefix;
+
+	if (!mupa)
+		return isl_stat_error;
+
+	space = isl_space_copy(node->space);
+	mpa = isl_multi_union_pw_aff_extract_multi_pw_aff(mupa, space);
+
+	if (node->compress)
+		mpa = isl_multi_pw_aff_pullback_multi_aff(mpa,
+					isl_multi_aff_copy(node->decompress));
+
+	pma = isl_pw_multi_aff_from_multi_pw_aff(mpa);
+
+	prefix = extract_prefix_pw_multi_aff(pma);
+
+	prefix = isl_mat_insert_zero_cols(prefix, 0, 1 + node->nparam);
+	n_prefix = isl_multi_union_pw_aff_dim(mupa, isl_dim_set);
+	n = isl_mat_rows(prefix);
+	prefix = isl_mat_add_zero_rows(prefix, n_prefix - n);
+	node->sched = isl_mat_concat(node->sched, prefix);
+
+	isl_pw_multi_aff_free(pma);
+
+	if (!node->sched)
+		return isl_stat_error;
+
+	return isl_stat_ok;
+}
+
+/* Check if any (non-trivial) prefix schedule was specified in "sc".
+ * If so, store a copy in "graph" for later simplification
+ * of dependence relations and extract the linear parts
+ * in the respective nodes.
+ * These linear parts are considered as an initial outer band.
+ * Their only effect is to try and prevent rows in the generated schedule
+ * from being linear combinations of the prefix.
+ *
+ * Since the prefix schedule cannot be assumed to be linearly
+ * independent on all nodes, graph->n_row is not incremented.
+ * Note that the ranks of the nodes will get updated regardless and
+ * graph->maxvar is computed based on these ranks.  The test for
+ * whether more schedule rows are required in compute_schedule_wcc
+ * therefore does take the prefix into account.
+ *
+ * The prefix schedule specified by the user is required to
+ * be complete on the domain.  An invalid prefix will result
+ * in nodes being essentially removed from consideration.
+ */
+static isl_stat handle_prefix(struct isl_sched_graph *graph,
+	__isl_keep isl_schedule_constraints *sc)
+{
+	int i;
+	int n;
+	isl_multi_union_pw_aff *mupa;
+
+	mupa = isl_schedule_constraints_get_prefix(sc);
+	if (!mupa)
+		return isl_stat_error;
+	n = isl_multi_union_pw_aff_dim(mupa, isl_dim_set);
+	if (n == 0) {
+		isl_multi_union_pw_aff_free(mupa);
+		return isl_stat_ok;
+	}
+
+	graph->prefix = mupa;
+
+	for (i = 0; i < graph->n; ++i) {
+		if (extract_prefix(&graph->node[i], mupa) < 0)
+			return isl_stat_error;
+	}
+
+	graph->n_total_row = n;
+	graph->band_start = graph->n_total_row;
+
+	return isl_stat_ok;
+}
+
 /* Initialize the schedule graph "graph" from the schedule constraints "sc".
  *
  * The context is included in the domain before the nodes of
@@ -1419,6 +1715,8 @@ static isl_stat graph_init(struct isl_sched_graph *graph,
 		return isl_stat_error;
 	if (graph_init_table(ctx, graph) < 0)
 		return isl_stat_error;
+	if (handle_prefix(graph, sc) < 0)
+		return isl_stat_error;
 	for (i = isl_edge_first; i <= isl_edge_last; ++i) {
 		c = isl_schedule_constraints_get(sc, i);
 		graph->max_edge[i] = isl_union_map_n_map(c);
@@ -1440,6 +1738,16 @@ static isl_stat graph_init(struct isl_sched_graph *graph,
 		if (r < 0)
 			return isl_stat_error;
 	}
+
+	graph->add_constraint =
+		isl_schedule_constraints_get_custom_constraint_callback(sc);
+	graph->add_constraint_data =
+		isl_schedule_constraints_get_custom_constraint_callback_user(sc);
+
+	graph->merge_callback =
+		isl_schedule_constraints_get_merge_callback(sc);
+	graph->merge_callback_data =
+		isl_schedule_constraints_get_merge_callback_data(sc);
 
 	return isl_stat_ok;
 }
@@ -2791,6 +3099,34 @@ static isl_stat setup_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 	if (add_all_proximity_constraints(graph, use_coincidence) < 0)
 		return isl_stat_error;
 
+	if (graph->add_constraint) {
+		int *node_n_param = isl_calloc_array(ctx, int, graph->n);
+		int *node_n_dims = isl_calloc_array(ctx, int, graph->n);
+		isl_id_list *node_id_list = isl_id_list_alloc(ctx, graph->n);
+
+		for (i = 0; i < graph->n; ++i) {
+			isl_space *node_space = graph->node[i].space;
+			isl_id *node_id =
+				isl_space_get_tuple_id(node_space, isl_dim_set);
+
+			node_id_list =
+				isl_id_list_add(node_id_list, node_id);
+			node_n_param[i] = graph->node[i].nparam;
+			node_n_dims[i] = graph->node[i].nvar;
+		}
+
+		graph->lp = (graph->add_constraint)(graph->lp, nparam,
+			graph->n_total_row, node_id_list, node_n_param,
+			node_n_dims, graph->add_constraint_data);
+
+		isl_id_list_free(node_id_list);
+		free(node_n_param);
+		free(node_n_dims);
+
+		if (!graph->lp)
+			return isl_stat_error;
+	}
+
 	return isl_stat_ok;
 }
 
@@ -2975,8 +3311,8 @@ static int update_schedule(struct isl_sched_graph *graph,
 		if (!csol)
 			goto error;
 
-		isl_map_free(node->sched_map);
-		node->sched_map = NULL;
+		isl_map_free(node->band_sched);
+		node->band_sched = NULL;
 		node->sched = isl_mat_add_rows(node->sched, 1);
 		if (!node->sched)
 			goto error;
@@ -3083,52 +3419,57 @@ static __isl_give isl_multi_aff *node_extract_partial_schedule_multi_aff(
 	return ma;
 }
 
-/* Convert node->sched into a multi_aff and return this multi_aff.
+/* Convert the part of node->sched that corresponds to the current band
+ * into a multi_aff and return this multi_aff.
  *
  * The result is defined over the uncompressed node domain.
  */
-static __isl_give isl_multi_aff *node_extract_schedule_multi_aff(
-	struct isl_sched_node *node)
+static __isl_give isl_multi_aff *node_extract_band_schedule_multi_aff(
+	struct isl_sched_graph *graph, struct isl_sched_node *node)
 {
 	int nrow;
+	int start;
 
-	nrow = isl_mat_rows(node->sched);
-	return node_extract_partial_schedule_multi_aff(node, 0, nrow);
+	start = graph->band_start;
+	nrow = isl_mat_rows(node->sched) - start;
+	return node_extract_partial_schedule_multi_aff(node, start, nrow);
 }
 
-/* Convert node->sched into a map and return this map.
+/* Convert the part of node->sched that corresponds to the current band
+ * into a map and return this map.
  *
- * The result is cached in node->sched_map, which needs to be released
+ * The result is cached in node->band_sched, which needs to be released
  * whenever node->sched is updated.
  * It is defined over the uncompressed node domain.
  */
-static __isl_give isl_map *node_extract_schedule(struct isl_sched_node *node)
+static __isl_give isl_map *node_extract_band_schedule(
+	struct isl_sched_graph *graph, struct isl_sched_node *node)
 {
-	if (!node->sched_map) {
+	if (!node->band_sched) {
 		isl_multi_aff *ma;
 
-		ma = node_extract_schedule_multi_aff(node);
-		node->sched_map = isl_map_from_multi_aff(ma);
+		ma = node_extract_band_schedule_multi_aff(graph, node);
+		node->band_sched = isl_map_from_multi_aff(ma);
 	}
 
-	return isl_map_copy(node->sched_map);
+	return isl_map_copy(node->band_sched);
 }
 
 /* Construct a map that can be used to update a dependence relation
- * based on the current schedule.
+ * based on the current band schedule.
  * That is, construct a map expressing that source and sink
- * are executed within the same iteration of the current schedule.
+ * are executed within the same iteration of the current band.
  * This map can then be intersected with the dependence relation.
  * This is not the most efficient way, but this shouldn't be a critical
  * operation.
  */
-static __isl_give isl_map *specializer(struct isl_sched_node *src,
-	struct isl_sched_node *dst)
+static __isl_give isl_map *specializer(struct isl_sched_graph *graph,
+	struct isl_sched_node *src, struct isl_sched_node *dst)
 {
 	isl_map *src_sched, *dst_sched;
 
-	src_sched = node_extract_schedule(src);
-	dst_sched = node_extract_schedule(dst);
+	src_sched = node_extract_band_schedule(graph, src);
+	dst_sched = node_extract_band_schedule(graph, dst);
 	return isl_map_apply_range(src_sched, isl_map_reverse(dst_sched));
 }
 
@@ -3148,8 +3489,8 @@ static __isl_give isl_union_map *intersect_domains(
 }
 
 /* Update the dependence relation of the given edge based
- * on the current schedule.
- * If the dependence is carried completely by the current schedule, then
+ * on the current band schedule.
+ * If the dependence is carried completely by the current band, then
  * it is removed from the edge_tables.  It is kept in the list of edges
  * as otherwise all edge_tables would have to be recomputed.
  *
@@ -3166,7 +3507,7 @@ static isl_stat update_edge(isl_ctx *ctx, struct isl_sched_graph *graph,
 	int empty;
 	isl_map *id;
 
-	id = specializer(edge->src, edge->dst);
+	id = specializer(graph, edge->src, edge->dst);
 	edge->map = isl_map_intersect(edge->map, isl_map_copy(id));
 	if (!edge->map)
 		goto error;
@@ -3232,14 +3573,15 @@ static int range_intersects(__isl_keep isl_union_map *umap,
 }
 
 /* Are the condition dependences of "edge" local with respect to
- * the current schedule?
+ * the current band schedule?
  *
  * That is, are domain and range of the condition dependences mapped
  * to the same point?
  *
  * In other words, is the condition false?
  */
-static int is_condition_false(struct isl_sched_edge *edge)
+static int is_condition_false(struct isl_sched_graph *graph,
+	struct isl_sched_edge *edge)
 {
 	isl_union_map *umap;
 	isl_map *map, *sched, *test;
@@ -3254,9 +3596,9 @@ static int is_condition_false(struct isl_sched_edge *edge)
 	umap = isl_union_set_unwrap(isl_union_map_domain(umap));
 	map = isl_map_from_union_map(umap);
 
-	sched = node_extract_schedule(edge->src);
+	sched = node_extract_band_schedule(graph, edge->src);
 	map = isl_map_apply_domain(map, sched);
-	sched = node_extract_schedule(edge->dst);
+	sched = node_extract_band_schedule(graph, edge->dst);
 	map = isl_map_apply_range(map, sched);
 
 	test = isl_map_identity(isl_map_get_space(map));
@@ -3310,8 +3652,8 @@ error:
 	return -1;
 }
 
-/* Update the dependence relations of all edges based on the current schedule
- * and enforce conditional validity constraints that are adjacent
+/* Update the dependence relations of all edges based on the current band
+ * schedule and enforce conditional validity constraints that are adjacent
  * to satisfied condition constraints.
  *
  * First check if any of the condition constraints are satisfied
@@ -3340,7 +3682,7 @@ static int update_edges(isl_ctx *ctx, struct isl_sched_graph *graph)
 			continue;
 		if (is_local(&graph->edge[i]))
 			continue;
-		local = is_condition_false(&graph->edge[i]);
+		local = is_condition_false(graph, &graph->edge[i]);
 		if (local < 0)
 			goto error;
 		if (local)
@@ -3453,6 +3795,10 @@ static __isl_give isl_union_set_list *extract_split(isl_ctx *ctx,
 
 /* Copy nodes that satisfy node_pred from the src dependence graph
  * to the dst dependence graph.
+ *
+ * The subgraph into which the nodes are copied will be used
+ * to create a new band, so the cached value of the current
+ * band schedule does not need to be copied.
  */
 static isl_stat copy_nodes(struct isl_sched_graph *dst,
 	struct isl_sched_graph *src,
@@ -3478,7 +3824,7 @@ static isl_stat copy_nodes(struct isl_sched_graph *dst,
 		dst->node[j].nvar = src->node[i].nvar;
 		dst->node[j].nparam = src->node[i].nparam;
 		dst->node[j].sched = isl_mat_copy(src->node[i].sched);
-		dst->node[j].sched_map = isl_map_copy(src->node[i].sched_map);
+		dst->node[j].band_sched = NULL;
 		dst->node[j].coincident = src->node[i].coincident;
 		dst->node[j].sizes = isl_multi_val_copy(src->node[i].sizes);
 		dst->node[j].bounds = isl_basic_set_copy(src->node[i].bounds);
@@ -3621,6 +3967,12 @@ static isl_stat extract_sub_graph(isl_ctx *ctx, struct isl_sched_graph *graph,
 	sub->n_total_row = graph->n_total_row;
 	sub->band_start = graph->band_start;
 
+	sub->add_constraint = graph->add_constraint;
+	sub->add_constraint_data = graph->add_constraint_data;
+
+	sub->merge_callback = graph->merge_callback;
+	sub->merge_callback_data = graph->merge_callback_data;
+
 	return isl_stat_ok;
 }
 
@@ -3694,8 +4046,8 @@ static isl_stat reset_band(struct isl_sched_graph *graph)
 	for (i = 0; i < graph->n; ++i) {
 		struct isl_sched_node *node = &graph->node[i];
 
-		isl_map_free(node->sched_map);
-		node->sched_map = NULL;
+		isl_map_free(node->band_sched);
+		node->band_sched = NULL;
 
 		node->sched = isl_mat_drop_rows(node->sched,
 						graph->band_start, drop);
@@ -5281,7 +5633,12 @@ static __isl_give isl_schedule_node *sort_statements(
 	if (graph->scc < graph->n) {
 		if (!initialized && compute_maxvar(graph) < 0)
 			return isl_schedule_node_free(node);
-		return carry_dependences(node, graph);
+		if (ctx->opt->schedule_algorithm == ISL_SCHEDULE_ALGORITHM_OUTERPAR)
+			isl_die(ctx, isl_error_invalid,
+				"outer parallelism not found when requested",
+				 return isl_schedule_node_free(node));
+		else
+			return carry_dependences(node, graph);
 	}
 
 	filters = extract_sccs(ctx, graph);
@@ -5459,7 +5816,7 @@ static int has_adjacent_true_conditions(struct isl_sched_graph *graph,
 
 		set_local(&graph->edge[i]);
 
-		local = is_condition_false(&graph->edge[i]);
+		local = is_condition_false(graph, &graph->edge[i]);
 		if (local < 0)
 			return -1;
 		if (!local)
@@ -5531,6 +5888,9 @@ error:
 	return -1;
 }
 
+static __isl_give isl_schedule_node *compute_schedule_wcc_clustering(
+	__isl_take isl_schedule_node *node, struct isl_sched_graph *graph);
+
 /* Examine the current band (the rows between graph->band_start and
  * graph->n_total_row), deciding whether to drop it or add it to "node"
  * and then continue with the computation of the next band, if any.
@@ -5575,19 +5935,32 @@ static __isl_give isl_schedule_node *compute_schedule_finish_band(
 	empty = graph->n_total_row == graph->band_start;
 	if (graph->n_row < graph->maxvar) {
 		isl_ctx *ctx;
+		int outer_coincidence;
 
 		ctx = isl_schedule_node_get_ctx(node);
+		outer_coincidence =
+			isl_options_get_schedule_outer_coincidence(ctx);
+
 		if (!ctx->opt->schedule_maximize_band_depth && !empty)
 			return compute_next_band(node, graph, 1);
 		if (graph->src_scc >= 0)
 			return compute_split_schedule(node, graph);
 		if (!empty)
 			return compute_next_band(node, graph, 1);
-		if (graph->scc > 1)
-			return compute_component_schedule(node, graph, 1);
+		if (graph->scc > 1) {
+			if (graph->merge_callback)
+				return compute_schedule_wcc_clustering(node, graph);
+			else
+				return compute_component_schedule(node, graph, 1);
+		}
 		if (!initialized && compute_maxvar(graph) < 0)
 			return isl_schedule_node_free(node);
-		if (isl_options_get_schedule_outer_coincidence(ctx))
+
+		if (ctx->opt->schedule_algorithm == ISL_SCHEDULE_ALGORITHM_OUTERPAR)
+			isl_die(ctx, isl_error_invalid,
+				"outer parallelism not found when requested",
+				 return isl_schedule_node_free(node));
+		else if (outer_coincidence)
 			return carry_coincidence(node, graph);
 		return carry_dependences(node, graph);
 	}
@@ -5741,6 +6114,7 @@ struct isl_clustering {
 	int *scc_cluster;
 	int *scc_node;
 	int *scc_in_merge;
+	int is_along_edge;
 };
 
 /* Initialize the clustering data structure "c" from "graph".
@@ -5777,6 +6151,7 @@ static isl_stat clustering_init(isl_ctx *ctx, struct isl_clustering *c,
 			return isl_stat_error;
 		c->scc_cluster[i] = i;
 	}
+	c->is_along_edge = 1;
 
 	return isl_stat_ok;
 }
@@ -5913,7 +6288,7 @@ static isl_bool cluster_follows(int i, int j, void *user)
 }
 
 /* Mark all SCCs that belong to either of the two clusters in "c"
- * connected by the edge in "graph" with index "edge", or to any
+ * that contain "src" or "dst" node, or to any
  * of the intermediate clusters.
  * The marking is recorded in c->scc_in_merge.
  *
@@ -5935,7 +6310,8 @@ static isl_bool cluster_follows(int i, int j, void *user)
  * in c->scc_in_merge.
  */
 static isl_stat mark_merge_sccs(isl_ctx *ctx, struct isl_sched_graph *graph,
-	int edge, struct isl_clustering *c)
+	struct isl_sched_node *src, struct isl_sched_node *dst,
+	struct isl_clustering *c)
 {
 	struct isl_mark_merge_sccs_data data;
 	struct isl_tarjan_graph *g;
@@ -5946,8 +6322,8 @@ static isl_stat mark_merge_sccs(isl_ctx *ctx, struct isl_sched_graph *graph,
 
 	data.graph = graph;
 	data.scc_cluster = c->scc_cluster;
-	data.src = graph->edge[edge].src - graph->node;
-	data.dst = graph->edge[edge].dst - graph->node;
+	data.src = src - graph->node;
+	data.dst = dst - graph->node;
 
 	g = isl_tarjan_graph_component(ctx, graph->n, data.dst,
 					&cluster_follows, &data);
@@ -6379,16 +6755,12 @@ static int get_n_coincident(struct isl_sched_graph *graph)
 	return i - graph->band_start;
 }
 
-/* Should the clusters be merged based on the cluster schedule
- * in the current (and only) band of "merge_graph", given that
- * coincidence should be maximized?
- *
- * If the number of coincident schedule dimensions in the merged band
- * would be less than the maximal number of coincident schedule dimensions
- * in any of the merged clusters, then the clusters should not be merged.
+/* Compute the number of coincident schedule dimensions in the merged band of
+ * "merge_graph", and the maximal number of coincident dimensions in the
+ * original bands of the clusters being merged as specified in "c".
  */
-static isl_bool ok_to_merge_coincident(struct isl_clustering *c,
-	struct isl_sched_graph *merge_graph)
+static void n_coincident_before_after(struct isl_clustering *c,
+	struct isl_sched_graph *merge_graph, int *before, int *after)
 {
 	int i;
 	int n_coincident;
@@ -6405,7 +6777,8 @@ static isl_bool ok_to_merge_coincident(struct isl_clustering *c,
 
 	n_coincident = get_n_coincident(merge_graph);
 
-	return n_coincident >= max_coincident;
+	*before = max_coincident;
+	*after = n_coincident;
 }
 
 /* Return the transformation on "node" expressed by the current (and only)
@@ -6652,6 +7025,10 @@ static isl_bool ok_to_merge_proximity(isl_ctx *ctx,
  *
  * If the current band is empty, then the clusters should not be merged.
  *
+ * If the user-defined clustering heuristic is supplied, call it with the
+ * original schedule and the the schedule transformed by the clustering.
+ * Otherwise, apply the following strategy.
+ *
  * If the band depth should be maximized and the merge schedule
  * is incomplete (meaning that the dimension of some of the schedule
  * bands in the original schedule will be reduced), then the clusters
@@ -6666,20 +7043,55 @@ static isl_bool ok_to_merge_proximity(isl_ctx *ctx,
 static isl_bool ok_to_merge(isl_ctx *ctx, struct isl_sched_graph *graph,
 	struct isl_clustering *c, struct isl_sched_graph *merge_graph)
 {
+	int n_coincident_before;
+	int n_coincident_after;
+	int i;
+	isl_union_map *original_schedule;
+	isl_union_map *updated_schedule;
+	isl_space *space;
+
 	if (merge_graph->n_total_row == merge_graph->band_start)
 		return isl_bool_false;
+
+	n_coincident_before_after(c, merge_graph, &n_coincident_before,
+		&n_coincident_after);
+	
+	if (graph->merge_callback) {
+		space = isl_space_params(isl_space_copy(graph->node[0].space));
+		original_schedule = isl_union_map_empty(isl_space_copy(space));
+		updated_schedule = isl_union_map_empty(space);
+	
+		for (i = 0; i < graph->n; ++i) {
+			struct isl_sched_node *node = &graph->node[i];
+			isl_map *node_original_schedule;
+			isl_map *node_updated_schedule;
+	
+			if (!c->scc_in_merge[node->scc])
+				continue;
+	
+			node_original_schedule =
+				node_extract_band_schedule(graph, node);
+			original_schedule = isl_union_map_add_map(
+				original_schedule, node_original_schedule);
+			node_updated_schedule = extract_node_transformation(
+				ctx, node, c, merge_graph);
+			updated_schedule = isl_union_map_add_map(
+				updated_schedule, node_updated_schedule);
+		}
+
+		return (graph->merge_callback)(original_schedule,
+			updated_schedule, n_coincident_after,
+			n_coincident_before, c->is_along_edge,
+			graph->merge_callback_data);
+	}
 
 	if (isl_options_get_schedule_maximize_band_depth(ctx) &&
 	    merge_graph->n_total_row < merge_graph->maxvar)
 		return isl_bool_false;
 
-	if (isl_options_get_schedule_maximize_coincidence(ctx)) {
-		isl_bool ok;
-
-		ok = ok_to_merge_coincident(c, merge_graph);
-		if (ok < 0 || !ok)
-			return ok;
-	}
+	if (isl_options_get_schedule_maximize_coincidence(ctx) &&
+	    (n_coincident_after - n_coincident_after) < 0)
+		return isl_bool_false;
 
 	return ok_to_merge_proximity(ctx, graph, c, merge_graph);
 }
@@ -6749,7 +7161,7 @@ static isl_stat transform(isl_ctx *ctx, struct isl_sched_graph *graph,
 		t = node_transformation(ctx, t_node, node, start, n);
 		node->sched = isl_mat_drop_rows(node->sched, start, n);
 		node->sched = isl_mat_concat(node->sched, t);
-		node->sched_map = isl_map_free(node->sched_map);
+		node->band_sched = isl_map_free(node->band_sched);
 		if (!node->sched)
 			return isl_stat_error;
 		for (j = 0; j < n_new; ++j)
@@ -6921,7 +7333,8 @@ static isl_stat merge_clusters_along_edge(isl_ctx *ctx,
 	isl_bool merged;
 	int edge_weight = graph->edge[edge].weight;
 
-	if (mark_merge_sccs(ctx, graph, edge, c) < 0)
+	if (mark_merge_sccs(ctx, graph, graph->edge[edge].src,
+			    graph->edge[edge].dst, c) < 0)
 		return isl_stat_error;
 
 	if (any_no_merge(graph, c->scc_in_merge, &graph->edge[edge]))
@@ -6960,15 +7373,15 @@ static void swap_sched(struct isl_sched_node *node1,
 	struct isl_sched_node *node2)
 {
 	isl_mat *sched;
-	isl_map *sched_map;
+	isl_map *band_sched;
 
 	sched = node1->sched;
 	node1->sched = node2->sched;
 	node2->sched = sched;
 
-	sched_map = node1->sched_map;
-	node1->sched_map = node2->sched_map;
-	node2->sched_map = sched_map;
+	band_sched = node1->band_sched;
+	node1->band_sched = node2->band_sched;
+	node2->band_sched = band_sched;
 }
 
 /* Copy the current band schedule from the SCCs that form the cluster
@@ -7173,6 +7586,34 @@ static __isl_give isl_schedule_node *finish_bands_clustering(
 	return node;
 }
 
+isl_stat merge_node_pairs(isl_ctx *ctx, struct isl_sched_graph *graph,
+	struct isl_clustering *c)
+{
+	int i, j;
+
+	for (i = 0; i < graph->n; ++i) {
+		for (j = i + 1; j < graph->n; ++j) {
+			struct isl_sched_node *node_i = &graph->node[i];
+			struct isl_sched_node *node_j = &graph->node[j];
+			isl_bool merged;
+
+			int cluster_i = c->scc_cluster[node_i->scc];
+			int cluster_j = c->scc_cluster[node_j->scc];
+
+			if (cluster_i == cluster_j)
+				continue;
+
+			mark_merge_sccs(ctx, graph, node_i, node_j, c);
+
+			merged = try_merge(ctx, graph, c);
+			if (merged < 0)
+				return isl_stat_error;
+		}
+	}
+
+	return isl_stat_ok;
+}
+
 /* Compute a schedule for a connected dependence graph by first considering
  * each strongly connected component (SCC) in the graph separately and then
  * incrementally combining them into clusters.
@@ -7213,6 +7654,13 @@ static __isl_give isl_schedule_node *compute_schedule_wcc_clustering(
 			break;
 		if (merge_clusters_along_edge(ctx, graph, i, &c) < 0)
 			goto error;
+	}
+
+	if (graph->merge_callback) {
+		c.is_along_edge = 0;
+		if (merge_node_pairs(ctx, graph, &c) < 0)
+			goto error;
+		c.is_along_edge = 1;
 	}
 
 	if (extract_clusters(ctx, graph, &c) < 0)
@@ -7349,8 +7797,12 @@ static __isl_give isl_schedule_node *compute_schedule(isl_schedule_node *node,
 			return isl_schedule_node_free(node);
 	}
 
-	if (graph->scc > 1)
-		return compute_component_schedule(node, graph, 1);
+	if (graph->scc > 1) {
+		if (graph->merge_callback)
+			return compute_schedule_wcc_clustering(node, graph);
+		else
+			return compute_component_schedule(node, graph, 1);
+	}
 
 	return compute_schedule_wcc(node, graph);
 }

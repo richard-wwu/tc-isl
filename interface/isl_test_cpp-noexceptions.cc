@@ -314,6 +314,122 @@ void test_foreach(isl::ctx ctx)
 	assert(ret2 == isl::stat::error);
 }
 
+/* Test that read-only list of vals are modeled correctly.
+ *
+ * Construct an std::vector of isl::vals and use its iterators to construct a
+ * C++ isl list of vals. Compare these containers. Extract the C isl list from
+ * the C++ one, verify that is has expected size and content. Modify the C isl
+ * list and convert it back to C++. Verify that the new managed list has
+ * expected content.
+ */
+void test_val_list(isl::ctx ctx)
+{
+	std::vector<isl::val> val_vector;
+	for (int i = 0; i < 42; ++i) {
+		isl::val val(ctx, i);
+		val_vector.push_back(val);
+	}
+	isl::list<isl::val> val_list(ctx, val_vector.begin(),
+		val_vector.end());
+
+	assert(42 == val_list.size());
+	for (int i = 0; i < 42; ++i) {
+		isl::val val_at = val_list.at(i);
+		isl::val val_op = val_list[i];
+		isl::val expected(ctx, i);
+		assert(val_at.eq(expected));
+		assert(val_op.eq(expected));
+	}
+
+	isl_val_list *c_val_list = val_list.release();
+	assert(42 == isl_val_list_n_val(c_val_list));
+	for (int i = 0; i < 42; ++i) {
+		isl_val *val = isl_val_list_get_val(c_val_list, i);
+		assert(i == isl_val_get_num_si(val));
+		isl_val_free(val);
+	}
+
+	c_val_list = isl_val_list_drop(c_val_list, 0, 32);
+	val_list = isl::manage(c_val_list);
+	assert(10 == val_list.size());
+	for (int i = 0; i < 10; ++i) {
+		isl::val expected(ctx, 32 + i);
+		isl::val val_op = val_list[i];
+		assert(val_op.eq(expected));
+	}
+}
+
+/* Test that supplementary functions on lists are handled properly.
+ *
+ * Construct a list of basic_maps from an array thereof. Compute the
+ * interaction of all basic_map in the list.
+ */
+void test_basic_map_list(isl::ctx ctx)
+{
+	isl::basic_map bmap1(ctx, "{[]->[a]: 0 <= a <= 42}");
+	isl::basic_map bmap2(ctx, "{[]->[a]: 21 <= a <= 63}");
+	isl::basic_map bmap3(ctx, "{[]->[a]: 21 <= a <= 42}");
+
+	isl::basic_map bmap_array[] = { bmap1, bmap2, bmap3 };
+	isl::list<isl::basic_map> bmap_list(ctx, bmap_array, bmap_array + 3);
+	isl::basic_map result = bmap_list.intersect();
+	assert(result.is_equal(bmap3));
+}
+
+/* Test if the list iterators are operating properly and whether they are
+ * compatible with the standard library.
+ *
+ * Construct a standard vector from an isl list using list iterators. Check
+ * that the size and content of the vector is equal to the size and content of
+ * the list.
+ *
+ * Check that prefix and postfix increments of the iterators are implemented
+ * correctly.
+ */
+void test_list_iterators(isl::ctx ctx)
+{
+	std::vector<isl::val> val_vector;
+	for (int i = 0; i < 42; ++i) {
+		isl::val val(ctx, i);
+		val_vector.push_back(val);
+	}
+	isl::list<isl::val> val_list(ctx, val_vector.begin(),
+		val_vector.end());
+
+	std::vector<isl::val> other_val_vector;
+	other_val_vector.resize(42);
+	std::copy(val_list.begin(), val_list.end(), other_val_vector.begin());
+
+	assert(42 == other_val_vector.size());
+	for (int i = 0; i < 42; ++i) {
+		isl::val expected(ctx, i);
+		assert(expected.eq(other_val_vector[i]));
+	}
+
+	isl::list<isl::val>::iterator it = val_list.begin();
+	for (int i = 0; i < 42; ++i) {
+		isl::val expected(ctx, i);
+		assert(it != val_list.end());
+		assert(it->eq(expected));
+		assert((*it).eq(expected));
+		++it;
+	}
+
+	it = val_list.begin();
+	isl::list<isl::val>::iterator it2 = val_list.begin();
+	++it2;
+	assert(it++ != it2);
+	assert(it++ == it2);
+	assert(it != it2);
+
+	it = val_list.begin();
+	it2 = val_list.begin();
+	++it2;
+	assert(++it == it2);
+	assert(++it == ++it2);
+	assert(++it != it2);
+}
+
 /* Test the isl C++ interface
  *
  * This includes:
@@ -322,6 +438,10 @@ void test_foreach(isl::ctx ctx)
  *  - Different parameter types
  *  - Different return types
  *  - Foreach functions
+ *  - Identifier allocation and equality
+ *  - List of isl::val
+ *  - Custom function of the list of isl::basic_map
+ *  - List iterators
  */
 int main()
 {
@@ -332,6 +452,9 @@ int main()
 	test_parameters(ctx);
 	test_return(ctx);
 	test_foreach(ctx);
+	test_val_list(ctx);
+	test_basic_map_list(ctx);
+	test_list_iterators(ctx);
 
 	isl_ctx_free(ctx);
 }

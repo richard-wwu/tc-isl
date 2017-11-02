@@ -46,7 +46,8 @@ int isl_ctx_next_operation(isl_ctx *ctx)
 		return -1;
 	if (ctx->abort) {
 		isl_ctx_set_error(ctx, isl_error_abort);
-		return -1;
+		isl_die(ctx, isl_error_abort,
+			"ctx aborted", return -1);
 	}
 	if (ctx->max_operations && ctx->operations >= ctx->max_operations)
 		isl_die(ctx, isl_error_quota,
@@ -95,12 +96,18 @@ void isl_handle_error(isl_ctx *ctx, enum isl_error error, const char *msg,
 
 	switch (ctx->opt->on_error) {
 	case ISL_ON_ERROR_WARN:
-		fprintf(stderr, "%s:%d: %s\n", file, line, msg);
+		if (ctx->error_handler)
+			(ctx->error_handler)(ctx, error, msg, file, line);
+		else
+			fprintf(stderr, "%s:%d: %s\n", file, line, msg);
 		return;
 	case ISL_ON_ERROR_CONTINUE:
 		return;
 	case ISL_ON_ERROR_ABORT:
-		fprintf(stderr, "%s:%d: %s\n", file, line, msg);
+		if (ctx->error_handler)
+			(ctx->error_handler)(ctx, error, msg, file, line);
+		else
+			fprintf(stderr, "%s:%d: %s\n", file, line, msg);
 		abort();
 		return;
 	}
@@ -207,6 +214,8 @@ isl_ctx *isl_ctx_alloc_with_options(struct isl_args *args, void *user_opt)
 	ctx->operations = 0;
 	isl_ctx_set_max_operations(ctx, ctx->opt->max_operations);
 
+	ctx->error_handler = NULL;
+
 	return ctx;
 error:
 	isl_args_free(args, user_opt);
@@ -290,6 +299,13 @@ void isl_ctx_set_error(isl_ctx *ctx, enum isl_error error)
 {
 	if (ctx)
 		ctx->error = error;
+}
+
+void isl_ctx_set_error_handler(isl_ctx *ctx,
+	void (*handler)(isl_ctx *, enum isl_error,
+	const char *msg, const char *file, int line))
+{
+	ctx->error_handler = handler;
 }
 
 void isl_ctx_abort(isl_ctx *ctx)
