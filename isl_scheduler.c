@@ -68,13 +68,13 @@ static __isl_give isl_mat *extract_linear(__isl_take isl_multi_aff *ma)
 	n_var = isl_multi_aff_dim(ma, isl_dim_in);
 	n_div = 0;
 	if (n > 0)
-		n_div = isl_aff_dim(ma->p[0], isl_dim_div);
+		n_div = isl_aff_dim(ma->u.p[0], isl_dim_div);
 	rows = isl_mat_alloc(ctx, n, n_var + n_div);
 	if (!rows)
 		goto error;
 	for (i = 0; i < n; ++i)
 		isl_seq_cpy(rows->row[i],
-			    ma->p[i]->v->el + 1 + 1 + n_param, n_var + n_div);
+			    ma->u.p[i]->v->el + 1 + 1 + n_param, n_var + n_div);
 	isl_multi_aff_free(ma);
 	return rows;
 error:

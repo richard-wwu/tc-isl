@@ -1157,8 +1157,8 @@ __isl_give isl_space *isl_space_move_dims(__isl_take isl_space *space,
 	for (i = 0; i < 2; ++i) {
 		if (!space->nested[i])
 			continue;
-		space->nested[i] = isl_space_replace(space->nested[i],
-						 isl_dim_param, space);
+		space->nested[i] = isl_space_replace_params(space->nested[i],
+							     space);
 		if (!space->nested[i])
 			goto error;
 	}
@@ -1896,6 +1896,24 @@ isl_bool isl_space_is_equal(__isl_keep isl_space *space1,
 	return isl_space_has_equal_tuples(space1, space2);
 }
 
+/* Do the tuples of "space1" correspond to those of the domain of "space2"?
+ * That is, is "space1" eqaul to the domain of "space2", ignoring parameters.
+ *
+ * "space2" is allowed to be a set space, in which case "space1"
+ * should be a parameter space.
+ */
+isl_bool isl_space_has_domain_tuples(__isl_keep isl_space *space1,
+	__isl_keep isl_space *space2)
+{
+	isl_bool is_set;
+
+	is_set = isl_space_is_set(space1);
+	if (is_set < 0 || !is_set)
+		return is_set;
+	return isl_space_tuple_is_equal(space1, isl_dim_set,
+					space2, isl_dim_in);
+}
+
 /* Is space1 equal to the domain of space2?
  *
  * In the internal version we also allow space2 to be the space of a set,
@@ -1908,13 +1926,10 @@ isl_bool isl_space_is_domain_internal(__isl_keep isl_space *space1,
 
 	if (!space1 || !space2)
 		return isl_bool_error;
-	if (!isl_space_is_set(space1))
-		return isl_bool_false;
 	equal_params = isl_space_has_equal_params(space1, space2);
 	if (equal_params < 0 || !equal_params)
 		return equal_params;
-	return isl_space_tuple_is_equal(space1, isl_dim_set,
-					space2, isl_dim_in);
+	return isl_space_has_domain_tuples(space1, space2);
 }
 
 /* Is space1 equal to the domain of space2?
@@ -2263,11 +2278,13 @@ __isl_give isl_space *isl_space_flatten_range(__isl_take isl_space *dim)
 	return isl_space_reset(dim, isl_dim_out);
 }
 
-/* Replace the dimensions of the given type of dst by those of src.
+/* Replace the parameters of dst by those of src.
  */
-__isl_give isl_space *isl_space_replace(__isl_take isl_space *dst,
-	enum isl_dim_type type, __isl_keep isl_space *src)
+__isl_give isl_space *isl_space_replace_params(__isl_take isl_space *dst,
+	__isl_keep isl_space *src)
 {
+	enum isl_dim_type type = isl_dim_param;
+
 	dst = isl_space_cow(dst);
 
 	if (!dst || !src)
@@ -2277,13 +2294,13 @@ __isl_give isl_space *isl_space_replace(__isl_take isl_space *dst,
 	dst = isl_space_add_dims(dst, type, isl_space_dim(src, type));
 	dst = copy_ids(dst, type, 0, src, type);
 
-	if (dst && type == isl_dim_param) {
+	if (dst) {
 		int i;
 		for (i = 0; i <= 1; ++i) {
 			if (!dst->nested[i])
 				continue;
-			dst->nested[i] = isl_space_replace(dst->nested[i],
-							 type, src);
+			dst->nested[i] = isl_space_replace_params(
+							dst->nested[i], src);
 			if (!dst->nested[i])
 				goto error;
 		}

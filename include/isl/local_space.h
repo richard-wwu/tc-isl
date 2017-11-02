@@ -86,6 +86,8 @@ __isl_export
 __isl_give isl_local_space *isl_local_space_insert_dims(
 	__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned first, unsigned n);
+__isl_give isl_local_space *isl_local_space_set_from_params(
+	__isl_take isl_local_space *ls);
 
 __isl_export
 __isl_give isl_local_space *isl_local_space_intersect(
