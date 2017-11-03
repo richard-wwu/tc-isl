@@ -527,36 +527,27 @@ static int test_bounded(isl_ctx *ctx)
 /* Construct the basic set { [i] : 5 <= i <= N } */
 static int test_construction_1(isl_ctx *ctx)
 {
-	isl_int v;
 	isl_space *dim;
 	isl_local_space *ls;
 	isl_basic_set *bset;
 	isl_constraint *c;
-
-	isl_int_init(v);
 
 	dim = isl_space_set_alloc(ctx, 1, 1);
 	bset = isl_basic_set_universe(isl_space_copy(dim));
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_inequality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_param, 0, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_param, 0, 1);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_inequality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, -5);
-	c = isl_constraint_set_constant(c, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_constant_si(c, -5);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	isl_local_space_free(ls);
 	isl_basic_set_free(bset);
-
-	isl_int_clear(v);
 
 	return 0;
 }
@@ -913,14 +904,11 @@ static int test_div(isl_ctx *ctx)
 {
 	const char *str;
 	int empty;
-	isl_int v;
 	isl_space *dim;
 	isl_set *set;
 	isl_local_space *ls;
 	struct isl_basic_set *bset;
 	struct isl_constraint *c;
-
-	isl_int_init(v);
 
 	/* test 1 */
 	dim = isl_space_set_alloc(ctx, 0, 3);
@@ -928,21 +916,15 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
+	c = isl_constraint_set_constant_si(c, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, 3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_constant_si(c, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, 3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 1, 2);
@@ -957,21 +939,15 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
+	c = isl_constraint_set_constant_si(c, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, 3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_constant_si(c, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, 3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 1, 2);
@@ -986,21 +962,15 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
+	c = isl_constraint_set_constant_si(c, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, 3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -3);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 4);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_constant_si(c, -3);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, 4);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 1, 2);
@@ -1015,21 +985,15 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 2);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
+	c = isl_constraint_set_constant_si(c, 2);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, 3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_constant(c, v);
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 6);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_constant_si(c, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, 6);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 1, 2);
@@ -1044,17 +1008,13 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, 3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, -3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, -3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 2, 1);
@@ -1069,17 +1029,13 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 6);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, 6);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, -3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, -3);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 2, 1);
@@ -1103,14 +1059,10 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, -3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
-	isl_int_set_si(v, -3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
-	isl_int_set_si(v, 6);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 3, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, -3);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, -3);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 3, 6);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 3, 1);
@@ -1128,23 +1080,16 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, -3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
-	isl_int_set_si(v, -3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 3, v);
-	isl_int_set_si(v, 6);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 4, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, -3);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 3, -3);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 4, 6);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_constant(c, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, 1);
+	c = isl_constraint_set_constant_si(c, 1);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 4, 1);
@@ -1162,21 +1107,15 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 1, v);
-	isl_int_set_si(v, -2);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 1, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, -2);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, -1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, 3);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 3, v);
-	isl_int_set_si(v, 2);
-	c = isl_constraint_set_constant(c, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, -1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 3, 3);
+	c = isl_constraint_set_constant_si(c, 2);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 2, 2);
@@ -1194,10 +1133,8 @@ static int test_div(isl_ctx *ctx)
 	ls = isl_local_space_from_space(dim);
 
 	c = isl_constraint_alloc_equality(isl_local_space_copy(ls));
-	isl_int_set_si(v, 1);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 0, v);
-	isl_int_set_si(v, -2);
-	c = isl_constraint_set_coefficient(c, isl_dim_set, 2, v);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 0, 1);
+	c = isl_constraint_set_coefficient_si(c, isl_dim_set, 2, -2);
 	bset = isl_basic_set_add_constraint(bset, c);
 
 	bset = isl_basic_set_project_out(bset, isl_dim_set, 2, 1);
@@ -1206,8 +1143,6 @@ static int test_div(isl_ctx *ctx)
 
 	isl_local_space_free(ls);
 	isl_basic_set_free(bset);
-
-	isl_int_clear(v);
 
 	str = "{ [i] : exists (e0, e1: 3e1 >= 1 + 2e0 and "
 	    "8e1 <= -1 + 5i - 5e0 and 2e1 >= 1 + 2i - 5e0) }";
@@ -3844,8 +3779,8 @@ int test_special_schedule(isl_ctx *ctx, const char *domain,
 	return 0;
 }
 
-/* Check that the schedule map is properly padded, even after being
- * reconstructed from the band forest.
+/* Check that the schedule map is properly padded, i.e., that the range
+ * lives in a single space.
  */
 static int test_padded_schedule(isl_ctx *ctx)
 {
@@ -3854,9 +3789,9 @@ static int test_padded_schedule(isl_ctx *ctx)
 	isl_union_map *validity, *proximity;
 	isl_schedule_constraints *sc;
 	isl_schedule *sched;
-	isl_union_map *map1, *map2;
-	isl_band_list *list;
-	int equal;
+	isl_union_map *umap;
+	isl_union_set *range;
+	isl_set *set;
 
 	str = "[N] -> { S0[i] : 0 <= i <= N; S1[i, j] : 0 <= i, j <= N }";
 	D = isl_union_set_read_from_str(ctx, str);
@@ -3866,21 +3801,14 @@ static int test_padded_schedule(isl_ctx *ctx)
 	sc = isl_schedule_constraints_set_validity(sc, validity);
 	sc = isl_schedule_constraints_set_proximity(sc, proximity);
 	sched = isl_schedule_constraints_compute_schedule(sc);
-	map1 = isl_schedule_get_map(sched);
-	list = isl_schedule_get_band_forest(sched);
-	isl_band_list_free(list);
-	map2 = isl_schedule_get_map(sched);
+	umap = isl_schedule_get_map(sched);
 	isl_schedule_free(sched);
-	equal = isl_union_map_is_equal(map1, map2);
-	isl_union_map_free(map1);
-	isl_union_map_free(map2);
+	range = isl_union_map_range(umap);
+	set = isl_set_from_union_set(range);
+	isl_set_free(set);
 
-	if (equal < 0)
+	if (!set)
 		return -1;
-	if (!equal)
-		isl_die(ctx, isl_error_unknown,
-			"reconstructed schedule map not the same as original",
-			return -1);
 
 	return 0;
 }
@@ -7047,16 +6975,14 @@ int test_fixed_power(isl_ctx *ctx)
 {
 	const char *str;
 	isl_map *map;
-	isl_int exp;
+	isl_val *exp;
 	int equal;
 
-	isl_int_init(exp);
 	str = "{ [i] -> [i + 1] }";
 	map = isl_map_read_from_str(ctx, str);
-	isl_int_set_si(exp, 23);
-	map = isl_map_fixed_power(map, exp);
+	exp = isl_val_int_from_si(ctx, 23);
+	map = isl_map_fixed_power_val(map, exp);
 	equal = map_check_equal(map, "{ [i] -> [i + 23] }");
-	isl_int_clear(exp);
 	isl_map_free(map);
 	if (equal < 0)
 		return -1;
