@@ -238,7 +238,6 @@ set (libisl_common_sources
     ${ISL_SOURCE_DIR}/isl_ast.c
     ${ISL_SOURCE_DIR}/isl_ast_codegen.c
     ${ISL_SOURCE_DIR}/isl_ast_graft.c
-    ${ISL_SOURCE_DIR}/isl_band.c
     ${ISL_SOURCE_DIR}/isl_bernstein.c
     ${ISL_SOURCE_DIR}/isl_blk.c
     ${ISL_SOURCE_DIR}/isl_bound.c
