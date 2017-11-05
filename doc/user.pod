@@ -4420,6 +4420,18 @@ earlier dimensions before those that involve later dimensions.
 		__isl_take isl_space *space);
 	__isl_give isl_space *isl_space_params(
 		__isl_take isl_space *space);
+	__isl_give isl_space *
+	isl_space_domain_wrapped_domain(
+		__isl_take isl_space *space);
+	__isl_give isl_space *
+	isl_space_domain_wrapped_range(
+		__isl_take isl_space *space);
+	__isl_give isl_space *
+	isl_space_range_wrapped_domain(
+		__isl_take isl_space *space);
+	__isl_give isl_space *
+	isl_space_range_wrapped_range(
+		__isl_take isl_space *space);
 
 	#include <isl/local_space.h>
 	__isl_give isl_local_space *isl_local_space_domain(
@@ -4441,6 +4453,8 @@ earlier dimensions before those that involve later dimensions.
 		__isl_take isl_basic_set *bset);
 	__isl_give isl_set *isl_set_params(__isl_take isl_set *set);
 
+The function C<isl_space_domain_wrapped_domain> returns the domain
+of the binary relation wrapped inside the domain of the input.
 The function C<isl_set_project_onto_map> returns a relation
 that projects the input set onto the given set dimensions.
 
@@ -5929,6 +5943,14 @@ the same (number of) parameters.
 	isl_map_intersect_range_factor_range(
 		__isl_take isl_map *map,
 		__isl_take isl_map *factor);
+	__isl_give isl_map *
+	isl_map_intersect_domain_wrapped_domain(
+		__isl_take isl_map *map,
+		__isl_take isl_set *domain);
+	__isl_give isl_map *
+	isl_map_intersect_range_wrapped_domain(
+		__isl_take isl_map *map,
+		__isl_take isl_set *domain);
 
 	#include <isl/union_set.h>
 	__isl_give isl_union_set *isl_union_set_intersect_params(
@@ -5955,6 +5977,14 @@ the same (number of) parameters.
 	isl_union_map_intersect_range_factor_range(
 		__isl_take isl_union_map *umap,
 		__isl_take isl_union_map *factor);
+	__isl_give isl_union_map *
+	isl_union_map_intersect_domain_wrapped_domain(
+		__isl_take isl_union_map *umap,
+		__isl_take isl_union_set *domain);
+	__isl_give isl_union_map *
+	isl_union_map_intersect_range_wrapped_domain(
+		__isl_take isl_union_map *umap,
+		__isl_take isl_union_set *domain);
 
 	#include <isl/aff.h>
 	__isl_give isl_pw_aff *isl_pw_aff_intersect_domain(
@@ -6754,6 +6784,8 @@ from the result using the following functions.
 		__isl_take isl_union_map *umap);
 
 	#include <isl/val.h>
+	__isl_give isl_multi_val *isl_multi_val_factor_domain(
+		__isl_take isl_multi_val *mv);
 	__isl_give isl_multi_val *isl_multi_val_factor_range(
 		__isl_take isl_multi_val *mv);
 	__isl_give isl_multi_val *
@@ -6764,6 +6796,8 @@ from the result using the following functions.
 		__isl_take isl_multi_val *mv);
 
 	#include <isl/aff.h>
+	__isl_give isl_multi_aff *isl_multi_aff_factor_domain(
+		__isl_take isl_multi_aff *ma);
 	__isl_give isl_multi_aff *isl_multi_aff_factor_range(
 		__isl_take isl_multi_aff *ma);
 	__isl_give isl_multi_aff *
@@ -6773,6 +6807,9 @@ from the result using the following functions.
 	isl_multi_aff_range_factor_range(
 		__isl_take isl_multi_aff *ma);
 	__isl_give isl_multi_pw_aff *
+	isl_multi_pw_aff_factor_domain(
+		__isl_take isl_multi_pw_aff *mpa);
+	__isl_give isl_multi_pw_aff *
 	isl_multi_pw_aff_factor_range(
 		__isl_take isl_multi_pw_aff *mpa);
 	__isl_give isl_multi_pw_aff *
@@ -6781,6 +6818,9 @@ from the result using the following functions.
 	__isl_give isl_multi_pw_aff *
 	isl_multi_pw_aff_range_factor_range(
 		__isl_take isl_multi_pw_aff *mpa);
+	__isl_give isl_multi_union_pw_aff *
+	isl_multi_union_pw_aff_factor_domain(
+		__isl_take isl_multi_union_pw_aff *mupa);
 	__isl_give isl_multi_union_pw_aff *
 	isl_multi_union_pw_aff_factor_range(
 		__isl_take isl_multi_union_pw_aff *mupa);
@@ -6794,7 +6834,12 @@ from the result using the following functions.
 The splice functions are a generalization of the flat product functions,
 where the second argument may be inserted at any position inside
 the first argument rather than being placed at the end.
-The functions C<isl_multi_val_factor_range>,
+The functions
+C<isl_multi_val_factor_domain>,
+C<isl_multi_aff_factor_domain>,
+C<isl_multi_pw_aff_factor_domain>,
+C<isl_multi_union_pw_aff_factor_domain>,
+C<isl_multi_val_factor_range>,
 C<isl_multi_aff_factor_range>,
 C<isl_multi_pw_aff_factor_range> and
 C<isl_multi_union_pw_aff_factor_range>
@@ -8564,6 +8609,17 @@ C<isl_schedule_node_band_get_ast_isolate_option>.
 	__isl_give isl_id *isl_schedule_node_mark_get_id(
 		__isl_keep isl_schedule_node *node);
 
+	#include <isl/schedule_node.h>
+	__isl_give isl_multi_union_pw_aff *
+	isl_schedule_node_sequence_get_partial_schedule_multi_union_pw_aff(
+		__isl_keep isl_schedule_node *node);
+
+The function
+C<isl_schedule_node_sequence_get_partial_schedule_multi_union_pw_aff>
+returns a representation of the ordering expressed by the sequence node
+along with its filter children
+in the form of an C<isl_multi_union_pw_aff>.
+
 The following functions can be used to obtain an C<isl_multi_union_pw_aff>,
 an C<isl_union_pw_multi_aff> or C<isl_union_map> representation of
 partial schedules related to the node.
@@ -8811,6 +8867,22 @@ The schedules of the two band nodes live in anonymous spaces.
 The loop AST generation type options and the isolate option
 are split over the the two band nodes.
 
+Two nested band nodes can be joined together using the following function.
+
+	#include <isl/schedule_node.h>
+	__isl_give isl_schedule_node *
+	isl_schedule_node_band_join_child(
+		__isl_take isl_schedule_node *node);
+
+The space of the resulting band node is the product of
+the spaces of the original two nested band.
+If the second band contains at least one member, then
+the permutable property is cleared on the resulting band.
+The coincident properties of the members of the second band
+are also cleared in the resulting band.
+An attempt is made to preserve the isolate options, but they
+may get lost if the isolate options of the two band nodes conflict.
+
 A band node can be moved down to the leaves of the subtree rooted
 at the band node using the following function.
 
@@ -8820,6 +8892,21 @@ at the band node using the following function.
 
 The subtree rooted at the given node is assumed not to have
 any anchored nodes.
+The result points to the node in the resulting tree that is in the same
+position as the node pointed to by C<node> in the original tree.
+
+A band node can also be moved down a single level in the tree
+using the following function.
+
+	#include <isl/schedule_node.h>
+	__isl_give isl_schedule_node *
+	isl_schedule_node_band_lower(
+		__isl_take isl_schedule_node *node);
+
+The subtree rooted at the given node is assumed not to have
+any anchored nodes.
+This operation is currently only supported if the child node
+through which the node is lowered is either a band or a sequence node.
 The result points to the node in the resulting tree that is in the same
 position as the node pointed to by C<node> in the original tree.
 

@@ -248,6 +248,9 @@ __isl_export
 __isl_give isl_schedule_tree *isl_schedule_tree_band_split(
 	__isl_take isl_schedule_tree *tree, int pos, int depth);
 __isl_export
+__isl_give isl_schedule_tree *isl_schedule_tree_band_join_child(
+	__isl_take isl_schedule_tree *tree, int depth);
+__isl_export
 __isl_give isl_schedule_tree *isl_schedule_tree_band_gist(
 	__isl_take isl_schedule_tree *tree, __isl_take isl_union_set *context);
 
@@ -264,6 +267,10 @@ __isl_export
 __isl_give isl_schedule_tree *isl_schedule_tree_replace_child(
 	__isl_take isl_schedule_tree *tree, int pos,
 	__isl_take isl_schedule_tree *new_child);
+__isl_export
+__isl_give isl_multi_union_pw_aff *
+isl_schedule_tree_sequence_get_partial_schedule_multi_union_pw_aff(
+	__isl_keep isl_schedule_tree *tree);
 __isl_export
 __isl_give isl_schedule_tree *isl_schedule_tree_sequence_splice(
 	__isl_take isl_schedule_tree *tree, int pos,

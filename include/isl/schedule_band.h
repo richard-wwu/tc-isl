@@ -117,6 +117,10 @@ __isl_export
 __isl_give isl_schedule_band *isl_schedule_band_drop(
 	__isl_take isl_schedule_band *band, int pos, int n);
 __isl_export
+__isl_give isl_schedule_band *isl_schedule_band_join(
+	__isl_take isl_schedule_band *band1,
+	__isl_take isl_schedule_band *band2);
+__isl_export
 __isl_give isl_schedule_band *isl_schedule_band_gist(
 	__isl_take isl_schedule_band *band, __isl_take isl_union_set *context);
 

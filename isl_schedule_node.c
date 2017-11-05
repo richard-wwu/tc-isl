@@ -2010,6 +2010,115 @@ __isl_give isl_schedule_node *isl_schedule_node_band_sink(
 	return isl_schedule_node_graft_tree(node, tree);
 }
 
+/* Move the band node "node" underneath its band child.
+ * In particular, remove the original node and attach it
+ * as a child to its original child.
+ */
+static __isl_give isl_schedule_node *lower_band(
+	__isl_take isl_schedule_node *node)
+{
+	isl_bool has_children;
+	isl_schedule_tree *tree, *child, *sub;
+
+	tree = isl_schedule_node_get_tree(node);
+	child = isl_schedule_tree_get_child(tree, 0);
+	tree = isl_schedule_tree_reset_children(tree);
+
+	has_children = isl_schedule_tree_has_children(child);
+	if (has_children < 0)
+		tree = isl_schedule_tree_free(tree);
+	if (has_children) {
+		sub = isl_schedule_tree_get_child(child, 0);
+		tree = isl_schedule_tree_replace_child(tree, 0, sub);
+	}
+	tree = isl_schedule_tree_replace_child(child, 0, tree);
+
+	return isl_schedule_node_graft_tree(node, tree);
+}
+
+/* Move the band node "node" underneath its sequence child.
+ * In particular, remove the original node and put copies
+ * underneath all filter children of the sequence node.
+ */
+static __isl_give isl_schedule_node *lower_sequence(
+	__isl_take isl_schedule_node *node)
+{
+	int i, n;
+	isl_schedule_tree *tree, *seq;
+
+	tree = isl_schedule_node_get_tree(node);
+	seq = isl_schedule_tree_get_child(tree, 0);
+	tree = isl_schedule_tree_reset_children(tree);
+
+	n = isl_schedule_tree_n_children(seq);
+	for (i = 0; i < n; ++i) {
+		isl_bool has_children;
+		isl_schedule_tree *filter;
+		isl_schedule_tree *child, *sub;
+
+		filter = isl_schedule_tree_get_child(seq, i);
+		child = isl_schedule_tree_copy(tree);
+		has_children = isl_schedule_tree_has_children(filter);
+		if (has_children < 0)
+			child = isl_schedule_tree_free(child);
+		if (has_children) {
+			sub = isl_schedule_tree_get_child(filter, 0);
+			child = isl_schedule_tree_replace_child(child, 0, sub);
+		}
+		filter = isl_schedule_tree_replace_child(filter, 0, child);
+		seq = isl_schedule_tree_replace_child(seq, i, filter);
+	}
+	isl_schedule_tree_free(tree);
+
+	return isl_schedule_node_graft_tree(node, seq);
+}
+
+/* Move the band node "node" down one level in the tree.
+ *
+ * This operation is currently only supported for the cases
+ * where the child node is either a sequence node or a band node.
+ *
+ * If any of the nodes in the subtree rooted at "node" depend on
+ * the set of outer band nodes then the operation is refused.
+ */
+__isl_give isl_schedule_node *isl_schedule_node_band_lower(
+	__isl_take isl_schedule_node *node)
+{
+	enum isl_schedule_node_type type;
+	isl_bool anchored;
+	isl_schedule_node *child;
+
+	if (!node)
+		return NULL;
+
+	type = isl_schedule_node_get_type(node);
+	if (type != isl_schedule_node_band)
+		isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
+			"not a band node", return isl_schedule_node_free(node));
+	anchored = isl_schedule_node_is_subtree_anchored(node);
+	if (anchored < 0)
+		return isl_schedule_node_free(node);
+	if (anchored)
+		isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
+			"cannot lower band node in anchored subtree",
+			return isl_schedule_node_free(node));
+	if (isl_schedule_tree_n_children(node->tree) == 0)
+		isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
+			"cannot lower band node in empty subtree",
+			return isl_schedule_node_free(node));
+	child = isl_schedule_node_get_child(node, 0);
+	type = isl_schedule_node_get_type(child);
+	isl_schedule_node_free(child);
+
+	if (type == isl_schedule_node_sequence)
+		return lower_sequence(node);
+	if (type == isl_schedule_node_band)
+		return lower_band(node);
+	isl_die(isl_schedule_node_get_ctx(node), isl_error_unsupported,
+		"unsupported child type",
+		return isl_schedule_node_free(node));
+}
+
 /* Split "node" into two nested band nodes, one with the first "pos"
  * dimensions and one with the remaining dimensions.
  * The schedules of the two band nodes live in anonymous spaces.
@@ -2025,6 +2134,27 @@ __isl_give isl_schedule_node *isl_schedule_node_band_split(
 	depth = isl_schedule_node_get_schedule_depth(node);
 	tree = isl_schedule_node_get_tree(node);
 	tree = isl_schedule_tree_band_split(tree, pos, depth);
+	return isl_schedule_node_graft_tree(node, tree);
+}
+
+/* Merge band node "node" and its nested band child into a single
+ * band node.
+ * The space of the resulting band node is the product of
+ * the spaces of the original two nested bands.
+ * If the second band contains at least one member, then
+ * the permutable property is cleared on the resulting band.
+ * The coincident properties of the members of the second band
+ * are also cleared in the resulting band.
+ */
+__isl_give isl_schedule_node *isl_schedule_node_band_join_child(
+	__isl_take isl_schedule_node *node)
+{
+	int depth;
+	isl_schedule_tree *tree;
+
+	depth = isl_schedule_node_get_schedule_depth(node);
+	tree = isl_schedule_node_get_tree(node);
+	tree = isl_schedule_tree_band_join_child(tree, depth);
 	return isl_schedule_node_graft_tree(node, tree);
 }
 
@@ -2210,6 +2340,25 @@ __isl_give isl_id *isl_schedule_node_mark_get_id(
 		return NULL;
 
 	return isl_schedule_tree_mark_get_id(node->tree);
+}
+
+/* Return an isl_multi_union_pw_aff that represents the ordering
+ * expressed by the sequence node "node" along with its filter children.
+ */
+__isl_give isl_multi_union_pw_aff *
+isl_schedule_node_sequence_get_partial_schedule_multi_union_pw_aff(
+	__isl_keep isl_schedule_node *node)
+{
+	if (!node)
+		return NULL;
+
+	if (isl_schedule_node_get_type(node) != isl_schedule_node_sequence)
+		isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
+			"not a sequence node", return NULL);
+
+	return
+	    isl_schedule_tree_sequence_get_partial_schedule_multi_union_pw_aff(
+		node->tree);
 }
 
 /* Replace the child at position "pos" of the sequence node "node"
