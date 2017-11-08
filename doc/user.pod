@@ -5385,6 +5385,12 @@ Remove any internal structure of domain (and range) of the given
 set or relation.  If there is any such internal structure in the input,
 then the name of the space is also removed.
 
+	#include <isl/space.h>
+	__isl_give isl_space *isl_space_flatten_domain(
+		__isl_take isl_space *space);
+	__isl_give isl_space *isl_space_flatten_range(
+		__isl_take isl_space *space);
+
 	#include <isl/local_space.h>
 	__isl_give isl_local_space *
 	isl_local_space_flatten_domain(
@@ -8253,7 +8259,7 @@ C<isl_schedule_to_str> prints the schedule in flow format.
 The schedule tree can be traversed through the use of
 C<isl_schedule_node> objects that point to a particular
 position in the schedule tree.  Whenever a C<isl_schedule_node>
-is use to modify a node in the schedule tree, the original schedule
+is used to modify a node in the schedule tree, the original schedule
 tree is left untouched and the modifications are performed to a copy
 of the tree.  The returned C<isl_schedule_node> then points to
 this modified copy of the tree.
@@ -8865,7 +8871,7 @@ The resulting outer band node contains the first C<pos> dimensions of
 the schedule of C<node> while the inner band contains the remaining dimensions.
 The schedules of the two band nodes live in anonymous spaces.
 The loop AST generation type options and the isolate option
-are split over the the two band nodes.
+are split over the two band nodes.
 
 Two nested band nodes can be joined together using the following function.
 

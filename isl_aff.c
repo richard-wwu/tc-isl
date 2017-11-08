@@ -8116,7 +8116,7 @@ isl_bool isl_multi_union_pw_aff_has_non_trivial_domain(
  *
  * Since there is no canonical zero value for
  * a union piecewise affine expression, we can only construct
- * zero-dimensional "zero" value.
+ * a zero-dimensional "zero" value.
  */
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_zero(
 	__isl_take isl_space *space)
