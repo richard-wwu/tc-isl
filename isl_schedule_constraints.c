@@ -87,6 +87,8 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
 
 	sc_copy->add_constraint = sc->add_constraint;
 	sc_copy->add_constraint_data = sc->add_constraint_data;
+	sc_copy->merge_callback = sc->merge_callback;
+	sc_copy->merge_callback_data = sc->merge_callback_data;
 
 	return sc_copy;
 }
