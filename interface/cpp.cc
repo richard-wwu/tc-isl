@@ -761,8 +761,6 @@ void cpp_generator::print_custom_methods_impl(ostream &os,
 
 		osprintf(os, "isl::%s %s::at(int pos) const {\n", element_cpptype,
 			cname);
-		osprintf(os, "  ISLPP_ASSERT(pos >= 0 && pos < size(),\n");
-		osprintf(os, "               \"position out of range\");\n");
 		osprintf(os, "  return manage(%s_list_get_%s(ptr, pos));\n",
 			element_type, element_name);
 		osprintf(os, "}\n\n");
