@@ -14,9 +14,12 @@
 extern "C" {
 #endif
 
+__isl_constructor
 __isl_give isl_aff *isl_aff_zero_on_domain(__isl_take isl_local_space *ls);
+__isl_constructor
 __isl_give isl_aff *isl_aff_val_on_domain(__isl_take isl_local_space *ls,
 	__isl_take isl_val *val);
+__isl_constructor
 __isl_give isl_aff *isl_aff_var_on_domain(__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
 __isl_give isl_aff *isl_aff_nan_on_domain(__isl_take isl_local_space *ls);
@@ -27,31 +30,43 @@ __isl_null isl_aff *isl_aff_free(__isl_take isl_aff *aff);
 isl_ctx *isl_aff_get_ctx(__isl_keep isl_aff *aff);
 uint32_t isl_aff_get_hash(__isl_keep isl_aff *aff);
 
+__isl_export
 int isl_aff_dim(__isl_keep isl_aff *aff, enum isl_dim_type type);
+__isl_export
 isl_bool isl_aff_involves_dims(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
 __isl_give isl_space *isl_aff_get_domain_space(__isl_keep isl_aff *aff);
+__isl_export
 __isl_give isl_space *isl_aff_get_space(__isl_keep isl_aff *aff);
 __isl_give isl_local_space *isl_aff_get_domain_local_space(
 	__isl_keep isl_aff *aff);
+__isl_export
 __isl_give isl_local_space *isl_aff_get_local_space(__isl_keep isl_aff *aff);
 
 const char *isl_aff_get_dim_name(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_val *isl_aff_get_constant_val(__isl_keep isl_aff *aff);
+__isl_export
 __isl_give isl_val *isl_aff_get_coefficient_val(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, int pos);
 int isl_aff_coefficient_sgn(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, int pos);
+__isl_export
 __isl_give isl_val *isl_aff_get_denominator_val(__isl_keep isl_aff *aff);
+__isl_export
 __isl_give isl_aff *isl_aff_set_constant_si(__isl_take isl_aff *aff, int v);
+__isl_export
 __isl_give isl_aff *isl_aff_set_constant_val(__isl_take isl_aff *aff,
 	__isl_take isl_val *v);
+__isl_export
 __isl_give isl_aff *isl_aff_set_coefficient_si(__isl_take isl_aff *aff,
 	enum isl_dim_type type, int pos, int v);
+__isl_export
 __isl_give isl_aff *isl_aff_set_coefficient_val(__isl_take isl_aff *aff,
 	enum isl_dim_type type, int pos, __isl_take isl_val *v);
+__isl_export
 __isl_give isl_aff *isl_aff_add_constant_si(__isl_take isl_aff *aff, int v);
 __isl_give isl_aff *isl_aff_add_constant_val(__isl_take isl_aff *aff,
 	__isl_take isl_val *v);
@@ -63,22 +78,29 @@ __isl_give isl_aff *isl_aff_add_coefficient_val(__isl_take isl_aff *aff,
 
 isl_bool isl_aff_is_cst(__isl_keep isl_aff *aff);
 
+__isl_export                                                            \
 __isl_give isl_aff *isl_aff_set_tuple_id(__isl_take isl_aff *aff,
 	enum isl_dim_type type, __isl_take isl_id *id);
+__isl_export
 __isl_give isl_aff *isl_aff_set_dim_name(__isl_take isl_aff *aff,
 	enum isl_dim_type type, unsigned pos, const char *s);
+__isl_export
 __isl_give isl_aff *isl_aff_set_dim_id(__isl_take isl_aff *aff,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
 
 int isl_aff_find_dim_by_name(__isl_keep isl_aff *aff, enum isl_dim_type type,
 	const char *name);
 
+__isl_export
 isl_bool isl_aff_plain_is_equal(__isl_keep isl_aff *aff1,
 	__isl_keep isl_aff *aff2);
 isl_bool isl_aff_plain_is_zero(__isl_keep isl_aff *aff);
 isl_bool isl_aff_is_nan(__isl_keep isl_aff *aff);
 
+__isl_export
 __isl_give isl_aff *isl_aff_get_div(__isl_keep isl_aff *aff, int pos);
+
+__isl_give isl_aff *isl_aff_from_range(__isl_take isl_aff *aff);
 
 __isl_export
 __isl_give isl_aff *isl_aff_neg(__isl_take isl_aff *aff);
@@ -106,6 +128,7 @@ __isl_give isl_aff *isl_aff_sub(__isl_take isl_aff *aff1,
 __isl_overload
 __isl_give isl_aff *isl_aff_scale_val(__isl_take isl_aff *aff,
 	__isl_take isl_val *v);
+__isl_export
 __isl_give isl_aff *isl_aff_scale_down_ui(__isl_take isl_aff *aff, unsigned f);
 __isl_overload
 __isl_give isl_aff *isl_aff_scale_down_val(__isl_take isl_aff *aff,
@@ -118,8 +141,10 @@ __isl_give isl_aff *isl_aff_add_dims(__isl_take isl_aff *aff,
 __isl_give isl_aff *isl_aff_move_dims(__isl_take isl_aff *aff,
 	enum isl_dim_type dst_type, unsigned dst_pos,
 	enum isl_dim_type src_type, unsigned src_pos, unsigned n);
+__isl_export
 __isl_give isl_aff *isl_aff_drop_dims(__isl_take isl_aff *aff,
 	enum isl_dim_type type, unsigned first, unsigned n);
+__isl_export
 __isl_give isl_aff *isl_aff_project_domain_on_params(__isl_take isl_aff *aff);
 
 __isl_give isl_aff *isl_aff_align_params(__isl_take isl_aff *aff,
@@ -178,6 +203,7 @@ void isl_aff_dump(__isl_keep isl_aff *aff);
 isl_ctx *isl_pw_aff_get_ctx(__isl_keep isl_pw_aff *pwaff);
 uint32_t isl_pw_aff_get_hash(__isl_keep isl_pw_aff *pa);
 __isl_give isl_space *isl_pw_aff_get_domain_space(__isl_keep isl_pw_aff *pwaff);
+__isl_export
 __isl_give isl_space *isl_pw_aff_get_space(__isl_keep isl_pw_aff *pwaff);
 
 __isl_constructor
@@ -185,11 +211,14 @@ __isl_give isl_pw_aff *isl_pw_aff_from_aff(__isl_take isl_aff *aff);
 __isl_give isl_pw_aff *isl_pw_aff_empty(__isl_take isl_space *dim);
 __isl_give isl_pw_aff *isl_pw_aff_alloc(__isl_take isl_set *set,
 	__isl_take isl_aff *aff);
+__isl_constructor
 __isl_give isl_pw_aff *isl_pw_aff_zero_on_domain(
 	__isl_take isl_local_space *ls);
+__isl_constructor
 __isl_give isl_pw_aff *isl_pw_aff_var_on_domain(__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
 __isl_give isl_pw_aff *isl_pw_aff_nan_on_domain(__isl_take isl_local_space *ls);
+__isl_constructor
 __isl_give isl_pw_aff *isl_pw_aff_val_on_domain(__isl_take isl_set *domain,
 	__isl_take isl_val *v);
 
@@ -197,10 +226,13 @@ __isl_give isl_pw_aff *isl_set_indicator_function(__isl_take isl_set *set);
 
 const char *isl_pw_aff_get_dim_name(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 isl_bool isl_pw_aff_has_dim_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_id *isl_pw_aff_get_dim_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_pw_aff *isl_pw_aff_set_dim_id(__isl_take isl_pw_aff *pma,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
 
@@ -208,11 +240,13 @@ int isl_pw_aff_find_dim_by_name(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, const char *name);
 
 isl_bool isl_pw_aff_is_empty(__isl_keep isl_pw_aff *pwaff);
+__isl_export
 isl_bool isl_pw_aff_involves_nan(__isl_keep isl_pw_aff *pa);
 int isl_pw_aff_plain_cmp(__isl_keep isl_pw_aff *pa1,
 	__isl_keep isl_pw_aff *pa2);
 isl_bool isl_pw_aff_plain_is_equal(__isl_keep isl_pw_aff *pwaff1,
 	__isl_keep isl_pw_aff *pwaff2);
+__isl_export
 isl_bool isl_pw_aff_is_equal(__isl_keep isl_pw_aff *pa1,
 	__isl_keep isl_pw_aff *pa2);
 
@@ -227,29 +261,39 @@ __isl_give isl_pw_aff *isl_pw_aff_union_add(__isl_take isl_pw_aff *pwaff1,
 __isl_give isl_pw_aff *isl_pw_aff_copy(__isl_keep isl_pw_aff *pwaff);
 __isl_null isl_pw_aff *isl_pw_aff_free(__isl_take isl_pw_aff *pwaff);
 
+__isl_export
 unsigned isl_pw_aff_dim(__isl_keep isl_pw_aff *pwaff, enum isl_dim_type type);
+__isl_export
 isl_bool isl_pw_aff_involves_dims(__isl_keep isl_pw_aff *pwaff,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
+__isl_export
 isl_bool isl_pw_aff_is_cst(__isl_keep isl_pw_aff *pwaff);
 
+__isl_export
 __isl_give isl_pw_aff *isl_pw_aff_project_domain_on_params(
 	__isl_take isl_pw_aff *pa);
 
 __isl_give isl_pw_aff *isl_pw_aff_align_params(__isl_take isl_pw_aff *pwaff,
 	__isl_take isl_space *model);
 
+__isl_export
 isl_bool isl_pw_aff_has_tuple_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type);
+__isl_export
 __isl_give isl_id *isl_pw_aff_get_tuple_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type);
+__isl_export
 __isl_give isl_pw_aff *isl_pw_aff_set_tuple_id(__isl_take isl_pw_aff *pwaff,
 	enum isl_dim_type type, __isl_take isl_id *id);
+__isl_export
 __isl_give isl_pw_aff *isl_pw_aff_reset_tuple_id(__isl_take isl_pw_aff *pa,
 	enum isl_dim_type type);
 __isl_give isl_pw_aff *isl_pw_aff_reset_user(__isl_take isl_pw_aff *pa);
 
+__isl_export
 __isl_give isl_set *isl_pw_aff_params(__isl_take isl_pw_aff *pwa);
+__isl_export
 __isl_give isl_set *isl_pw_aff_domain(__isl_take isl_pw_aff *pwaff);
 __isl_give isl_pw_aff *isl_pw_aff_from_range(__isl_take isl_pw_aff *pwa);
 
@@ -331,7 +375,9 @@ __isl_overload
 __isl_give isl_pw_aff *isl_pw_aff_pullback_multi_pw_aff(
 	__isl_take isl_pw_aff *pa, __isl_take isl_multi_pw_aff *mpa);
 
+__isl_export
 int isl_pw_aff_n_piece(__isl_keep isl_pw_aff *pwaff);
+__isl_export
 isl_stat isl_pw_aff_foreach_piece(__isl_keep isl_pw_aff *pwaff,
 	isl_stat (*fn)(__isl_take isl_set *set, __isl_take isl_aff *aff,
 		    void *user), void *user);
@@ -363,10 +409,13 @@ __isl_export
 __isl_give isl_set *isl_pw_aff_gt_set(__isl_take isl_pw_aff *pwaff1,
 	__isl_take isl_pw_aff *pwaff2);
 
+__isl_export
 __isl_give isl_map *isl_pw_aff_eq_map(__isl_take isl_pw_aff *pa1,
 	__isl_take isl_pw_aff *pa2);
+__isl_export
 __isl_give isl_map *isl_pw_aff_lt_map(__isl_take isl_pw_aff *pa1,
 	__isl_take isl_pw_aff *pa2);
+__isl_export
 __isl_give isl_map *isl_pw_aff_gt_map(__isl_take isl_pw_aff *pa1,
 	__isl_take isl_pw_aff *pa2);
 
@@ -401,9 +450,13 @@ ISL_DECLARE_MULTI_WITH_DOMAIN(aff)
 
 __isl_constructor
 __isl_give isl_multi_aff *isl_multi_aff_from_aff(__isl_take isl_aff *aff);
+__isl_constructor
 __isl_give isl_multi_aff *isl_multi_aff_identity(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_domain_map(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_range_map(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_project_out_map(
 	__isl_take isl_space *space, enum isl_dim_type type,
 	unsigned first, unsigned n);
@@ -411,6 +464,7 @@ __isl_give isl_multi_aff *isl_multi_aff_project_out_map(
 __isl_give isl_multi_aff *isl_multi_aff_multi_val_on_space(
 	__isl_take isl_space *space, __isl_take isl_multi_val *mv);
 
+__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_floor(__isl_take isl_multi_aff *ma);
 
 __isl_give isl_multi_aff *isl_multi_aff_gist_params(
@@ -453,10 +507,12 @@ ISL_DECLARE_MULTI_DIMS(pw_aff)
 ISL_DECLARE_MULTI_WITH_DOMAIN(pw_aff)
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_zero(__isl_take isl_space *space);
+__isl_constructor
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_identity(
 	__isl_take isl_space *space);
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_range_map(
 	__isl_take isl_space *space);
+__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_project_out_map(
 	__isl_take isl_space *space, enum isl_dim_type type,
 	unsigned first, unsigned n);
@@ -473,8 +529,10 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_copy(
 __isl_null isl_pw_multi_aff *isl_pw_multi_aff_free(
 	__isl_take isl_pw_multi_aff *pma);
 
+__isl_export
 unsigned isl_pw_multi_aff_dim(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
+__isl_export
 __isl_give isl_pw_aff *isl_pw_multi_aff_get_pw_aff(
 	__isl_keep isl_pw_multi_aff *pma, int pos);
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_set_pw_aff(
@@ -484,19 +542,24 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_set_pw_aff(
 isl_ctx *isl_pw_multi_aff_get_ctx(__isl_keep isl_pw_multi_aff *pma);
 __isl_give isl_space *isl_pw_multi_aff_get_domain_space(
 	__isl_keep isl_pw_multi_aff *pma);
+__isl_export
 __isl_give isl_space *isl_pw_multi_aff_get_space(
 	__isl_keep isl_pw_multi_aff *pma);
 isl_bool isl_pw_multi_aff_has_tuple_name(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
 const char *isl_pw_multi_aff_get_tuple_name(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
+__isl_export
 __isl_give isl_id *isl_pw_multi_aff_get_tuple_id(
 	__isl_keep isl_pw_multi_aff *pma, enum isl_dim_type type);
+__isl_export
 isl_bool isl_pw_multi_aff_has_tuple_id(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
+__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_set_tuple_id(
 	__isl_take isl_pw_multi_aff *pma,
 	enum isl_dim_type type, __isl_take isl_id *id);
+__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_reset_tuple_id(
 	__isl_take isl_pw_multi_aff *pma, enum isl_dim_type type);
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_reset_user(
@@ -509,20 +572,24 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_drop_dims(
 	__isl_take isl_pw_multi_aff *pma,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
+__isl_export
 __isl_give isl_set *isl_pw_multi_aff_domain(__isl_take isl_pw_multi_aff *pma);
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_empty(__isl_take isl_space *space);
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_from_domain(
 	__isl_take isl_set *set);
 
+__isl_constructor
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_multi_val_on_domain(
 	__isl_take isl_set *domain, __isl_take isl_multi_val *mv);
 
 const char *isl_pw_multi_aff_get_dim_name(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type, unsigned pos);
+__isl_export
 __isl_give isl_id *isl_pw_multi_aff_get_dim_id(
 	__isl_keep isl_pw_multi_aff *pma, enum isl_dim_type type,
 	unsigned pos);
+__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_set_dim_id(
 	__isl_take isl_pw_multi_aff *pma,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
@@ -530,6 +597,7 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_set_dim_id(
 isl_bool isl_pw_multi_aff_involves_nan(__isl_keep isl_pw_multi_aff *pma);
 isl_bool isl_pw_multi_aff_plain_is_equal(__isl_keep isl_pw_multi_aff *pma1,
 	__isl_keep isl_pw_multi_aff *pma2);
+__isl_export
 isl_bool isl_pw_multi_aff_is_equal(__isl_keep isl_pw_multi_aff *pma1,
 	__isl_keep isl_pw_multi_aff *pma2);
 
@@ -550,8 +618,10 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_add(
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_sub(
 	__isl_take isl_pw_multi_aff *pma1, __isl_take isl_pw_multi_aff *pma2);
 
+__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_scale_val(
 	__isl_take isl_pw_multi_aff *pma, __isl_take isl_val *v);
+__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_scale_down_val(
 	__isl_take isl_pw_multi_aff *pma, __isl_take isl_val *v);
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_scale_multi_val(
@@ -584,6 +654,7 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_intersect_domain(
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_subtract_domain(
 	__isl_take isl_pw_multi_aff *pma, __isl_take isl_set *set);
 
+__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_project_domain_on_params(
 	__isl_take isl_pw_multi_aff *pma);
 
@@ -604,7 +675,9 @@ __isl_overload
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_pullback_pw_multi_aff(
 	__isl_take isl_pw_multi_aff *pma1, __isl_take isl_pw_multi_aff *pma2);
 
+__isl_export
 int isl_pw_multi_aff_n_piece(__isl_keep isl_pw_multi_aff *pma);
+__isl_export
 isl_stat isl_pw_multi_aff_foreach_piece(__isl_keep isl_pw_multi_aff *pma,
 	isl_stat (*fn)(__isl_take isl_set *set, __isl_take isl_multi_aff *maff,
 		    void *user), void *user);
@@ -617,6 +690,7 @@ __isl_give isl_printer *isl_printer_print_pw_multi_aff(__isl_take isl_printer *p
 	__isl_keep isl_pw_multi_aff *pma);
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_from_set(__isl_take isl_set *set);
+__isl_constructor
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_from_map(__isl_take isl_map *map);
 
 __isl_constructor
@@ -634,6 +708,7 @@ __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_from_pw_multi_aff(
 	__isl_take isl_pw_multi_aff *pma);
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_from_domain(
 	__isl_take isl_union_set *uset);
+__isl_constructor
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_multi_val_on_domain(
 	__isl_take isl_union_set *domain, __isl_take isl_multi_val *mv);
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_copy(
@@ -644,6 +719,7 @@ __isl_null isl_union_pw_multi_aff *isl_union_pw_multi_aff_free(
 __isl_give isl_union_pw_multi_aff *isl_union_set_identity_union_pw_multi_aff(
 	__isl_take isl_union_set *uset);
 
+__isl_export
 __isl_give isl_union_pw_aff *isl_union_pw_multi_aff_get_union_pw_aff(
 	__isl_keep isl_union_pw_multi_aff *upma, int pos);
 
@@ -653,9 +729,11 @@ __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_add_pw_multi_aff(
 
 isl_ctx *isl_union_pw_multi_aff_get_ctx(
 	__isl_keep isl_union_pw_multi_aff *upma);
+__isl_export
 __isl_give isl_space *isl_union_pw_multi_aff_get_space(
 	__isl_keep isl_union_pw_multi_aff *upma);
 
+__isl_export
 unsigned isl_union_pw_multi_aff_dim(__isl_keep isl_union_pw_multi_aff *upma,
 	enum isl_dim_type type);
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_set_dim_name(
@@ -689,13 +767,16 @@ isl_union_pw_multi_aff_pullback_union_pw_multi_aff(
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_align_params(
 	__isl_take isl_union_pw_multi_aff *upma, __isl_take isl_space *model);
 
+__isl_export
 int isl_union_pw_multi_aff_n_pw_multi_aff(
 	__isl_keep isl_union_pw_multi_aff *upma);
 
+__isl_export
 isl_stat isl_union_pw_multi_aff_foreach_pw_multi_aff(
 	__isl_keep isl_union_pw_multi_aff *upma,
 	isl_stat (*fn)(__isl_take isl_pw_multi_aff *pma, void *user),
 	void *user);
+__isl_export
 __isl_give isl_pw_multi_aff *isl_union_pw_multi_aff_extract_pw_multi_aff(
 	__isl_keep isl_union_pw_multi_aff *upma, __isl_take isl_space *space);
 
@@ -705,6 +786,7 @@ isl_bool isl_union_pw_multi_aff_plain_is_equal(
 	__isl_keep isl_union_pw_multi_aff *upma1,
 	__isl_keep isl_union_pw_multi_aff *upma2);
 
+__isl_export
 __isl_give isl_union_set *isl_union_pw_multi_aff_domain(
 	__isl_take isl_union_pw_multi_aff *upma);
 
@@ -723,8 +805,10 @@ __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_sub(
 	__isl_take isl_union_pw_multi_aff *upma1,
 	__isl_take isl_union_pw_multi_aff *upma2);
 
+__isl_export
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_scale_val(
 	__isl_take isl_union_pw_multi_aff *upma, __isl_take isl_val *val);
+__isl_export
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_scale_down_val(
 	__isl_take isl_union_pw_multi_aff *upma, __isl_take isl_val *val);
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_scale_multi_val(
@@ -753,6 +837,7 @@ __isl_give isl_printer *isl_printer_print_union_pw_multi_aff(
 
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_from_union_set(
 	__isl_take isl_union_set *uset);
+__isl_overload
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_from_union_map(
 	__isl_take isl_union_map *umap);
 
@@ -765,6 +850,7 @@ __isl_give char *isl_union_pw_multi_aff_to_str(
 
 uint32_t isl_multi_pw_aff_get_hash(__isl_keep isl_multi_pw_aff *mpa);
 
+__isl_export
 __isl_give isl_multi_pw_aff *isl_multi_pw_aff_identity(
 	__isl_take isl_space *space);
 __isl_constructor
@@ -773,6 +859,7 @@ __isl_give isl_multi_pw_aff *isl_multi_pw_aff_from_multi_aff(
 __isl_constructor
 __isl_give isl_multi_pw_aff *isl_multi_pw_aff_from_pw_aff(
 	__isl_take isl_pw_aff *pa);
+__isl_export
 __isl_give isl_set *isl_multi_pw_aff_domain(__isl_take isl_multi_pw_aff *mpa);
 __isl_give isl_multi_pw_aff *isl_multi_pw_aff_intersect_params(
 	__isl_take isl_multi_pw_aff *mpa, __isl_take isl_set *set);
@@ -787,6 +874,7 @@ __isl_give isl_multi_pw_aff *isl_multi_pw_aff_gist_params(
 	__isl_take isl_multi_pw_aff *mpa, __isl_take isl_set *set);
 
 isl_bool isl_multi_pw_aff_is_cst(__isl_keep isl_multi_pw_aff *mpa);
+__isl_export
 isl_bool isl_multi_pw_aff_is_equal(__isl_keep isl_multi_pw_aff *mpa1,
 	__isl_keep isl_multi_pw_aff *mpa2);
 
@@ -834,9 +922,11 @@ __isl_null isl_union_pw_aff *isl_union_pw_aff_free(
 	__isl_take isl_union_pw_aff *upa);
 
 isl_ctx *isl_union_pw_aff_get_ctx(__isl_keep isl_union_pw_aff *upa);
+__isl_export
 __isl_give isl_space *isl_union_pw_aff_get_space(
 	__isl_keep isl_union_pw_aff *upa);
 
+__isl_export
 unsigned isl_union_pw_aff_dim(__isl_keep isl_union_pw_aff *upa,
 	enum isl_dim_type type);
 __isl_give isl_union_pw_aff *isl_union_pw_aff_set_dim_name(
@@ -852,15 +942,20 @@ __isl_give isl_union_pw_aff *isl_union_pw_aff_drop_dims(
 __isl_give isl_union_pw_aff *isl_union_pw_aff_reset_user(
 	__isl_take isl_union_pw_aff *upa);
 
+__isl_export
 __isl_give isl_union_pw_aff *isl_union_pw_aff_empty(
 	__isl_take isl_space *space);
 __isl_constructor
 __isl_give isl_union_pw_aff *isl_union_pw_aff_from_pw_aff(
 	__isl_take isl_pw_aff *pa);
+__isl_constructor
 __isl_give isl_union_pw_aff *isl_union_pw_aff_val_on_domain(
 	__isl_take isl_union_set *domain, __isl_take isl_val *v);
+__isl_constructor
 __isl_give isl_union_pw_aff *isl_union_pw_aff_aff_on_domain(
 	__isl_take isl_union_set *domain, __isl_take isl_aff *aff);
+__isl_give isl_union_pw_aff *isl_union_pw_aff_pw_aff_on_domain(
+	__isl_take isl_union_set *domain, __isl_take isl_pw_aff *pa);
 __isl_give isl_union_pw_aff *isl_union_pw_aff_add_pw_aff(
 	__isl_take isl_union_pw_aff *upa, __isl_take isl_pw_aff *pa);
 
@@ -868,17 +963,22 @@ __isl_constructor
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_from_union_pw_aff(
 	__isl_take isl_union_pw_aff *upa);
 
+__isl_export
 int isl_union_pw_aff_n_pw_aff(__isl_keep isl_union_pw_aff *upa);
 
+__isl_export
 isl_stat isl_union_pw_aff_foreach_pw_aff(__isl_keep isl_union_pw_aff *upa,
 	isl_stat (*fn)(__isl_take isl_pw_aff *pa, void *user), void *user);
+__isl_export
 __isl_give isl_pw_aff *isl_union_pw_aff_extract_pw_aff(
 	__isl_keep isl_union_pw_aff *upa, __isl_take isl_space *space);
 
 isl_bool isl_union_pw_aff_involves_nan(__isl_keep isl_union_pw_aff *upa);
+__isl_export
 isl_bool isl_union_pw_aff_plain_is_equal(__isl_keep isl_union_pw_aff *upa1,
 	__isl_keep isl_union_pw_aff *upa2);
 
+__isl_export
 __isl_give isl_union_set *isl_union_pw_aff_domain(
 	__isl_take isl_union_pw_aff *upa);
 
@@ -906,13 +1006,17 @@ __isl_give isl_union_pw_aff *isl_union_pw_aff_pullback_union_pw_multi_aff(
 	__isl_take isl_union_pw_aff *upa,
 	__isl_take isl_union_pw_multi_aff *upma);
 
+__isl_export
 __isl_give isl_union_pw_aff *isl_union_pw_aff_floor(
 	__isl_take isl_union_pw_aff *upa);
 
+__isl_export
 __isl_give isl_union_pw_aff *isl_union_pw_aff_scale_val(
 	__isl_take isl_union_pw_aff *upa, __isl_take isl_val *v);
+__isl_overload
 __isl_give isl_union_pw_aff *isl_union_pw_aff_scale_down_val(
 	__isl_take isl_union_pw_aff *upa, __isl_take isl_val *v);
+__isl_export
 __isl_give isl_union_pw_aff *isl_union_pw_aff_mod_val(
 	__isl_take isl_union_pw_aff *upa, __isl_take isl_val *f);
 
@@ -930,6 +1034,7 @@ __isl_give isl_union_pw_aff *isl_union_pw_aff_set_dim_name(
 	__isl_take isl_union_pw_aff *upa,
 	enum isl_dim_type type, unsigned pos, const char *s);
 
+__isl_export
 __isl_give isl_union_set *isl_union_pw_aff_zero_union_set(
 	__isl_take isl_union_pw_aff *upa);
 
@@ -955,11 +1060,17 @@ __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_from_union_pw_aff(
 __isl_constructor
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_from_multi_pw_aff(
 	__isl_take isl_multi_pw_aff *mpa);
+__isl_constructor
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_multi_val_on_domain(
 	__isl_take isl_union_set *domain, __isl_take isl_multi_val *mv);
+__isl_constructor
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_multi_aff_on_domain(
 	__isl_take isl_union_set *domain, __isl_take isl_multi_aff *ma);
+__isl_give isl_multi_union_pw_aff *
+isl_multi_union_pw_aff_pw_multi_aff_on_domain(__isl_take isl_union_set *domain,
+	__isl_take isl_pw_multi_aff *pma);
 
+__isl_export
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_floor(
 	__isl_take isl_multi_union_pw_aff *mupa);
 
@@ -971,6 +1082,7 @@ __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_intersect_params(
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_intersect_range(
 	__isl_take isl_multi_union_pw_aff *mupa, __isl_take isl_set *set);
 
+__isl_export
 __isl_give isl_union_set *isl_multi_union_pw_aff_domain(
 	__isl_take isl_multi_union_pw_aff *mupa);
 
@@ -988,6 +1100,7 @@ __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_apply_multi_aff(
 	__isl_take isl_multi_union_pw_aff *mupa, __isl_take isl_multi_aff *ma);
 __isl_give isl_union_pw_aff *isl_multi_union_pw_aff_apply_pw_aff(
 	__isl_take isl_multi_union_pw_aff *mupa, __isl_take isl_pw_aff *pa);
+__isl_export
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_apply_pw_multi_aff(
 	__isl_take isl_multi_union_pw_aff *mupa,
 	__isl_take isl_pw_multi_aff *pma);
@@ -998,6 +1111,7 @@ isl_multi_union_pw_aff_pullback_union_pw_multi_aff(
 	__isl_take isl_multi_union_pw_aff *mupa,
 	__isl_take isl_union_pw_multi_aff *upma);
 
+__isl_export
 __isl_give isl_union_pw_multi_aff *
 isl_union_pw_multi_aff_from_multi_union_pw_aff(
 	__isl_take isl_multi_union_pw_aff *mupa);
@@ -1011,15 +1125,18 @@ __isl_give isl_multi_union_pw_aff *
 isl_multi_union_pw_aff_from_union_pw_multi_aff(
 	__isl_take isl_union_pw_multi_aff *upma);
 
+__isl_export
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_from_union_map(
 	__isl_take isl_union_map *umap);
 __isl_overload
 __isl_give isl_union_map *isl_union_map_from_multi_union_pw_aff(
 	__isl_take isl_multi_union_pw_aff *mupa);
 
+__isl_export
 __isl_give isl_union_set *isl_multi_union_pw_aff_zero_union_set(
 	__isl_take isl_multi_union_pw_aff *mupa);
 
+__isl_export
 __isl_give isl_multi_pw_aff *isl_multi_union_pw_aff_extract_multi_pw_aff(
 	__isl_keep isl_multi_union_pw_aff *mupa, __isl_take isl_space *space);
 

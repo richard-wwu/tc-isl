@@ -52,6 +52,7 @@ static struct isl_arg_choice on_error[] = {
 static struct isl_arg_choice isl_schedule_algorithm_choice[] = {
 	{"isl",		ISL_SCHEDULE_ALGORITHM_ISL},
 	{"feautrier",   ISL_SCHEDULE_ALGORITHM_FEAUTRIER},
+	{"outerpar",	ISL_SCHEDULE_ALGORITHM_OUTERPAR},
 	{0}
 };
 

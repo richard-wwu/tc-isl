@@ -71,6 +71,8 @@ struct isl_ast_print_options;
 typedef struct isl_ast_print_options isl_ast_print_options;
 
 ISL_DECLARE_LIST(ast_expr)
+
+struct __isl_list(isl_ast_node) isl_ast_node_list;
 ISL_DECLARE_LIST(ast_node)
 
 #if defined(__cplusplus)
