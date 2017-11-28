@@ -4,7 +4,7 @@ jobs:
     working_directory: ~/isl
     resource_class: xlarge
     docker:
-      - image: wsmoses/c2isl:centos
+      - image: nicolasvasilache/tc-centos:latest
 
     steps:
       - checkout
@@ -27,7 +27,7 @@ jobs:
     working_directory: ~/isl
     resource_class: xlarge
     docker:
-      - image: wsmoses/c2isl:1404
+      - image: nicolasvasilache/tc-1404:latest
 
     steps:
       - checkout
@@ -50,7 +50,7 @@ jobs:
     working_directory: ~/isl
     resource_class: xlarge
     docker:
-      - image: wsmoses/c2isl:1604
+      - image: nicolasvasilache/tc-1604:latest
 
     steps:
       - checkout
