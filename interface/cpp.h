@@ -3,14 +3,21 @@
 using namespace std;
 using namespace clang;
 
+/* Generator for C++ bindings.
+ *
+ * "noexceptions" is set if C++ bindings should be generated
+ * that do not use exceptions.
+ */
 class cpp_generator : public generator {
 protected:
+	bool noexceptions;
 	map<string, string> list_types;
 
 public:
 	cpp_generator(set<RecordDecl *> &exported_types,
 		set<FunctionDecl *> exported_functions,
-		set<FunctionDecl *> functions);
+		set<FunctionDecl *> functions,
+		bool noexceptions = false);
 
 	enum function_kind {
 		function_kind_static_method,
@@ -65,6 +72,16 @@ private:
 	void print_custom_methods_impl(ostream &os, const isl_class &clazz);
 	void print_method_group_impl(ostream &os, const isl_class &clazz,
 		const string &fullname, const set<FunctionDecl *> &methods);
+	void print_argument_validity_check(ostream &os, FunctionDecl *method,
+		function_kind kind);
+	void print_save_ctx(ostream &os, FunctionDecl *method,
+		function_kind kind);
+	void print_method_ctx(ostream &os, FunctionDecl *method,
+		function_kind kind);
+	void print_on_error_continue(ostream &os, FunctionDecl *method,
+		function_kind kind);
+	void print_exceptional_execution_check(ostream &os,
+		FunctionDecl *method, function_kind kind);
 	void print_method_impl(ostream &os, const isl_class &clazz,
 		const string &fullname,	FunctionDecl *method,
 		function_kind kind);
@@ -75,6 +92,9 @@ private:
 		bool is_declaration, function_kind kind);
 	string generate_callback_args(QualType type, bool cpp);
 	string generate_callback_type(QualType type);
+	void print_wrapped_call_noexceptions(std::ostream &os,
+		const std::string &call);
+	void print_wrapped_call(std::ostream &os, const std::string &call);
 	void print_callback_local(ostream &os, ParmVarDecl *param);
 	std::string rename_method(std::string name);
 	string type2cpp(const isl_class &clazz);

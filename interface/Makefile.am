@@ -3,8 +3,8 @@ AUTOMAKE_OPTIONS = nostdinc
 noinst_PROGRAMS = extract_interface
 TESTS =
 if HAVE_CXX11
-  noinst_PROGRAMS += isl_test_cpp-noexceptions
-  TESTS += isl_test_cpp-noexceptions
+  noinst_PROGRAMS += isl_test_cpp isl_test_cpp-noexceptions
+  TESTS += isl_test_cpp isl_test_cpp-noexceptions
 endif
 if HAVE_PYTHON
   TESTS += isl_test_python.py
@@ -37,6 +37,14 @@ extract_interface_LDADD = \
 	-lclangAnalysis -lclangAST -lclangLex -lclangBasic -lclangDriver \
 	$(CLANG_LIBS) $(CLANG_LDFLAGS)
 
+isl_test_cpp_CPPFLAGS = $(includes) -I.
+isl_test_cpp_CXXFLAGS = @CXX11FLAGS@
+isl_test_cpp_SOURCES = \
+	isl_test_cpp.cc \
+	isl.h
+isl_test_cpp_LDFLAGS = @MP_LDFLAGS@
+isl_test_cpp_LDADD = ../libisl.la @MP_LIBS@
+
 isl_test_cpp_noexceptions_CPPFLAGS = $(includes) -I.
 isl_test_cpp_noexceptions_CXXFLAGS = @CXX11FLAGS@
 isl_test_cpp_noexceptions_SOURCES = \
@@ -45,8 +53,8 @@ isl_test_cpp_noexceptions_SOURCES = \
 isl_test_cpp_noexceptions_LDFLAGS = @MP_LDFLAGS@
 isl_test_cpp_noexceptions_LDADD = ../libisl.la @MP_LIBS@
 
-BUILT_SOURCES = isl-noexceptions.h
-CLEANFILES = isl.py isl-noexceptions.h
+BUILT_SOURCES = isl.h isl-noexceptions.h
+CLEANFILES = isl.py isl.h isl-noexceptions.h
 
 # dummy library that captures the dependencies on all headers
 # that are relevant for the bindings
@@ -60,14 +68,22 @@ isl.py: extract_interface libdep.a isl.py.top
 			$(srcdir)/all.h) \
 			> isl.py
 
+isl.h: extract_interface libdep.a isl.h.top isl.h.pre isl.h.bot
+	(cat $(srcdir)/isl.h.top $(srcdir)/all.h $(srcdir)/isl.h.pre; \
+		./extract_interface$(EXEEXT) --language=cpp $(includes) \
+			$(srcdir)/all.h; \
+		cat $(srcdir)/isl.h.bot) \
+			> isl.h
+
 isl-noexceptions.h: extract_interface libdep.a isl-noexceptions.h.top \
 		isl-noexceptions.h.pre isl-noexceptions.h.bot
 	(cat $(srcdir)/isl-noexceptions.h.top $(srcdir)/all.h \
 	    $(srcdir)/isl-noexceptions.h.pre; \
-		./extract_interface$(EXEEXT) --language=cpp $(includes) \
+		./extract_interface$(EXEEXT) --language=cpp-noexceptions \
+			$(includes) \
 			$(srcdir)/all.h; \
 		cat $(srcdir)/isl-noexceptions.h.bot) \
 			> isl-noexceptions.h
 
-dist-hook: isl.py isl-noexceptions.h
-	cp isl.py isl-noexceptions.h $(distdir)/
+dist-hook: isl.py isl.h isl-noexceptions.h
+	cp isl.py isl.h isl-noexceptions.h $(distdir)/

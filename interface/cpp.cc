@@ -77,8 +77,9 @@ static std::string to_string(long l)
 
 cpp_generator::cpp_generator(set<RecordDecl *> &exported_types,
 	set<FunctionDecl *> exported_functions,
-	set<FunctionDecl *> functions) :
-		generator(exported_types, exported_functions, functions)
+	set<FunctionDecl *> functions, bool noexceptions) :
+		generator(exported_types, exported_functions, functions),
+		noexceptions(noexceptions)
 {
 	map<string, isl_class>::iterator ci;
 
@@ -96,6 +97,10 @@ cpp_generator::cpp_generator(set<RecordDecl *> &exported_types,
  * Print first a set of forward declarations for all isl wrapper
  * classes, then the declarations of the classes, and at the end all
  * implementations.
+ *
+ * If C++ bindings without exceptions are being generated,
+ * then wrap them in an inline namespace to avoid conflicts
+ * with the default C++ bindings (with exceptions).
  */
 void cpp_generator::generate()
 {
@@ -103,7 +108,8 @@ void cpp_generator::generate()
 
 	osprintf(os, "\n");
 	osprintf(os, "namespace isl {\n\n");
-	osprintf(os, "inline namespace noexceptions {\n\n");
+	if (noexceptions)
+		osprintf(os, "inline namespace noexceptions {\n\n");
 
 	print_forward_declarations(os);
 	osprintf(os, "\n");
@@ -111,7 +117,8 @@ void cpp_generator::generate()
 	osprintf(os, "\n");
 	print_implementations(os);
 
-	osprintf(os, "} // namespace noexceptions\n");
+	if (noexceptions)
+		osprintf(os, "} // namespace noexceptions\n");
 	osprintf(os, "} // namespace isl\n");
 }
 
@@ -164,6 +171,8 @@ void cpp_generator::print_implementations(ostream &os)
 	}
 }
 
+/* Print declarations for class "clazz" to "os".
+ */
 void cpp_generator::print_common_class_body(ostream &os, const isl_class &clazz,
 	bool is_template_specialization)
 {
@@ -535,7 +544,26 @@ void cpp_generator::print_class_impl(ostream &os, const isl_class &clazz)
 	print_custom_methods_impl(os, clazz);
 }
 
-/* Print implementation of global factory function to "os".
+/* Print code for throwing an exception on NULL input.
+ */
+static void print_throw_NULL_input(ostream &os)
+{
+	osprintf(os,
+	    "    throw isl::exception::create(isl_error_invalid,\n"
+	    "        \"NULL input\", __FILE__, __LINE__);\n");
+}
+
+/* Print implementation of global factory functions to "os".
+ *
+ * Each class has two global factory functions:
+ *
+ * 	isl::set manage(__isl_take isl_set *ptr);
+ * 	isl::set manage_copy(__isl_keep isl_set *ptr);
+ *
+ * Unless C++ bindings without exceptions are being generated,
+ * both functions require the argument to be non-NULL.
+ * An exception is thrown if anything went wrong during the copying
+ * in manage_copy.
  */
 void cpp_generator::print_class_factory_impl(ostream &os,
 	const isl_class &clazz)
@@ -545,12 +573,27 @@ void cpp_generator::print_class_factory_impl(ostream &os,
 	const char *cppname = cppstring.c_str();
 
 	osprintf(os, "isl::%s manage(__isl_take %s *ptr) {\n", cppname, name);
+	if (!noexceptions) {
+		osprintf(os, "  if (!ptr)\n");
+		print_throw_NULL_input(os);
+	}
 	osprintf(os, "  return %s(ptr);\n", cppname);
 	osprintf(os, "}\n");
 
 	osprintf(os, "isl::%s manage_copy(__isl_keep %s *ptr) {\n", cppname,
 		name);
-	osprintf(os, "  return %s(%s_copy(ptr));\n", cppname, name);
+	if (!noexceptions) {
+		osprintf(os, "  if (!ptr)\n");
+		print_throw_NULL_input(os);
+		osprintf(os, "  auto ctx = %s_get_ctx(ptr);\n", name);
+	}
+	osprintf(os, "  ptr = %s_copy(ptr);\n", name);
+	if (!noexceptions) {
+		osprintf(os, "  if (!ptr)\n");
+		osprintf(os,
+			"    throw exception::create_from_last_error(ctx);\n");
+	}
+	osprintf(os, "  return %s(ptr);\n", cppname);
 	osprintf(os, "}\n");
 }
 
@@ -571,10 +614,16 @@ void cpp_generator::print_private_constructors_impl(ostream &os,
 }
 
 /* Print implementations of public constructors for class "clazz" to "os".
+ *
+ * Throw an exception from the copy constructor if anything went wrong
+ * during the copying.
+ * No exceptions are thrown if C++ bindings without exceptions
+ * are being generated,
  */
 void cpp_generator::print_public_constructors_impl(ostream &os,
 	const isl_class &clazz)
 {
+	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
 	const char *cppname = cppstring.c_str();
 	std::string constructor_string =
@@ -583,8 +632,17 @@ void cpp_generator::print_public_constructors_impl(ostream &os,
 
 	osprintf(os, "%s::%s()\n    : ptr(nullptr) {}\n\n", cppname,
 		constructor_name);
-	osprintf(os, "%s::%s(const isl::%s &obj)\n    : ptr(obj.copy()) {}\n",
+	osprintf(os, "%s::%s(const isl::%s &obj)\n    : ptr(obj.copy())\n",
 		 cppname, constructor_name, cppname);
+	osprintf(os, "{\n");
+	if (!noexceptions) {
+		osprintf(os, "  if (obj.ptr && !ptr)\n");
+		osprintf(os,
+			"    throw exception::create_from_last_error("
+			"%s_get_ctx(obj.ptr));\n",
+			name);
+	}
+	osprintf(os, "}\n");
 }
 
 /* Print implementations of constructors for class "clazz" to "os".
@@ -717,8 +775,10 @@ void cpp_generator::print_operators_impl(ostream &os, const isl_class &clazz)
         	osprintf(os, "\n");
         }
         if (clazz.fn_is_equal) {
+		QualType return_type = clazz.fn_is_equal->getReturnType();
 	        osprintf(os,
-                         "inline isl::boolean operator==(const %s& C1, const %s& C2) {\n",
+                         "inline %s operator==(const %s& C1, const %s& C2) {\n",
+			 type2cpp(return_type).c_str(),
                          cppname,
                          cppname);
         	osprintf(os, "  return C1.is_equal(C2);\n");
@@ -843,7 +903,8 @@ void cpp_generator::print_method_group_impl(ostream &os, const isl_class &clazz,
  * a wrapper for the callback function and a pointer to the actual
  * callback function.  The wrapper is expected to be available
  * in a previously declared variable <name>_lambda, while
- * the actual callback function is expected in <name>_p.
+ * the actual callback function is expected to be stored
+ * in a structure called <name>_data.
  * The caller of this function must ensure that these variables exist.
  */
 void cpp_generator::print_method_param_use(ostream &os, ParmVarDecl *param,
@@ -873,7 +934,7 @@ void cpp_generator::print_method_param_use(ostream &os, ParmVarDecl *param,
 
 	if (is_callback(type)) {
 		osprintf(os, "%s_lambda, ", name_str);
-		osprintf(os, "&%s_p", name_str);
+		osprintf(os, "&%s_data", name_str);
 		return;
 	}
 
@@ -890,6 +951,182 @@ void cpp_generator::print_method_param_use(ostream &os, ParmVarDecl *param,
 	}
 }
 
+/* Print code that checks that all isl object arguments to "method" are valid
+ * (not NULL) and throws an exception if they are not.
+ * "kind" specifies the kind of method that is being generated.
+ *
+ * If bindings without exceptions are being generated,
+ * then no such check is performed.
+ */
+void cpp_generator::print_argument_validity_check(ostream &os,
+	FunctionDecl *method, function_kind kind)
+{
+	int n;
+	bool first = true;
+
+	if (noexceptions)
+		return;
+
+	n = method->getNumParams();
+	for (int i = 0; i < n; ++i) {
+		bool is_this;
+		ParmVarDecl *param = method->getParamDecl(i);
+		string name = param->getName().str();
+		const char *name_str = name.c_str();
+		QualType type = param->getOriginalType();
+
+		is_this = i == 0 && kind == function_kind_member_method;
+		if (!is_this && (is_isl_ctx(type) || !is_isl_type(type)))
+			continue;
+
+		if (first)
+			osprintf(os, "  if (");
+		else
+			osprintf(os, " || ");
+
+		if (is_this)
+			osprintf(os, "!ptr");
+		else
+			osprintf(os, "%s.is_null()", name_str);
+
+		first = false;
+	}
+	if (first)
+		return;
+	osprintf(os, ")\n");
+	print_throw_NULL_input(os);
+}
+
+/* Print code for saving a copy of the isl::ctx available at the start
+ * of the method "method", for use in the code printed by print_method_ctx().
+ * "kind" specifies what kind of method "method" is.
+ *
+ * If bindings without exceptions are being generated,
+ * then print_method_ctx does not get called.
+ * If "method" is a member function, then "this" still has an associated
+ * isl::ctx where the isl::ctx is needed, so no copy needs to be saved.
+ * Similarly if the first argument of the method is an isl::ctx.
+ * Otherwise, save a copy of the isl::ctx associated to the first argument
+ * of isl object type.
+ */
+void cpp_generator::print_save_ctx(ostream &os, FunctionDecl *method,
+	function_kind kind)
+{
+	int n;
+	ParmVarDecl *param = method->getParamDecl(0);
+	QualType type = param->getOriginalType();
+
+	if (noexceptions)
+		return;
+	if (kind == function_kind_member_method)
+		return;
+	if (is_isl_ctx(type))
+		return;
+	n = method->getNumParams();
+	for (int i = 0; i < n; ++i) {
+		ParmVarDecl *param = method->getParamDecl(i);
+		QualType type = param->getOriginalType();
+
+		if (!is_isl_type(type))
+			continue;
+		osprintf(os, "  auto ctx = %s.get_ctx();\n",
+			param->getName().str().c_str());
+		return;
+	}
+}
+
+/* Print code for obtaining the isl_ctx associated to method "method"
+ * of class "clazz".
+ * "kind" specifies what kind of method "method" is.
+ *
+ * If "method" is a member function, then obtain the isl_ctx from
+ * the "this" object.
+ * If the first argument of the method is an isl::ctx, then use that one.
+ * Otherwise use the isl::ctx saved by the code generated by print_save_ctx.
+ */
+void cpp_generator::print_method_ctx(ostream &os, FunctionDecl *method,
+	function_kind kind)
+{
+	ParmVarDecl *param = method->getParamDecl(0);
+	QualType type = param->getOriginalType();
+
+	if (kind == function_kind_member_method)
+		osprintf(os, "get_ctx()");
+	else if (is_isl_ctx(type))
+		osprintf(os, "%s", param->getName().str().c_str());
+	else
+		osprintf(os, "ctx");
+}
+
+/* Print code to make isl not print an error message when an error occurs
+ * within the current scope, since the error message will be included
+ * in the exception.
+ * If bindings without exceptions are being generated,
+ * then leave it to the user to decide what isl should do on error.
+ */
+void cpp_generator::print_on_error_continue(ostream &os, FunctionDecl *method,
+	function_kind kind)
+{
+	if (noexceptions)
+		return;
+	osprintf(os, "  options_scoped_set_on_error saved_on_error(");
+	print_method_ctx(os, method, kind);
+	osprintf(os, ", ISL_ON_ERROR_CONTINUE);\n");
+}
+
+/* Print code that checks whether the execution of the core of "method"
+ * was successful.
+ * "kind" specifies what kind of method "method" is.
+ *
+ * If bindings without exceptions are being generated,
+ * then no checks are performed.
+ *
+ * Otherwise, first check if any of the callbacks failed with
+ * an exception.  If so, the "eptr" in the corresponding data structure
+ * contains the exception that was caught and that needs to be rethrown.
+ * Then check if the function call failed in any other way and throw
+ * the appropriate exception.
+ * In particular, if the return type is isl_stat or isl_bool,
+ * then a negative value indicates a failure.  If the return type
+ * is an isl type, then a NULL value indicates a failure.
+ */
+void cpp_generator::print_exceptional_execution_check(ostream &os,
+	FunctionDecl *method, function_kind kind)
+{
+	int n;
+	bool check_null, check_neg;
+	QualType return_type = method->getReturnType();
+
+	if (noexceptions)
+		return;
+
+	n = method->getNumParams();
+	for (int i = 0; i < n; ++i) {
+		ParmVarDecl *param = method->getParamDecl(i);
+		const char *name;
+
+		if (!is_callback(param->getOriginalType()))
+			continue;
+		name = param->getName().str().c_str();
+		osprintf(os, "  if (%s_data.eptr)\n", name);
+		osprintf(os, "    std::rethrow_exception(%s_data.eptr);\n",
+			name);
+	}
+
+	check_neg = is_isl_stat(return_type) || is_isl_bool(return_type);
+	check_null = is_isl_type(return_type);
+	if (!check_null && !check_neg)
+		return;
+
+	if (check_neg)
+		osprintf(os, "  if (res < 0)\n");
+	else
+		osprintf(os, "  if (!res)\n");
+	osprintf(os, "    throw exception::create_from_last_error(");
+	print_method_ctx(os, method, kind);
+	osprintf(os, ");\n");
+}
+
 /* Print definition for "method" in class "clazz" to "os".
  *
  * "fullname" is the name of the generated C++ method.  It commonly corresponds
@@ -904,9 +1141,15 @@ void cpp_generator::print_method_param_use(ostream &os, ParmVarDecl *param,
  * Member methods call "method" by passing to the underlying isl function the
  * isl object belonging to "this" as first argument and the remaining arguments
  * as subsequent arguments. The result of the isl function is returned as a new
- * object if the underlying isl function returns an isl_* ptr or an isl_bool
- * value, as std::string if the isl function returns 'const char *', and as
+ * object if the underlying isl function returns an isl_* ptr, as a bool
+ * if the isl function returns an isl_bool, as void if the isl functions
+ * returns an isl_stat,
+ * as std::string if the isl function returns 'const char *', and as
  * unmodified return value otherwise.
+ * If C++ bindings without exceptions are being generated,
+ * then an isl_bool return type is transformed into an isl::boolean and
+ * an isl_stat into an isl::stat since no exceptions can be generated
+ * on negative results from the isl function.
  *
  * Static methods call "method" by passing all arguments to the underlying isl
  * function, as no this-pointer is available. The result is a newly managed
@@ -920,6 +1163,14 @@ void cpp_generator::print_method_param_use(ostream &os, ParmVarDecl *param,
  * that are exposed by one to hide the user pointer from the interface. On
  * the C++ side no user pointer is needed, as arguments can be forwarded
  * as part of the std::function argument which specifies the callback function.
+ *
+ * Unless C++ bindings without exceptions are being generated,
+ * the inputs of the method are first checked for being valid isl objects and
+ * a copy of the associated isl::ctx is saved (if needed).
+ * If any failure occurs, either during the check for the inputs or
+ * during the isl function call, an exception is thrown.
+ * During the function call, isl is made not to print any error message
+ * because the error message is included in the exception.
  */
 void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	const string &fullname, FunctionDecl *method, function_kind kind)
@@ -932,6 +1183,10 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	bool has_callback = false;
 
 	print_method_header(os, clazz, method, fullname, false, kind);
+	osprintf(os, "{\n");
+	print_argument_validity_check(os, method, kind);
+	print_save_ctx(os, method, kind);
+	print_on_error_continue(os, method, kind);
 
 	for (int i = 0; i < num_params; ++i) {
 		ParmVarDecl *param = method->getParamDecl(i);
@@ -958,9 +1213,11 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	}
 	osprintf(os, ");\n");
 
+	print_exceptional_execution_check(os, method, kind);
 	if (kind == function_kind_constructor) {
 		osprintf(os, "  ptr = res;\n");
-	} else if (is_isl_type(return_type) || is_isl_bool(return_type)) {
+	} else if (is_isl_type(return_type) ||
+		    (noexceptions && is_isl_bool(return_type))) {
 		osprintf(os, "  return manage(res);\n");
 	} else if (has_callback) {
 		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
@@ -1092,9 +1349,8 @@ void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
 		osprintf(os, " const");
 
 	if (is_declaration)
-		osprintf(os, ";\n");
-	else
-		osprintf(os, " {\n");
+		osprintf(os, ";");
+	osprintf(os, "\n");
 }
 
 /* Generate the list of argument types for a callback function of
@@ -1164,6 +1420,52 @@ string cpp_generator::generate_callback_type(QualType type)
 	return type_str;
 }
 
+/* Print the call to the C++ callback function "call", wrapped
+ * for use inside the lambda function that is used as the C callback function,
+ * in the case where C++ bindings without exceptions are being generated.
+ *
+ * In particular, print
+ *
+ *        stat ret = @call@;
+ *        return isl_stat(ret);
+ */
+void cpp_generator::print_wrapped_call_noexceptions(ostream &os,
+	const string &call)
+{
+	osprintf(os, "    stat ret = %s;\n", call.c_str());
+	osprintf(os, "    return isl_stat(ret);\n");
+}
+
+/* Print the call to the C++ callback function "call", wrapped
+ * for use inside the lambda function that is used as the C callback function.
+ *
+ * In particular, print
+ *
+ *        try {
+ *          stat ret = @call@;
+ *          return isl_stat_ok;
+ *        } catch (...) {
+ *          data->eptr = std::current_exception();
+ *          return isl_stat_error;
+ *        }
+ *
+ * If C++ bindings without exceptions are being generated, then
+ * the call is wrapped differently.
+ */
+void cpp_generator::print_wrapped_call(ostream &os, const string &call)
+{
+	if (noexceptions)
+		return print_wrapped_call_noexceptions(os, call);
+
+	osprintf(os, "    try {\n");
+	osprintf(os, "      %s;\n", call.c_str());
+	osprintf(os, "      return isl_stat_ok;\n");
+	osprintf(os, "    } catch (...) {\n"
+		     "      data->eptr = std::current_exception();\n");
+	osprintf(os, "      return isl_stat_error;\n");
+	osprintf(os, "    }\n");
+}
+
 /* Print the local variables that are needed for a callback argument,
  * in particular, print a lambda function that wraps the callback and
  * a pointer to the actual C++ callback function.
@@ -1175,28 +1477,47 @@ string cpp_generator::generate_callback_type(QualType type)
  * the following lambda function is generated:
  *
  *      auto fn_lambda = [](isl_map *arg_0, void *arg_1) -> isl_stat {
- *        auto *func = *static_cast<const std::function<stat(map)> **>(arg_1);
- *        stat ret = (*func)(isl::manage(arg_0));
- *        return isl_stat(ret);
+ *        auto *data = static_cast<struct fn_data *>(arg_1);
+ *        try {
+ *          stat ret = (*data->func)(isl::manage(arg_0));
+ *          return isl_stat_ok;
+ *        } catch (...) {
+ *          data->eptr = std::current_exception();
+ *          return isl_stat_error;
+ *        }
  *      };
  *
- * The pointer to the std::function C++ callback function is stored in fn_p.
+ * The pointer to the std::function C++ callback function is stored in
+ * a fn_data data structure for passing to the C callback function,
+ * along with an std::exception_ptr that is used to store any
+ * exceptions thrown in the C++ callback.
+ *
+ *      struct fn_data {
+ *        const std::function<stat(map)> *func;
+ *        std::exception_ptr eptr;
+ *      } fn_data = { &fn };
+ *
  * This std::function object represents the actual user
  * callback function together with the locally captured state at the caller.
  *
  * The lambda function is expected to be used as a C callback function
  * where the lambda itself is provided as the function pointer and
- * where the user void pointer is a pointer to fn_p.
- * The std::function object is extracted from the pointer to fn_p
+ * where the user void pointer is a pointer to fn_data.
+ * The std::function object is extracted from the pointer to fn_data
  * inside the lambda function.
- * The double indirection is used to avoid having to worry about
- * const casting.
+ *
+ * The std::exception_ptr object is not added to fn_data
+ * if C++ bindings without exceptions are being generated.
+ * The body of the generated lambda function then is as follows:
+ *
+ *        stat ret = (*data->func)(isl::manage(arg_0));
+ *        return isl_stat(ret);
  */
 void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param)
 {
 	string pname;
 	QualType ptype;
-	string call_args, c_args, cpp_args, rettype, last_idx;
+	string call, c_args, cpp_args, rettype, last_idx;
 	const FunctionProtoType *callback;
 	int num_params;
 
@@ -1212,21 +1533,26 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param)
 
 	last_idx = ::to_string(num_params - 1);
 
+	call = "(*data->func)(";
 	for (long i = 0; i < num_params - 1; i++) {
-		call_args += "isl::manage(arg_" + ::to_string(i) + ")";
+		call += "isl::manage(arg_" + ::to_string(i) + ")";
 		if (i != num_params - 2)
-			call_args += ", ";
+			call += ", ";
 	}
+	call += ")";
 
-	osprintf(os, "  auto %s_p = &%s;\n", pname.c_str(), pname.c_str());
+	osprintf(os, "  struct %s_data {\n", pname.c_str());
+	osprintf(os, "    const %s *func;\n", cpp_args.c_str());
+	if (!noexceptions)
+		osprintf(os, "    std::exception_ptr eptr;\n");
+	osprintf(os, "  } %s_data = { &%s };\n", pname.c_str(), pname.c_str());
+	osprintf(os, "  auto %s_lambda = [](%s) -> %s {\n",
+		 pname.c_str(), c_args.c_str(), rettype.c_str());
 	osprintf(os,
-		 "  auto %s_lambda = [](%s) -> %s {\n"
-		 "    auto *func = *static_cast<const %s **>(arg_%s);\n"
-		 "    stat ret = (*func)(%s);\n"
-		 "    return isl_stat(ret);\n"
-		 "  };\n",
-		 pname.c_str(), c_args.c_str(), rettype.c_str(),
-		 cpp_args.c_str(), last_idx.c_str(), call_args.c_str());
+		 "    auto *data = static_cast<struct %s_data *>(arg_%s);\n",
+		 pname.c_str(), last_idx.c_str());
+	print_wrapped_call(os, call);
+	osprintf(os, "  };\n");
 }
 
 /* An array listing functions that must be renamed and the function name they
@@ -1269,6 +1595,12 @@ string cpp_generator::type2cpp(string type_str)
 }
 
 /* Translate QualType "type" to its C++ name counterpart.
+ *
+ * An isl_bool return type is translated into "bool",
+ * while an isl_stat is translated into "void".
+ * The exceptional cases are handled through exceptions.
+ * If C++ bindings without exceptions are being generated, then
+ * C++ counterparts of isl_bool and isl_stat need to be used instead.
  */
 string cpp_generator::type2cpp(QualType type)
 {
@@ -1280,7 +1612,10 @@ string cpp_generator::type2cpp(QualType type)
 		return "isl::" + type2cpp(type->getPointeeType().getAsString());
 
 	if (is_isl_bool(type))
-		return "isl::boolean";
+		return noexceptions ? "isl::boolean" : "bool";
+
+	if (is_isl_stat(type))
+		return noexceptions ? "isl::stat" : "void";
 
         if (extensions) {
           if (type->isEnumeralType()) {

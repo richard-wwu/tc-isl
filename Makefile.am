@@ -397,10 +397,14 @@ EXTRA_DIST = \
 	imath/imrat.c \
 	imath/imrat.h \
 	interface/all.h \
+	interface/isl.h.top \
+	interface/isl.h.pre \
+	interface/isl.h.bot \
 	interface/isl-noexceptions.h.top \
 	interface/isl-noexceptions.h.pre \
 	interface/isl-noexceptions.h.bot \
 	interface/isl.py.top \
+	interface/isl_test_cpp-generic.cc \
 	interface/isl_test_python.py \
 	test_inputs
 
