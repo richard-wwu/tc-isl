@@ -71,6 +71,7 @@ __isl_give isl_aff *isl_aff_add_constant_si(__isl_take isl_aff *aff, int v);
 __isl_give isl_aff *isl_aff_add_constant_val(__isl_take isl_aff *aff,
 	__isl_take isl_val *v);
 __isl_give isl_aff *isl_aff_add_constant_num_si(__isl_take isl_aff *aff, int v);
+__isl_export
 __isl_give isl_aff *isl_aff_add_coefficient_si(__isl_take isl_aff *aff,
 	enum isl_dim_type type, int pos, int v);
 __isl_give isl_aff *isl_aff_add_coefficient_val(__isl_take isl_aff *aff,

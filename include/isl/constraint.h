@@ -99,7 +99,8 @@ __isl_give isl_space *isl_constraint_get_space(
 __isl_export
 __isl_give isl_local_space *isl_constraint_get_local_space(
 	__isl_keep isl_constraint *constraint);
-int isl_constraint_dim(struct isl_constraint *constraint,
+__isl_export
+int isl_constraint_dim(__isl_keep isl_constraint *constraint,
 	enum isl_dim_type type);
 
 __isl_export
