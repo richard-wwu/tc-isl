@@ -418,8 +418,6 @@ void cpp_generator::print_ptr_decl(ostream &os, const isl_class &clazz)
 	osprintf(os, "  inline __isl_keep %s *get() const;\n", name);
 	osprintf(os, "  inline __isl_give %s *release();\n", name);
         if (extensions) {
-		osprintf(os, "  inline __isl_keep %s *keep() const;\n", name);
-		osprintf(os, "  inline __isl_give %s *take();\n", name);
 		osprintf(os, "  inline explicit operator bool() const;\n", name);
         }
 	osprintf(os, "  inline bool is_null() const;\n");
@@ -716,12 +714,6 @@ void cpp_generator::print_ptr_impl(ostream &os, const isl_class &clazz)
 	osprintf(os, "  return tmp;\n");
 	osprintf(os, "}\n\n");
 	if (extensions) {
-		osprintf(os, "__isl_keep %s *%s::keep() const {\n", name, cppname);
-		osprintf(os, "  return get();\n");
-		osprintf(os, "}\n\n");
-		osprintf(os, "__isl_give %s *%s::take() {\n", name, cppname);
-		osprintf(os, "  return release();\n");
-		osprintf(os, "}\n\n");
 		osprintf(os, "%s::operator bool() const {\n", cppname);
 		osprintf(os, "  return !is_null();\n");
 		osprintf(os, "}\n\n");
