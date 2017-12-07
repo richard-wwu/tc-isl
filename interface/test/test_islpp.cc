@@ -130,7 +130,7 @@ isl::set makeUniverseSet(const isl::ctx& ctx, std::vector<const char*> pNames) {
   auto s = isl::set::universe(isl::space(ctx, pNames.size()));
   int idx = 0;
   for (auto n : pNames) {
-    s = isl::manage(isl_set_set_dim_name(s.take(), isl_dim_param, idx++, n));
+    s = isl::manage(isl_set_set_dim_name(s.release(), isl_dim_param, idx++, n));
   }
   return s;
 }
@@ -150,10 +150,10 @@ isl::point makePoint(
     assert(pos >= 0);
     if (vals[idx] >= 0) {
       pt = isl::manage(
-        isl_point_add_ui(pt.take(), isl_dim_param, pos, vals[idx]));
+        isl_point_add_ui(pt.release(), isl_dim_param, pos, vals[idx]));
     } else {
       pt = isl::manage(
-        isl_point_sub_ui(pt.take(), isl_dim_param, pos, -vals[idx]));
+        isl_point_sub_ui(pt.release(), isl_dim_param, pos, -vals[idx]));
     }
     idx++;
   }
