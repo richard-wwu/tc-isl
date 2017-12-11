@@ -114,8 +114,6 @@ public:
   inline __isl_give isl_id *copy() && = delete;
   inline __isl_keep isl_id *get() const;
   inline __isl_give isl_id *release();
-  inline __isl_keep isl_id *keep() const;
-  inline __isl_give isl_id *take();
   inline explicit operator bool() const;
   inline isl::ctx get_ctx() const;
   inline bool is_null() const;
@@ -165,14 +163,6 @@ __isl_give isl_id *id::release() {
   isl_id *tmp = ptr;
   ptr = nullptr;
   return tmp;
-}
-
-__isl_keep isl_id *id::keep() const {
-  return get();
-}
-
-__isl_give isl_id *id::take() {
-  return release();
 }
 
 id::operator bool() const {
