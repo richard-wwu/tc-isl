@@ -100,8 +100,10 @@ isl_ctx *isl_ast_node_get_ctx(__isl_keep isl_ast_node *node);
 __isl_export
 enum isl_ast_node_type isl_ast_node_get_type(__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_ast_node *isl_ast_node_set_annotation(
 	__isl_take isl_ast_node *node, __isl_take isl_id *annotation);
+__isl_export
 __isl_give isl_id *isl_ast_node_get_annotation(__isl_keep isl_ast_node *node);
 
 __isl_export
