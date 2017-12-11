@@ -683,6 +683,7 @@ isl_stat isl_pw_multi_aff_foreach_piece(__isl_keep isl_pw_multi_aff *pma,
 	isl_stat (*fn)(__isl_take isl_set *set, __isl_take isl_multi_aff *maff,
 		    void *user), void *user);
 
+__isl_overload
 __isl_give isl_map *isl_map_from_pw_multi_aff(__isl_take isl_pw_multi_aff *pma);
 __isl_give isl_set *isl_set_from_pw_multi_aff(__isl_take isl_pw_multi_aff *pma);
 
