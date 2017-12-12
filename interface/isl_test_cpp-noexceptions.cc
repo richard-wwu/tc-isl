@@ -148,6 +148,61 @@ void test_foreach(isl::ctx ctx)
 	assert(ret2 == isl::stat::error);
 }
 
+/* Test basic schedule tree functionality.
+ *
+ * In particular, create a simple schedule tree and
+ * - perform some generic tests
+ * - test map_descendant_bottom_up in the failing case
+ * - test foreach_descendant_top_down
+ * - test every_descendant
+ */
+static void test_schedule_tree(isl::ctx ctx)
+{
+	auto root = test_schedule_tree_generic(ctx);
+
+	auto fail_map = [](isl::schedule_node node) {
+		return isl::schedule_node();
+	};
+	assert(root.map_descendant_bottom_up(fail_map).is_null());
+
+	int count = 0;
+	auto inc_count = [&count](isl::schedule_node node) {
+		count++;
+		return isl::boolean(true);
+	};
+	root.foreach_descendant_top_down(inc_count);
+	assert(count == 8);
+
+	count = 0;
+	auto inc_count_once = [&count](isl::schedule_node node) {
+		count++;
+		return isl::boolean(false);
+	};
+	root.foreach_descendant_top_down(inc_count_once);
+	assert(count == 1);
+
+	auto is_not_domain = [](isl::schedule_node node) {
+		return !node.isa<isl::schedule_node_domain>();
+	};
+	assert(root.child(0).every_descendant(is_not_domain).is_true());
+	assert(root.every_descendant(is_not_domain).is_false());
+
+	auto fail = [](isl::schedule_node node) {
+		return isl::boolean();
+	};
+	assert(root.every_descendant(fail).is_error());
+
+	auto domain = root.as<isl::schedule_node_domain>().get_domain();
+	auto filters = isl::union_set(ctx, "{}");
+	auto collect_filters = [&filters](isl::schedule_node node) {
+		if (auto filter = node.as<isl::schedule_node_filter>())
+			filters = filters.unite(filter.get_filter());
+		return isl::boolean(true);
+	};
+	root.every_descendant(collect_filters);
+	assert(domain.is_equal(filters));
+}
+
 /* Test that read-only list of vals are modeled correctly.
  *
  * Construct an std::vector of isl::vals and use its iterators to construct a
@@ -272,6 +327,7 @@ void test_list_iterators(isl::ctx ctx)
  *  - Different parameter types
  *  - Different return types
  *  - Foreach functions
+ *  - Schedule trees
  *  - Identifier allocation and equality
  *  - List of isl::val
  *  - Custom function of the list of isl::basic_map
@@ -288,6 +344,7 @@ int main()
 	test_parameters(ctx);
 	test_return(ctx);
 	test_foreach(ctx);
+	test_schedule_tree(ctx);
 	test_val_list(ctx);
 	test_basic_map_list(ctx);
 	test_list_iterators(ctx);

@@ -106,21 +106,44 @@ void python_generator::print_type_check(const string &type, int pos,
 		printf("            raise\n");
 }
 
+/* Print a call to the *_copy function corresponding to "type".
+ */
+void python_generator::print_copy(QualType type)
+{
+	string type_s = extract_type(type);
+
+	printf("isl.%s_copy", type_s.c_str());
+}
+
 /* Construct a wrapper for a callback argument (at position "arg").
  * Assign the wrapper to "cb".  We assume here that a function call
  * has at most one callback argument.
  *
- * The wrapper converts the arguments of the callback to python types.
+ * The wrapper converts the arguments of the callback to python types,
+ * taking a copy if the C callback does not take its arguments.
  * If any exception is thrown, the wrapper keeps track of it in exc_info[0]
- * and returns -1.  Otherwise the wrapper returns 0.
+ * and returns a value indicating an error.  Otherwise the wrapper
+ * returns a value indicating success.
+ * In case the C callback is expected to return an isl_stat,
+ * the error value is -1 and the success value is 0.
+ * In case the C callback is expected to return an isl_bool,
+ * the error value is -1 and the success value is 1 or 0 depending
+ * on the result of the Python callback.
+ * Otherwise, None is returned to indicate an error and
+ * a copy of the object in case of success.
  */
 void python_generator::print_callback(QualType type, int arg)
 {
 	const FunctionProtoType *fn = type->getAs<FunctionProtoType>();
+	QualType return_type = fn->getReturnType();
 	unsigned n_arg = fn->getNumArgs();
 
 	printf("        exc_info = [None]\n");
-	printf("        fn = CFUNCTYPE(c_int");
+	printf("        fn = CFUNCTYPE(");
+	if (is_isl_stat(return_type) || is_isl_bool(return_type))
+		printf("c_int");
+	else
+		printf("c_void_p");
 	for (unsigned i = 0; i < n_arg - 1; ++i) {
 		if (!is_isl_type(fn->getArgType(i)))
 			die("Argument has non-isl type");
@@ -137,11 +160,17 @@ void python_generator::print_callback(QualType type, int arg)
 	for (unsigned i = 0; i < n_arg - 1; ++i) {
 		string arg_type;
 		arg_type = type2python(extract_type(fn->getArgType(i)));
-		printf("            cb_arg%d = %s(ctx=arg0.ctx, "
-			"ptr=cb_arg%d)\n", i, arg_type.c_str(), i);
+		printf("            cb_arg%d = %s(ctx=arg0.ctx, ptr=",
+			i, arg_type.c_str());
+		if (!callback_takes_arguments(fn))
+			print_copy(fn->getArgType(i));
+		printf("(cb_arg%d))\n", i);
 	}
 	printf("            try:\n");
-	printf("                arg%d(", arg);
+	if (is_isl_stat(return_type))
+		printf("                arg%d(", arg);
+	else
+		printf("                res = arg%d(", arg);
 	for (unsigned i = 0; i < n_arg - 1; ++i) {
 		if (i)
 			printf(", ");
@@ -151,8 +180,19 @@ void python_generator::print_callback(QualType type, int arg)
 	printf("            except:\n");
 	printf("                import sys\n");
 	printf("                exc_info[0] = sys.exc_info()\n");
-	printf("                return -1\n");
-	printf("            return 0\n");
+	if (is_isl_stat(return_type) || is_isl_bool(return_type))
+		printf("                return -1\n");
+	else
+		printf("                return None\n");
+	if (is_isl_stat(return_type)) {
+		printf("            return 0\n");
+	} else if (is_isl_bool(return_type)) {
+		printf("            return 1 if res else 0\n");
+	} else {
+		printf("            return ");
+		print_copy(return_type);
+		printf("(res.ptr)\n");
+	}
 	printf("        cb = fn(cb_func)\n");
 }
 
@@ -175,8 +215,8 @@ void python_generator::print_arg_in_call(FunctionDecl *fd, int arg, int skip)
 	if (is_callback(type)) {
 		printf("cb");
 	} else if (takes(param)) {
-		string type_s = extract_type(type);
-		printf("isl.%s_copy(arg%d.ptr)", type_s.c_str(), arg - skip);
+		print_copy(type);
+		printf("(arg%d.ptr)", arg - skip);
 	} else if (type->isPointerType()) {
 		printf("arg%d.ptr", arg - skip);
 	} else {
@@ -256,7 +296,7 @@ void python_generator::print_method(const isl_class &clazz,
 	FunctionDecl *method, vector<string> super)
 {
 	string fullname = method->getName();
-	string cname = fullname.substr(clazz.name.length() + 1);
+	string cname = clazz.method_suffix(fullname);
 	int num_params = method->getNumParams();
 	int drop_user = 0;
 	int drop_ctx = first_arg_is_isl_ctx(method);
@@ -383,7 +423,7 @@ void python_generator::print_method(const isl_class &clazz,
 		return;
 	}
 
-	cname = fullname.substr(clazz.name.length() + 1);
+	cname = clazz.method_suffix(fullname);
 	num_params = any_method->getNumParams();
 
 	print_method_header(is_static(clazz, any_method), cname, num_params);
@@ -409,7 +449,7 @@ void python_generator::print_constructor(const isl_class &clazz,
 	FunctionDecl *cons)
 {
 	string fullname = cons->getName();
-	string cname = fullname.substr(clazz.name.length() + 1);
+	string cname = clazz.method_suffix(fullname);
 	int num_params = cons->getNumParams();
 	int drop_ctx = first_arg_is_isl_ctx(cons);
 
@@ -439,13 +479,9 @@ void python_generator::print_constructor(const isl_class &clazz,
 		if (i)
 			printf(", ");
 		if (is_isl_type(type)) {
-			if (takes(param)) {
-				string type;
-				type = extract_type(param->getOriginalType());
-				printf("isl.%s_copy(args[%d].ptr)",
-					type.c_str(), i - drop_ctx);
-			} else
-				printf("args[%d].ptr", i - drop_ctx);
+			if (takes(param))
+				print_copy(param->getOriginalType());
+			printf("(args[%d].ptr)", i - drop_ctx);
 		} else if (is_string(type)) {
 			printf("args[%d].encode('ascii')", i - drop_ctx);
 		} else {
@@ -456,9 +492,33 @@ void python_generator::print_constructor(const isl_class &clazz,
 	printf("            return\n");
 }
 
+/* If "clazz" has a type function describing subclasses,
+ * then add constructors that allow each of these subclasses
+ * to be treated as an object to the superclass.
+ */
+void python_generator::print_upcast_constructors(const isl_class &clazz)
+{
+	map<int, string>::const_iterator i;
+
+	if (!clazz.fn_type)
+		return;
+
+	for (i = clazz.type_subclasses.begin();
+	     i != clazz.type_subclasses.end(); ++i) {
+		printf("        if len(args) == 1 and type(args[0]) == %s:\n",
+			 type2python(i->second).c_str());
+		printf("            self.ctx = args[0].ctx\n");
+		printf("            self.ptr = isl.%s_copy(args[0].ptr)\n",
+			clazz.name.c_str());
+		printf("            return\n");
+	}
+}
+
 /* Print the header of the class "name" with superclasses "super".
  * The order of the superclasses is the opposite of the order
  * in which the corresponding annotations appear in the source code.
+ * If "clazz" is a subclass derived from a type function,
+ * then the superclass is recorded in "clazz" itself.
  */
 void python_generator::print_class_header(const isl_class &clazz,
 	const string &name, const vector<string> &super)
@@ -472,6 +532,8 @@ void python_generator::print_class_header(const isl_class &clazz,
 			printf("%s", type2python(super[i]).c_str());
 		}
 		printf(")");
+	} else if (clazz.is_type_subclass()) {
+		printf("(%s)", type2python(clazz.name).c_str());
 	} else {
 		printf("(object)");
 	}
@@ -537,6 +599,41 @@ void python_generator::print_method_type(FunctionDecl *fd)
 	print_argtypes(fd);
 }
 
+/* If "clazz" has a type function describing subclasses or
+ * if it is one of those type subclasses, then print a __new__ method.
+ *
+ * In the superclass, the __new__ method constructs an object
+ * of the subclass type specified by the type function.
+ * In the subclass, the __new__ method reverts to the original behavior.
+ */
+void python_generator::print_new(const isl_class &clazz,
+	const string &python_name)
+{
+	if (!clazz.fn_type && !clazz.is_type_subclass())
+		return;
+
+	printf("    def __new__(cls, *args, **keywords):\n");
+
+	if (clazz.fn_type) {
+		map<int, string>::const_iterator i;
+
+		printf("        if \"ptr\" in keywords:\n");
+		printf("            type = isl.%s(keywords[\"ptr\"])\n",
+			clazz.fn_type->getNameAsString().c_str());
+
+		for (i = clazz.type_subclasses.begin();
+		     i != clazz.type_subclasses.end(); ++i) {
+			printf("            if type == %d:\n", i->first);
+			printf("                return %s(**keywords)\n",
+				type2python(i->second).c_str());
+		}
+		printf("            raise\n");
+	}
+
+	printf("        return super(%s, cls).__new__(cls)\n",
+		python_name.c_str());
+}
+
 /* Print declarations for methods printing the class representation,
  * provided there is a corresponding *_to_str function.
  *
@@ -579,7 +676,7 @@ void python_generator::print_representation(const isl_class &clazz,
  *
  * To be able to call C functions it is necessary to explicitly set their
  * argument and result types.  Do this for all exported constructors and
- * methods, as well as for the *_to_str method, if it exists.
+ * methods, as well as for the *_to_str and the type function, if they exist.
  * Assuming each exported class has a *_copy and a *_free method,
  * also unconditionally set the type of such methods.
  */
@@ -600,6 +697,8 @@ void python_generator::print_method_types(const isl_class &clazz)
 	print_method_type(clazz.fn_free);
 	if (clazz.fn_to_str)
 		print_method_type(clazz.fn_to_str);
+	if (clazz.fn_type)
+		print_method_type(clazz.fn_type);
 }
 
 /* Print out the definition of this isl_class.
@@ -608,8 +707,8 @@ void python_generator::print_method_types(const isl_class &clazz)
  * If it is, we make sure those superclasses are printed out first.
  *
  * Then we print a constructor with several cases, one for constructing
- * a Python object from a return value and one for each function that
- * was marked as a constructor.
+ * a Python object from a return value, one for each function that
+ * was marked as a constructor and for each type based subclass.
  *
  * Next, we print out some common methods and the methods corresponding
  * to functions that are not marked as constructors.
@@ -620,7 +719,7 @@ void python_generator::print_method_types(const isl_class &clazz)
  */
 void python_generator::print(const isl_class &clazz)
 {
-	string p_name = type2python(clazz.name);
+	string p_name = type2python(clazz.subclass_name);
 	set<FunctionDecl *>::const_iterator in;
 	map<string, set<FunctionDecl *> >::const_iterator it;
 	vector<string> super = find_superclasses(clazz.type);
@@ -628,7 +727,9 @@ void python_generator::print(const isl_class &clazz)
 	for (unsigned i = 0; i < super.size(); ++i)
 		if (done.find(super[i]) == done.end())
 			print(classes[super[i]]);
-	done.insert(clazz.name);
+	if (clazz.is_type_subclass() && done.find(clazz.name) == done.end())
+		print(classes[clazz.name]);
+	done.insert(clazz.subclass_name);
 
 	printf("\n");
 	print_class_header(clazz, p_name, super);
@@ -642,11 +743,13 @@ void python_generator::print(const isl_class &clazz)
 	for (in = clazz.constructors.begin(); in != clazz.constructors.end();
 		++in)
 		print_constructor(clazz, *in);
+	print_upcast_constructors(clazz);
 	printf("        raise Error\n");
 	printf("    def __del__(self):\n");
 	printf("        if hasattr(self, 'ptr'):\n");
 	printf("            isl.%s_free(self.ptr)\n", clazz.name.c_str());
 
+	print_new(clazz, p_name);
 	print_representation(clazz, p_name);
 
 	for (it = clazz.methods.begin(); it != clazz.methods.end(); ++it)

@@ -70,11 +70,68 @@ FunctionDecl *generator::find_by_name(const string &name, bool required)
 	return NULL;
 }
 
+/* Add a subclass derived from "decl" called "sub_name" to the set of classes,
+ * keeping track of the _to_str, _copy and _free functions, if any, separately.
+ * "sub_name" is either the name of the class itself or
+ * the name of a type based subclass.
+ */
+void generator::add_subclass(RecordDecl *decl, const string &sub_name)
+{
+	string name = decl->getName();
+
+	classes[sub_name].name = name;
+	classes[sub_name].subclass_name = sub_name;
+	classes[sub_name].type = decl;
+	classes[sub_name].fn_to_str = find_by_name(name + "_to_str", false);
+	classes[sub_name].fn_copy = find_by_name(name + "_copy", true);
+	classes[sub_name].fn_is_equal = find_by_name(name + "_is_equal", false);
+	classes[sub_name].fn_free = find_by_name(name + "_free", true);
+}
+
+/* Add a class derived from "decl" to the set of classes,
+ * keeping track of the _to_str, _copy and _free functions, if any, separately.
+ */
+void generator::add_class(RecordDecl *decl)
+{
+	return add_subclass(decl, decl->getName());
+}
+
+/* Given a function "fn_type" that returns the subclass type
+ * of a C object, create subclasses for each of the (non-negative)
+ * return values.
+ *
+ * The function "fn_type" is also stored in the superclass,
+ * along with all pairs of type values and subclass names.
+ */
+void generator::add_type_subclasses(FunctionDecl *fn_type)
+{
+	QualType return_type = fn_type->getReturnType();
+	const EnumType *enum_type = return_type->getAs<EnumType>();
+	EnumDecl *decl = enum_type->getDecl();
+	isl_class *c = method2class(fn_type);
+	DeclContext::decl_iterator i;
+
+	c->fn_type = fn_type;
+	for (i = decl->decls_begin(); i != decl->decls_end(); ++i) {
+		EnumConstantDecl *ecd = dyn_cast<EnumConstantDecl>(*i);
+		int val = (int) ecd->getInitVal().getExtValue();
+		string name = ecd->getNameAsString();
+
+		if (val < 0)
+			continue;
+		c->type_subclasses[val] = name;
+		add_subclass(c->type, name);
+	}
+}
+
 /* Collect all functions that belong to a certain type, separating
  * constructors from regular methods and keeping track of the _to_str,
  * _copy and _free functions, if any, separately.  If there are any overloaded
  * functions, then they are grouped based on their name after removing the
  * argument type suffix.
+ * Check for functions that describe subclasses before considering
+ * any other functions in order to be able to detect those other
+ * functions as belonging to the subclasses.
  */
 generator::generator(set<RecordDecl *> &exported_types,
 	set<FunctionDecl *> exported_functions, set<FunctionDecl *> functions)
@@ -88,20 +145,24 @@ generator::generator(set<RecordDecl *> &exported_types,
 	}
 
 	set<RecordDecl *>::iterator it;
-	for (it = exported_types.begin(); it != exported_types.end(); ++it) {
-		RecordDecl *decl = *it;
-		string name = decl->getName();
-		classes[name].name = name;
-		classes[name].type = decl;
-		classes[name].fn_to_str = find_by_name(name + "_to_str", false);
-		classes[name].fn_copy = find_by_name(name + "_copy", true);
-		classes[name].fn_is_equal = find_by_name(name + "_is_equal", false);
-		classes[name].fn_free = find_by_name(name + "_free", true);
+	for (it = exported_types.begin(); it != exported_types.end(); ++it)
+		add_class(*it);
+
+	for (in = exported_functions.begin(); in != exported_functions.end();
+	     ++in) {
+		if (!is_subclass(*in))
+			continue;
+		add_type_subclasses(*in);
 	}
 
 	for (in = exported_functions.begin(); in != exported_functions.end();
 	     ++in) {
-		isl_class *c = method2class(classes, *in);
+		isl_class *c;
+
+		if (is_subclass(*in))
+			continue;
+
+		c = method2class(*in);
 		if (!c)
 			continue;
 		if (is_constructor(*in)) {
@@ -135,7 +196,7 @@ void generator::die(string msg)
  * 'annotate("annotation(something)")' and return a vector that contains
  * 'something'.
  */
-vector<string> generator::extract_annotation_arguments(RecordDecl *decl,
+vector<string> generator::extract_annotation_arguments(Decl *decl,
 	const string &annotation) const
 {
 	vector<string> arguments;
@@ -166,7 +227,7 @@ vector<string> generator::extract_annotation_arguments(RecordDecl *decl,
  * is the one that is closest to the annotated type and the corresponding
  * type is then also the first that will appear in the sequence of types.
  */
-std::vector<string> generator::find_superclasses(RecordDecl *decl)
+std::vector<string> generator::find_superclasses(Decl *decl)
 {
 	return extract_annotation_arguments(decl, "isl_subclass");
 }
@@ -180,6 +241,13 @@ vector<string> generator::get_list_element_type_name(RecordDecl *decl)
 	if (elems.size() > 1)
 		die("multiple element types provided for a list");
 	return elems;
+}
+
+/* Is "decl" marked as describing subclasses?
+ */
+bool generator::is_subclass(FunctionDecl *decl)
+{
+	return find_superclasses(decl).size() > 0;
 }
 
 /* Is decl marked as being part of an overloaded method?
@@ -217,18 +285,18 @@ bool generator::gives(Decl *decl)
 	return has_annotation(decl, "isl_give");
 }
 
-/* Return the class that has a name that matches the initial part
+/* Return the class that has a name that best matches the initial part
  * of the name of function "fd" or NULL if no such class could be found.
  */
-isl_class *generator::method2class(map<string, isl_class> &classes,
-	FunctionDecl *fd)
+isl_class *generator::method2class(FunctionDecl *fd)
 {
 	string best;
 	map<string, isl_class>::iterator ci;
 	string name = fd->getNameAsString();
 
 	for (ci = classes.begin(); ci != classes.end(); ++ci) {
-		if (name.substr(0, ci->first.length()) == ci->first)
+		size_t len = ci->first.length();
+		if (len > best.length() && name.substr(0, len) == ci->first)
 			best = ci->first;
 	}
 
@@ -264,6 +332,23 @@ bool generator::first_arg_is_isl_ctx(FunctionDecl *fd)
 
 	param = fd->getParamDecl(0);
 	return is_isl_ctx(param->getOriginalType());
+}
+
+/* Does a callback of type "fn_type" take its arguments?
+ *
+ * The memory management annotations of arguments to function pointers
+ * are not recorded by clang, so the information cannot be extracted
+ * from "fn_type".
+ * Assume all callbacks take their arguments, except when
+ * the return value is an isl_bool.
+ */
+bool generator::callback_takes_arguments(const FunctionProtoType *fn_type)
+{
+	QualType return_type = fn_type->getReturnType();
+
+	if (is_isl_bool(return_type))
+		return false;
+	return true;
 }
 
 /* Is "type" that of a pointer to an isl_* structure?
