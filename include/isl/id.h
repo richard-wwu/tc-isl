@@ -13,6 +13,7 @@ extern "C" {
 struct isl_id;
 typedef struct isl_id isl_id;
 
+struct __isl_list(isl_id) isl_id_list;
 ISL_DECLARE_LIST(id)
 
 isl_ctx *isl_id_get_ctx(__isl_keep isl_id *id);

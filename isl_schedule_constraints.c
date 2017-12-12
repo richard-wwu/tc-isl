@@ -11,6 +11,7 @@
 #include <isl_schedule_constraints.h>
 #include <isl/schedule.h>
 #include <isl/space.h>
+#include <isl/aff.h>
 #include <isl/set.h>
 #include <isl/map.h>
 #include <isl/union_set.h>
@@ -20,6 +21,10 @@
 /* The constraints that need to be satisfied by a schedule on "domain".
  *
  * "context" specifies extra constraints on the parameters.
+ *
+ * "prefix" specifies an outer schedule within which the schedule
+ * should be computed.  A zero-dimensional "prefix" means that
+ * there is no such outer schedule.
  *
  * "validity" constraints map domain elements i to domain elements
  * that should be scheduled after i.  (Hard constraint)
@@ -42,7 +47,18 @@ struct isl_schedule_constraints {
 	isl_union_set *domain;
 	isl_set *context;
 
+	isl_multi_union_pw_aff *prefix;
+
 	isl_union_map *constraint[isl_edge_last + 1];
+
+        __isl_give isl_basic_set *(*add_constraint)(
+		__isl_take isl_basic_set *, int, int,
+		__isl_keep isl_id_list *, int *, int *, void *);
+        void *add_constraint_data;
+
+	isl_bool (*merge_callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *);
+	void *merge_callback_data;
 };
 
 __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
@@ -59,7 +75,8 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
 
 	sc_copy->domain = isl_union_set_copy(sc->domain);
 	sc_copy->context = isl_set_copy(sc->context);
-	if (!sc_copy->domain || !sc_copy->context)
+	sc_copy->prefix = isl_multi_union_pw_aff_copy(sc->prefix);
+	if (!sc_copy->domain || !sc_copy->context || !sc->prefix)
 		return isl_schedule_constraints_free(sc_copy);
 
 	for (i = isl_edge_first; i <= isl_edge_last; ++i) {
@@ -67,6 +84,11 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_copy(
 		if (!sc_copy->constraint[i])
 			return isl_schedule_constraints_free(sc_copy);
 	}
+
+	sc_copy->add_constraint = sc->add_constraint;
+	sc_copy->add_constraint_data = sc->add_constraint_data;
+	sc_copy->merge_callback = sc->merge_callback;
+	sc_copy->merge_callback_data = sc->merge_callback_data;
 
 	return sc_copy;
 }
@@ -98,6 +120,11 @@ static __isl_give isl_schedule_constraints *isl_schedule_constraints_init(
 	space = isl_union_set_get_space(sc->domain);
 	if (!sc->context)
 		sc->context = isl_set_universe(isl_space_copy(space));
+	if (!sc->prefix) {
+		isl_space *space_prefix;
+		space_prefix = isl_space_set_from_params(isl_space_copy(space));
+		sc->prefix = isl_multi_union_pw_aff_zero(space_prefix);
+	}
 	empty = isl_union_map_empty(space);
 	for (i = isl_edge_first; i <= isl_edge_last; ++i) {
 		if (sc->constraint[i])
@@ -108,8 +135,14 @@ static __isl_give isl_schedule_constraints *isl_schedule_constraints_init(
 	}
 	isl_union_map_free(empty);
 
-	if (!sc->domain || !sc->context)
+	if (!sc->domain || !sc->context || !sc->prefix)
 		return isl_schedule_constraints_free(sc);
+
+	sc->add_constraint = NULL;
+	sc->add_constraint_data = NULL;
+	
+	sc->merge_callback = NULL;
+	sc->merge_callback_data = NULL;
 
 	return sc;
 }
@@ -155,6 +188,19 @@ error:
 	isl_schedule_constraints_free(sc);
 	isl_union_set_free(domain);
 	return NULL;
+}
+
+/* Intersect the domain of "sc" with "domain".
+ */
+__isl_give isl_schedule_constraints *isl_schedule_constraints_intersect_domain(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_take isl_union_set *domain)
+{
+	isl_union_set *sc_domain;
+
+	sc_domain = isl_schedule_constraints_get_domain(sc);
+	sc_domain = isl_union_set_intersect(sc_domain, domain);
+	return isl_schedule_constraints_set_domain(sc, sc_domain);
 }
 
 /* Replace the context of "sc" by "context".
@@ -237,6 +283,79 @@ isl_schedule_constraints_set_conditional_validity(
 	return sc;
 }
 
+/* Replace the schedule prefix of "sc" by "prefix".
+ */
+__isl_give isl_schedule_constraints *isl_schedule_constraints_set_prefix(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_take isl_multi_union_pw_aff *prefix)
+{
+	if (!sc || !prefix)
+		goto error;
+
+	isl_multi_union_pw_aff_free(sc->prefix);
+	sc->prefix = prefix;
+
+	return sc;
+error:
+	isl_schedule_constraints_free(sc);
+	isl_multi_union_pw_aff_free(prefix);
+	return NULL;
+}
+
+/* Replace the callback for introducing additional schedule constraints of "sc"
+ * by "callback".  When called, the last argument of the callback will be
+ * user-specified object "data".  The caller is responsible for maintaining
+ * "data" alive long enough, at least as long as "sc".
+ *
+ * The callback receives
+ * - a basic set representing the current LP (takes ownership);
+ * - the number of symbolic parameters in the LP bounding function;
+ * - the index of the schedule dimension being constructed;
+ * - the list of statement IDs (does not take ownership);
+ * - an array containing the number of symbolic parameters used for each
+ *   statement, in the same order as they appear in the list;
+ * - an array containing the domain dimension for each statement, in the same
+ *   order as they appear in the list;
+ * - a "data" pointer provided in this call.
+ */
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_custom_constraint_callback(
+	__isl_take isl_schedule_constraints *sc,
+	__isl_give isl_basic_set *(*callback)(isl_basic_set *, int, int,
+		__isl_give isl_id_list *, int *, int *, void *),
+	void *data)
+{
+	sc->add_constraint = callback;
+	sc->add_constraint_data = data;
+	return sc;
+}
+
+__isl_give isl_schedule_constraints *
+isl_schedule_constraints_set_merge_callback(
+	__isl_take isl_schedule_constraints *sc,
+	isl_bool (*callback)(__isl_give isl_union_map *,
+		__isl_give isl_union_map *, int, int, int, void *),
+	void *data)
+{
+	sc->merge_callback = callback;
+	sc->merge_callback_data = data;
+
+	return sc;
+}
+
+isl_bool (*isl_schedule_constraints_get_merge_callback(
+	__isl_keep isl_schedule_constraints *sc))
+(__isl_give isl_union_map *, __isl_give isl_union_map *, int, int, int, void *)
+{
+	return sc->merge_callback;
+}
+
+void *isl_schedule_constraints_get_merge_callback_data(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	return sc->merge_callback_data;
+}
+
 __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 	__isl_take isl_schedule_constraints *sc)
 {
@@ -247,6 +366,7 @@ __isl_null isl_schedule_constraints *isl_schedule_constraints_free(
 
 	isl_union_set_free(sc->domain);
 	isl_set_free(sc->context);
+	isl_multi_union_pw_aff_free(sc->prefix);
 	for (i = isl_edge_first; i <= isl_edge_last; ++i)
 		isl_union_map_free(sc->constraint[i]);
 
@@ -335,6 +455,37 @@ isl_schedule_constraints_get_conditional_validity_condition(
 	return isl_schedule_constraints_get(sc, isl_edge_condition);
 }
 
+/* Return the schedule prefix of "sc".
+ */
+__isl_give isl_multi_union_pw_aff *isl_schedule_constraints_get_prefix(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	if (!sc)
+		return NULL;
+
+	return isl_multi_union_pw_aff_copy(sc->prefix);
+}
+
+/* Return the callback to introduce additional schedule constraints of "sc".
+ */
+__isl_give isl_basic_set *
+(*isl_schedule_constraints_get_custom_constraint_callback(
+	__isl_keep isl_schedule_constraints *sc))
+	(__isl_take isl_basic_set *, int, int,
+	 __isl_keep isl_id_list *, int *, int *, void *)
+{
+	return sc->add_constraint;
+}
+
+/* Return the custom user data passed to the callback to introduce additional
+ * schedule constraints of "sc".  Ownership is not transferred.
+ */
+void *isl_schedule_constraints_get_custom_constraint_callback_user(
+	__isl_keep isl_schedule_constraints *sc)
+{
+	return sc->add_constraint_data;
+}
+
 /* Add "c" to the constraints of type "type" in "sc".
  */
 __isl_give isl_schedule_constraints *isl_schedule_constraints_add(
@@ -421,11 +572,14 @@ static __isl_give isl_union_map *apply(__isl_take isl_union_map *c,
  *
  * The two sides of the various schedule constraints are adjusted
  * accordingly.
+ *
+ * The schedule prefix is removed because it cannot be transformed by "umap".
  */
 __isl_give isl_schedule_constraints *isl_schedule_constraints_apply(
 	__isl_take isl_schedule_constraints *sc,
 	__isl_take isl_union_map *umap)
 {
+	int n;
 	enum isl_edge_type i;
 
 	if (!sc || !umap)
@@ -439,7 +593,10 @@ __isl_give isl_schedule_constraints *isl_schedule_constraints_apply(
 			goto error;
 	}
 	sc->domain = isl_union_set_apply(sc->domain, umap);
-	if (!sc->domain)
+	n = isl_multi_union_pw_aff_dim(sc->prefix, isl_dim_set);
+	sc->prefix = isl_multi_union_pw_aff_drop_dims(sc->prefix,
+							isl_dim_set, 0, n);
+	if (!sc->domain || !sc->prefix)
 		return isl_schedule_constraints_free(sc);
 
 	return sc;
@@ -463,6 +620,7 @@ enum isl_sc_key {
 	isl_sc_key_proximity = isl_edge_proximity,
 	isl_sc_key_domain,
 	isl_sc_key_context,
+	isl_sc_key_prefix,
 	isl_sc_key_end
 };
 
@@ -477,6 +635,7 @@ static char *key_str[] = {
 	[isl_sc_key_proximity] = "proximity",
 	[isl_sc_key_domain] = "domain",
 	[isl_sc_key_context] = "context",
+	[isl_sc_key_prefix] = "prefix",
 };
 
 /* Print a key, value pair for the edge of type "type" in "sc" to "p".
@@ -498,6 +657,25 @@ static __isl_give isl_printer *print_constraint(__isl_take isl_printer *p,
 	p = isl_printer_print_str(p, key_str[type]);
 	p = isl_printer_yaml_next(p);
 	p = isl_printer_print_union_map(p, sc->constraint[type]);
+	p = isl_printer_yaml_next(p);
+
+	return p;
+}
+
+/* Print a key, value pair for the schedule prefix.
+ *
+ * If the schedule prefix is zero-dimensional, then
+ * it is not printed since a zero-dimensional prefix is the default.
+ */
+static __isl_give isl_printer *print_prefix(__isl_take isl_printer *p,
+	__isl_keep isl_schedule_constraints *sc)
+{
+	if (isl_multi_union_pw_aff_dim(sc->prefix, isl_dim_set) == 0)
+		return p;
+
+	p = isl_printer_print_str(p, key_str[isl_sc_key_prefix]);
+	p = isl_printer_yaml_next(p);
+	p = isl_printer_print_multi_union_pw_aff(p, sc->prefix);
 	p = isl_printer_yaml_next(p);
 
 	return p;
@@ -536,6 +714,7 @@ __isl_give isl_printer *isl_printer_print_schedule_constraints(
 	p = print_constraint(p, sc, isl_edge_coincidence);
 	p = print_constraint(p, sc, isl_edge_condition);
 	p = print_constraint(p, sc, isl_edge_conditional_validity);
+	p = print_prefix(p, sc);
 	p = isl_printer_yaml_end_mapping(p);
 
 	return p;
@@ -565,6 +744,10 @@ __isl_give isl_printer *isl_printer_print_schedule_constraints(
 #define BASE union_map
 #include "read_in_string_templ.c"
 
+#undef BASE
+#define BASE multi_union_pw_aff
+#include "read_in_string_templ.c"
+
 /* Read an isl_schedule_constraints object from "s".
  *
  * Start off with an empty (invalid) isl_schedule_constraints object and
@@ -591,6 +774,7 @@ __isl_give isl_schedule_constraints *isl_stream_read_schedule_constraints(
 		isl_set *context;
 		isl_union_set *domain;
 		isl_union_map *constraints;
+		isl_multi_union_pw_aff *prefix;
 
 		key = get_key(s);
 		if (isl_stream_yaml_next(s) < 0)
@@ -609,6 +793,12 @@ __isl_give isl_schedule_constraints *isl_stream_read_schedule_constraints(
 		case isl_sc_key_context:
 			context = read_set(s);
 			sc = isl_schedule_constraints_set_context(sc, context);
+			if (!sc)
+				return NULL;
+			break;
+		case isl_sc_key_prefix:
+			prefix = read_multi_union_pw_aff(s);
+			sc = isl_schedule_constraints_set_prefix(sc, prefix);
 			if (!sc)
 				return NULL;
 			break;
@@ -690,6 +880,8 @@ isl_schedule_constraints_align_params(__isl_take isl_schedule_constraints *sc)
 	for (i = isl_edge_first; i <= isl_edge_last; ++i)
 		space = isl_space_align_params(space,
 				    isl_union_map_get_space(sc->constraint[i]));
+	space = isl_space_align_params(space,
+				isl_multi_union_pw_aff_get_space(sc->prefix));
 
 	for (i = isl_edge_first; i <= isl_edge_last; ++i) {
 		sc->constraint[i] = isl_union_map_align_params(
@@ -697,9 +889,11 @@ isl_schedule_constraints_align_params(__isl_take isl_schedule_constraints *sc)
 		if (!sc->constraint[i])
 			space = isl_space_free(space);
 	}
+	sc->prefix = isl_multi_union_pw_aff_align_params(sc->prefix,
+							isl_space_copy(space));
 	sc->context = isl_set_align_params(sc->context, isl_space_copy(space));
 	sc->domain = isl_union_set_align_params(sc->domain, space);
-	if (!sc->context || !sc->domain)
+	if (!sc->context || !sc->domain || !sc->prefix)
 		return isl_schedule_constraints_free(sc);
 
 	return sc;

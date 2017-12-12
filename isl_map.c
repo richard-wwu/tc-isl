@@ -5503,6 +5503,23 @@ __isl_give isl_basic_set *isl_basic_set_reset_space(
 							dim));
 }
 
+/* Check that the total dimensions of "map" and "space" are the same.
+ */
+static isl_stat check_map_space_equal_total_dim(__isl_keep isl_map *map,
+	__isl_keep isl_space *space)
+{
+	unsigned dim1, dim2;
+
+	if (!map || !space)
+		return isl_stat_error;
+	dim1 = isl_map_dim(map, isl_dim_all);
+	dim2 = isl_space_dim(space, isl_dim_all);
+	if (dim1 == dim2)
+		return isl_stat_ok;
+	isl_die(isl_map_get_ctx(map), isl_error_invalid,
+		"total dimensions do not match", return isl_stat_error);
+}
+
 __isl_give isl_map *isl_map_reset_space(__isl_take isl_map *map,
 	__isl_take isl_space *dim)
 {
@@ -5525,6 +5542,37 @@ __isl_give isl_map *isl_map_reset_space(__isl_take isl_map *map,
 error:
 	isl_map_free(map);
 	isl_space_free(dim);
+	return NULL;
+}
+
+/* Replace the space of "map" by "space", without modifying
+ * the dimension of "map".
+ *
+ * If the space of "map" is identical to "space" (including the identifiers
+ * of the input and output dimensions), then simply return the original input.
+ */
+__isl_give isl_map *isl_map_reset_equal_dim_space(__isl_take isl_map *map,
+	__isl_take isl_space *space)
+{
+	isl_bool equal;
+	isl_space *map_space;
+
+	map_space = isl_map_peek_space(map);
+	equal = isl_space_is_equal(map_space, space);
+	if (equal >= 0 && equal)
+		equal = isl_space_has_equal_ids(map_space, space);
+	if (equal < 0)
+		goto error;
+	if (equal) {
+		isl_space_free(space);
+		return map;
+	}
+	if (check_map_space_equal_total_dim(map, space) < 0)
+		goto error;
+	return isl_map_reset_space(map, space);
+error:
+	isl_map_free(map);
+	isl_space_free(space);
 	return NULL;
 }
 
@@ -7898,6 +7946,66 @@ __isl_give isl_map *isl_map_intersect_range_factor_range(
 {
 	return isl_map_align_params_map_map_and(map, factor,
 					    &map_intersect_range_factor_range);
+}
+
+/* Given a map "map" in a space [A -> B] -> C and a set "domain"
+ * in the space A, return the intersection.
+ * "map" and "domain" are assumed to have the same parameters.
+ *
+ * The set "domain" is extended to a set living in the space [A -> B] and
+ * the domain of "map" is intersected with this set.
+ */
+static __isl_give isl_map *map_intersect_domain_wrapped_domain(
+	__isl_take isl_map *map, __isl_take isl_set *domain)
+{
+	isl_space *space;
+	isl_set *factor;
+
+	space = isl_map_get_space(map);
+	space = isl_space_domain_wrapped_range(space);
+	factor = isl_set_universe(space);
+	domain = isl_set_product(domain, factor);
+	return isl_map_intersect_domain(map, domain);
+}
+
+/* Given a map "map" in a space [A -> B] -> C and a set "domain"
+ * in the space A, return the intersection.
+ */
+__isl_give isl_map *isl_map_intersect_domain_wrapped_domain(
+	__isl_take isl_map *map, __isl_take isl_set *domain)
+{
+	return isl_map_align_params_map_map_and(map, domain,
+					&map_intersect_domain_wrapped_domain);
+}
+
+/* Given a map "map" in a space A -> [B -> C] and a set "domain"
+ * in the space B, return the intersection.
+ * "map" and "domain" are assumed to have the same parameters.
+ *
+ * The set "domain" is extended to a set living in the space [B -> C] and
+ * the range of "map" is intersected with this set.
+ */
+static __isl_give isl_map *map_intersect_range_wrapped_domain(
+	__isl_take isl_map *map, __isl_take isl_set *domain)
+{
+	isl_space *space;
+	isl_set *factor;
+
+	space = isl_map_get_space(map);
+	space = isl_space_range_wrapped_range(space);
+	factor = isl_set_universe(space);
+	domain = isl_set_product(domain, factor);
+	return isl_map_intersect_range(map, domain);
+}
+
+/* Given a map "map" in a space A -> [B -> C] and a set "domain"
+ * in the space B, return the intersection.
+ */
+__isl_give isl_map *isl_map_intersect_range_wrapped_domain(
+	__isl_take isl_map *map, __isl_take isl_set *domain)
+{
+	return isl_map_align_params_map_map_and(map, domain,
+					&map_intersect_range_wrapped_domain);
 }
 
 static __isl_give isl_map *map_apply_domain(__isl_take isl_map *map1,
@@ -12231,7 +12339,7 @@ __isl_give isl_basic_map *isl_basic_map_from_multi_aff2(
 		isl_aff *aff;
 		isl_basic_map *bmap_i;
 
-		aff = isl_aff_copy(maff->p[i]);
+		aff = isl_aff_copy(maff->u.p[i]);
 		bmap_i = isl_basic_map_from_aff2(aff, rational);
 
 		bmap = isl_basic_map_flat_range_product(bmap, bmap_i);
@@ -12762,7 +12870,7 @@ static int set_ma_divs(__isl_keep isl_basic_map *bmap,
 	if (n_div == 0)
 		return 0;
 
-	ls = isl_aff_get_domain_local_space(ma->p[0]);
+	ls = isl_aff_get_domain_local_space(ma->u.p[0]);
 	if (!ls)
 		return -1;
 
@@ -12808,7 +12916,7 @@ static int multi_aff_strides(__isl_keep isl_multi_aff *ma)
 	int strides = 0;
 
 	for (i = 0; i < ma->n; ++i)
-		if (!isl_int_is_one(ma->p[i]->v->el[0]))
+		if (!isl_int_is_one(ma->u.p[i]->v->el[0]))
 			strides++;
 
 	return strides;
@@ -12848,7 +12956,7 @@ static __isl_give isl_basic_map *add_ma_strides(
 	for (i = 0; i < ma->n; ++i) {
 		int o_bmap = 0, o_ma = 1;
 
-		if (isl_int_is_one(ma->p[i]->v->el[0]))
+		if (isl_int_is_one(ma->u.p[i]->v->el[0]))
 			continue;
 		div = isl_basic_map_alloc_div(bmap);
 		k = isl_basic_map_alloc_equality(bmap);
@@ -12856,23 +12964,23 @@ static __isl_give isl_basic_map *add_ma_strides(
 			goto error;
 		isl_int_set_si(bmap->div[div][0], 0);
 		isl_seq_cpy(bmap->eq[k] + o_bmap,
-			    ma->p[i]->v->el + o_ma, 1 + n_param);
+			    ma->u.p[i]->v->el + o_ma, 1 + n_param);
 		o_bmap += 1 + n_param;
 		o_ma += 1 + n_param;
 		isl_seq_clr(bmap->eq[k] + o_bmap, n_before);
 		o_bmap += n_before;
 		isl_seq_cpy(bmap->eq[k] + o_bmap,
-			    ma->p[i]->v->el + o_ma, n_in);
+			    ma->u.p[i]->v->el + o_ma, n_in);
 		o_bmap += n_in;
 		o_ma += n_in;
 		isl_seq_clr(bmap->eq[k] + o_bmap, n_after);
 		o_bmap += n_after;
 		isl_seq_cpy(bmap->eq[k] + o_bmap,
-			    ma->p[i]->v->el + o_ma, n_div_ma);
+			    ma->u.p[i]->v->el + o_ma, n_div_ma);
 		o_bmap += n_div_ma;
 		o_ma += n_div_ma;
 		isl_seq_clr(bmap->eq[k] + o_bmap, 1 + total - o_bmap);
-		isl_int_neg(bmap->eq[k][1 + total], ma->p[i]->v->el[0]);
+		isl_int_neg(bmap->eq[k][1 + total], ma->u.p[i]->v->el[0]);
 		total++;
 	}
 
@@ -12975,7 +13083,7 @@ __isl_give isl_basic_map *isl_basic_map_preimage_multi_aff(
 		n_after = 0;
 	}
 	n_div_bmap = isl_basic_map_dim(bmap, isl_dim_div);
-	n_div_ma = ma->n ? isl_aff_dim(ma->p[0], isl_dim_div) : 0;
+	n_div_ma = ma->n ? isl_aff_dim(ma->u.p[0], isl_dim_div) : 0;
 
 	space = isl_multi_aff_get_domain_space(ma);
 	space = isl_space_set(isl_basic_map_get_space(bmap), type, space);
@@ -13351,18 +13459,26 @@ __isl_give isl_map *isl_map_preimage_range_pw_multi_aff(
  * We create a separate isl_multi_aff to effectuate this change
  * in order to avoid spurious splitting of the map along the pieces
  * of "mpa".
+ * If "mpa" has a non-trivial explicit domain, however,
+ * then the full substitution should be performed.
  */
 __isl_give isl_map *isl_map_preimage_multi_pw_aff(__isl_take isl_map *map,
 	enum isl_dim_type type, __isl_take isl_multi_pw_aff *mpa)
 {
 	int n;
+	isl_bool full;
 	isl_pw_multi_aff *pma;
 
 	if (!map || !mpa)
 		goto error;
 
 	n = isl_map_dim(map, type);
-	if (!isl_map_involves_dims(map, type, 0, n)) {
+	full = isl_map_involves_dims(map, type, 0, n);
+	if (full >= 0 && !full)
+		full = isl_multi_pw_aff_has_non_trivial_domain(mpa);
+	if (full < 0)
+		goto error;
+	if (!full) {
 		isl_space *space;
 		isl_multi_aff *ma;
 

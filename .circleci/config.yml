@@ -1,0 +1,77 @@
+version: 2
+jobs:
+  "build-centos":
+    working_directory: ~/isl
+    resource_class: xlarge
+    docker:
+      - image: nicolasvasilache/tc-centos:latest
+
+    steps:
+      - checkout
+
+      - run:
+          name: build-isl
+          command: |
+            cd ~/isl
+            export ISL_DIR=$(pwd)
+            VERBOSE=1 TRAVIS=1 CORES=16 CMAKE_VERSION="cmake" CLANG_PREFIX="$(llvm-config-4.0 --prefix)" ./build.sh --isl
+
+      - run:
+          name: test_isl
+          command: |
+            cd ~/isl
+            ./flags.sh ./build/isl_test
+            ./flags.sh ./build/isl_test_int
+
+  "build-1404":
+    working_directory: ~/isl
+    resource_class: xlarge
+    docker:
+      - image: nicolasvasilache/tc-1404:latest
+
+    steps:
+      - checkout
+
+      - run:
+          name: build-isl
+          command: |
+            cd ~/isl
+            export ISL_DIR=$(pwd)
+            VERBOSE=1 TRAVIS=1 CORES=16 CMAKE_VERSION="cmake" CLANG_PREFIX="$(llvm-config-4.0 --prefix)" ./build.sh --isl
+
+      - run:
+          name: test_isl
+          command: |
+            cd ~/isl
+            ./flags.sh ./build/isl_test
+            ./flags.sh ./build/isl_test_int
+
+  "build-1604":
+    working_directory: ~/isl
+    resource_class: xlarge
+    docker:
+      - image: nicolasvasilache/tc-1604:latest
+
+    steps:
+      - checkout
+
+      - run:
+          name: build-isl
+          command: |
+            cd ~/isl
+            export ISL_DIR=$(pwd)
+            VERBOSE=1 TRAVIS=1 CORES=16 CMAKE_VERSION="cmake" CLANG_PREFIX="$(llvm-config-4.0 --prefix)" ./build.sh --isl
+
+      - run:
+          name: test_isl
+          command: |
+            cd ~/isl
+            ./flags.sh ./build/isl_test
+            ./flags.sh ./build/isl_test_int
+workflows:
+  version: 2
+  build:
+    jobs:
+      #- "build-centos"
+      - "build-1404"
+      - "build-1604"

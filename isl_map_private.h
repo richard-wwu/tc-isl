@@ -169,6 +169,7 @@ __isl_give isl_map *isl_map_reset(__isl_take isl_map *map,
 __isl_keep isl_space *isl_basic_map_peek_space(
 	__isl_keep const isl_basic_map *bmap);
 __isl_keep isl_space *isl_basic_set_peek_space(__isl_keep isl_basic_set *bset);
+__isl_keep isl_space *isl_map_peek_space(__isl_keep const isl_map *map);
 
 __isl_give isl_basic_set *isl_basic_set_reset_space(
 	__isl_take isl_basic_set *bset, __isl_take isl_space *dim);
@@ -176,6 +177,8 @@ __isl_give isl_basic_map *isl_basic_map_reset_space(
 	__isl_take isl_basic_map *bmap, __isl_take isl_space *dim);
 __isl_give isl_map *isl_map_reset_space(__isl_take isl_map *map,
 	__isl_take isl_space *dim);
+__isl_give isl_map *isl_map_reset_equal_dim_space(__isl_take isl_map *map,
+	__isl_take isl_space *space);
 
 unsigned isl_basic_map_offset(struct isl_basic_map *bmap,
 					enum isl_dim_type type);
@@ -489,6 +492,7 @@ isl_bool isl_basic_map_plain_is_non_empty(__isl_keep isl_basic_map *bmap);
 isl_bool isl_basic_map_plain_is_single_valued(__isl_keep isl_basic_map *bmap);
 
 isl_bool isl_map_is_set(__isl_keep isl_map *map);
+isl_bool isl_map_is_params(__isl_keep isl_map *map);
 
 isl_bool isl_basic_set_plain_dim_is_fixed(__isl_keep isl_basic_set *bset,
 	unsigned dim, isl_int *val);

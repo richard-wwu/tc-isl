@@ -34,6 +34,7 @@ struct isl_class {
 	FunctionDecl *fn_type;
 	FunctionDecl *fn_to_str;
 	FunctionDecl *fn_copy;
+	FunctionDecl *fn_is_equal;
 	FunctionDecl *fn_free;
 
 	/* Is this class a subclass based on a type function? */
@@ -69,6 +70,7 @@ protected:
 	void die(const char *msg) __attribute__((noreturn));
 	void die(string msg) __attribute__((noreturn));
 	vector<string> find_superclasses(Decl *decl);
+	vector<string> get_list_element_type_name(RecordDecl *decl);
 	bool is_subclass(FunctionDecl *decl);
 	bool is_overload(Decl *decl);
 	bool is_constructor(Decl *decl);
@@ -83,11 +85,16 @@ protected:
 	bool is_isl_bool(QualType type);
 	bool is_isl_stat(QualType type);
 	bool is_long(QualType type);
+	bool is_isl_enum(QualType type);
 	bool is_callback(QualType type);
 	bool is_string(QualType type);
 	bool is_static(const isl_class &clazz, FunctionDecl *method);
 	string extract_type(QualType type);
 	FunctionDecl *find_by_name(const string &name, bool required);
+
+private:
+	vector<string> extract_annotation_arguments(Decl *decl,
+		const string &annotation) const;
 };
 
 #endif /* ISL_INTERFACE_GENERATOR_H */

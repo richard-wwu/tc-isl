@@ -343,13 +343,21 @@ EXTRA_DIST = \
 	isl_map_lexopt_templ.c \
 	isl_maybe_map.h \
 	isl_multi_macro.h \
+	isl_multi_explicit_domain.c \
+	isl_multi_pw_aff_explicit_domain.c \
+	isl_multi_union_pw_aff_explicit_domain.c \
+	isl_multi_no_explicit_domain.c \
 	isl_multi_templ.c \
 	isl_multi_templ.h \
+	isl_multi_align_templ.c \
+	isl_multi_align_set.c \
+	isl_multi_align_union_set.c \
 	isl_multi_apply_templ.c \
 	isl_multi_apply_set.c \
 	isl_multi_apply_union_set.c \
 	isl_multi_cmp.c \
 	isl_multi_coalesce.c \
+	isl_multi_dims.c \
 	isl_multi_floor.c \
 	isl_multi_gist.c \
 	isl_multi_hash.c \
@@ -365,6 +373,8 @@ EXTRA_DIST = \
 	set_to_map.c \
 	set_from_map.c \
 	isl_tab_lexopt_templ.c \
+	uset_to_umap.c \
+	uset_from_umap.c \
 	isl_union_macro.h \
 	isl_union_templ.c \
 	isl_union_single.c \

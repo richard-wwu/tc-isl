@@ -39,6 +39,9 @@
 #ifndef __isl_subclass
 #define __isl_subclass(super)
 #endif
+#ifndef __isl_list
+#define __isl_list(elem)
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -253,6 +256,10 @@ const char *isl_ctx_last_error_file(isl_ctx *ctx);
 int isl_ctx_last_error_line(isl_ctx *ctx);
 void isl_ctx_reset_error(isl_ctx *ctx);
 void isl_ctx_set_error(isl_ctx *ctx, enum isl_error error);
+
+void isl_ctx_set_error_handler(isl_ctx *ctx,
+	void (*handler)(isl_ctx *, enum isl_error,
+	const char *msg, const char *file, int line));
 
 #if defined(__cplusplus)
 }

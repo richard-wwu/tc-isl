@@ -25,7 +25,7 @@ isl_ctx *isl_schedule_band_get_ctx(__isl_keep isl_schedule_band *band)
 
 /* Return a new uninitialized isl_schedule_band.
  */
-static __isl_give isl_schedule_band *isl_schedule_band_alloc(isl_ctx *ctx)
+__isl_give isl_schedule_band *isl_schedule_band_alloc(isl_ctx *ctx)
 {
 	isl_schedule_band *band;
 
@@ -936,11 +936,15 @@ __isl_give isl_set *isl_schedule_band_get_ast_isolate_option(
 
 /* Replace the option "drop" in the AST build options by "add".
  * That is, remove "drop" and add "add".
+ *
+ * Set anchored if the resulting options include an isolate option since the
+ * domain of the wrapped map references the outer band node schedules.
  */
 __isl_give isl_schedule_band *isl_schedule_band_replace_ast_build_option(
 	__isl_take isl_schedule_band *band, __isl_take isl_set *drop,
 	__isl_take isl_set *add)
 {
+	isl_bool has_isolate;
 	isl_union_set *options;
 
 	band = isl_schedule_band_cow(band);
@@ -952,8 +956,10 @@ __isl_give isl_schedule_band *isl_schedule_band_replace_ast_build_option(
 	options = isl_union_set_union(options, isl_union_set_from_set(add));
 	band->ast_build_options = options;
 
-	if (!band->ast_build_options)
+	has_isolate = has_isolate_option(band->ast_build_options);
+	if (has_isolate < 0)
 		return isl_schedule_band_free(band);
+	band->anchored = has_isolate;
 
 	return band;
 error:
@@ -1207,6 +1213,139 @@ __isl_give isl_schedule_band *isl_schedule_band_drop(
 	band->n -= n;
 
 	return band;
+}
+
+/* Add the loop AST generation types for the members of "band2"
+ * to "band1".
+ */
+static __isl_give isl_schedule_band *join_loop_type(
+	__isl_take isl_schedule_band *band1,
+	__isl_keep isl_schedule_band *band2)
+{
+	int i, n;
+	isl_ctx *ctx;
+	enum isl_ast_loop_type *loop_type;
+
+	if (!band1 || !band2)
+		return isl_schedule_band_free(band1);
+	if (!band1->loop_type && !band2->loop_type)
+		return band1;
+
+	ctx = isl_schedule_band_get_ctx(band1);
+	n = isl_schedule_band_n_member(band2);
+	if (band1->loop_type)
+		loop_type = isl_realloc_array(ctx, band1->loop_type,
+					enum isl_ast_loop_type, band1->n + n);
+	else if (band2->loop_type)
+		loop_type = isl_alloc_array(ctx,
+					enum isl_ast_loop_type, band1->n + n);
+	if (band1->n + n > 0 && !loop_type)
+		return isl_schedule_band_free(band1);
+	if (!band1->loop_type)
+		for (i = 0; i < band1->n; ++i)
+			loop_type[i] = isl_ast_loop_default;
+	if (!band2->loop_type)
+		for (i = 0; i < n; ++i)
+			loop_type[band1->n + i] = isl_ast_loop_default;
+	else
+		for (i = 0; i < n; ++i)
+			loop_type[band1->n + i] = band2->loop_type[i];
+	band1->loop_type = loop_type;
+
+	return band1;
+}
+
+/* Add the loop AST generation types for the members of "band2"
+ * for the isolated part to "band1".
+ */
+static __isl_give isl_schedule_band *join_isolate_loop_type(
+	__isl_take isl_schedule_band *band1,
+	__isl_keep isl_schedule_band *band2)
+{
+	int i, n;
+	isl_ctx *ctx;
+	enum isl_ast_loop_type *loop_type;
+
+	if (!band1 || !band2)
+		return isl_schedule_band_free(band1);
+	if (!band1->isolate_loop_type && !band2->isolate_loop_type)
+		return band1;
+
+	ctx = isl_schedule_band_get_ctx(band1);
+	n = isl_schedule_band_n_member(band2);
+	if (band1->isolate_loop_type)
+		loop_type = isl_realloc_array(ctx, band1->isolate_loop_type,
+					enum isl_ast_loop_type, band1->n + n);
+	else if (band2->isolate_loop_type)
+		loop_type = isl_alloc_array(ctx,
+					enum isl_ast_loop_type, band1->n + n);
+	if (band1->n + n > 0 && !loop_type)
+		return isl_schedule_band_free(band1);
+	if (!band1->isolate_loop_type)
+		for (i = 0; i < band1->n; ++i)
+			loop_type[i] = isl_ast_loop_default;
+	if (!band2->isolate_loop_type)
+		for (i = 0; i < n; ++i)
+			loop_type[band1->n + i] = isl_ast_loop_default;
+	else
+		for (i = 0; i < n; ++i)
+			loop_type[band1->n + i] = band2->loop_type[i];
+	band1->isolate_loop_type = loop_type;
+
+	return band1;
+}
+
+/* Merge the two band nodes into a single band node.
+ * The space of the resulting band node is the product of
+ * the spaces of the original two nested bands.
+ * If the second band contains at least one member, then
+ * the permutable property is cleared on the resulting band.
+ * The coincident properties of the members of the second band
+ * are also cleared in the resulting band.
+ *
+ * The caller is responsible for updating the isolate option.
+ */
+__isl_give isl_schedule_band *isl_schedule_band_join(
+	__isl_take isl_schedule_band *band1,
+	__isl_take isl_schedule_band *band2)
+{
+	int i, n;
+	int *coincident;
+	isl_ctx *ctx;
+	isl_multi_union_pw_aff *mupa;
+
+	band1 = isl_schedule_band_cow(band1);
+	if (!band1 || !band2)
+		goto error;
+
+	ctx = isl_schedule_band_get_ctx(band1);
+	n = isl_schedule_band_n_member(band2);
+	coincident = isl_realloc_array(ctx, band1->coincident,
+					int, band1->n + n);
+	if (band1->n + n > 0 && !coincident)
+		goto error;
+	band1->coincident = coincident;
+	for (i = 0; i < n; ++i)
+		band1->coincident[band1->n + i] = 0;
+	if (n > 0)
+		band1->permutable = 0;
+	band1 = join_loop_type(band1, band2);
+	band1 = join_isolate_loop_type(band1, band2);
+	if (!band1)
+		goto error;
+	band1->n += n;
+
+	mupa = isl_schedule_band_get_partial_schedule(band2);
+	band1->mupa = isl_multi_union_pw_aff_range_product(band1->mupa, mupa);
+	if (!band1->mupa)
+		goto error;
+
+	isl_schedule_band_free(band2);
+	return band1;
+error:
+	isl_schedule_band_free(band1);
+	isl_schedule_band_free(band2);
+	return NULL;
 }
 
 /* Reset the user pointer on all identifiers of parameters and tuples

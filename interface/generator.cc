@@ -84,6 +84,7 @@ void generator::add_subclass(RecordDecl *decl, const string &sub_name)
 	classes[sub_name].type = decl;
 	classes[sub_name].fn_to_str = find_by_name(name + "_to_str", false);
 	classes[sub_name].fn_copy = find_by_name(name + "_copy", true);
+	classes[sub_name].fn_is_equal = find_by_name(name + "_is_equal", false);
 	classes[sub_name].fn_free = find_by_name(name + "_free", true);
 }
 
@@ -190,6 +191,35 @@ void generator::die(string msg)
 	die(msg.c_str());
 }
 
+/* Find all "decl" annotations with prefix "annotation" and return their
+ * arguments in a vector. More specifically, find all annotations of the form
+ * 'annotate("annotation(something)")' and return a vector that contains
+ * 'something'.
+ */
+vector<string> generator::extract_annotation_arguments(Decl *decl,
+	const string &annotation) const
+{
+	vector<string> arguments;
+
+	if (!decl->hasAttrs())
+		return arguments;
+
+	size_t len = annotation.length();
+	AttrVec attrs = decl->getAttrs();
+	for (AttrVec::const_iterator i = attrs.begin(); i != attrs.end(); ++i) {
+		const AnnotateAttr *ann = dyn_cast<AnnotateAttr>(*i);
+		if (!ann)
+			continue;
+		string s = ann->getAnnotation().str();
+		if (s.substr(0, len) == annotation) {
+			s = s.substr(len + 1, s.length() - len  - 2);
+			arguments.push_back(s);
+		}
+	}
+
+	return arguments;
+}
+
 /* Return a sequence of the types of which the given type declaration is
  * marked as being a subtype.
  * The order of the types is the opposite of the order in which they
@@ -199,26 +229,18 @@ void generator::die(string msg)
  */
 std::vector<string> generator::find_superclasses(Decl *decl)
 {
-	vector<string> super;
+	return extract_annotation_arguments(decl, "isl_subclass");
+}
 
-	if (!decl->hasAttrs())
-		return super;
-
-	string sub = "isl_subclass";
-	size_t len = sub.length();
-	AttrVec attrs = decl->getAttrs();
-	for (AttrVec::const_iterator i = attrs.begin(); i != attrs.end(); ++i) {
-		const AnnotateAttr *ann = dyn_cast<AnnotateAttr>(*i);
-		if (!ann)
-			continue;
-		string s = ann->getAnnotation().str();
-		if (s.substr(0, len) == sub) {
-			s = s.substr(len + 1, s.length() - len  - 2);
-			super.push_back(s);
-		}
-	}
-
-	return super;
+/* Return a type name that the given declaration is marked as being a list of.
+ * If the declaration is not marked as a list, return an empty vector.
+ */
+vector<string> generator::get_list_element_type_name(RecordDecl *decl)
+{
+	vector<string> elems = extract_annotation_arguments(decl, "isl_list");
+	if (elems.size() > 1)
+		die("multiple element types provided for a list");
+	return elems;
 }
 
 /* Is "decl" marked as describing subclasses?
@@ -370,6 +392,16 @@ bool generator::is_isl_stat(QualType type)
 
 	s = type.getAsString();
 	return s == "isl_stat";
+}
+
+/* Is "type" the type isl_enum?
+ */
+bool generator::is_isl_enum(QualType type)
+{
+	if (is_isl_bool(type))
+		return false;
+
+	return type->isEnumeralType(); 
 }
 
 

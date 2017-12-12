@@ -13,6 +13,7 @@ extern "C" {
 struct __isl_export isl_val;
 typedef struct isl_val isl_val;
 
+struct __isl_list(isl_val) isl_val_list;
 ISL_DECLARE_LIST(val)
 
 struct __isl_export isl_multi_val;
@@ -46,7 +47,9 @@ __isl_null isl_val *isl_val_free(__isl_take isl_val *v);
 
 isl_ctx *isl_val_get_ctx(__isl_keep isl_val *val);
 uint32_t isl_val_get_hash(__isl_keep isl_val *val);
+__isl_export
 long isl_val_get_num_si(__isl_keep isl_val *v);
+__isl_export
 long isl_val_get_den_si(__isl_keep isl_val *v);
 __isl_give isl_val *isl_val_get_den_val(__isl_keep isl_val *v);
 double isl_val_get_d(__isl_keep isl_val *v);

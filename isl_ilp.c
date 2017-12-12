@@ -816,3 +816,17 @@ __isl_give isl_multi_val *isl_union_set_min_multi_union_pw_aff(
 {
 	return isl_union_set_opt_multi_union_pw_aff(uset, 0, obj);
 }
+
+/* Return a list of maxima over the points in "uset"
+ * for each of the expressions in "obj".
+ *
+ * An element in the list is infinity or negative infinity if the optimal
+ * value of the corresponding expression is unbounded and
+ * NaN if the intersection of "uset" with the domain of the expression
+ * is empty.
+ */
+__isl_give isl_multi_val *isl_union_set_max_multi_union_pw_aff(
+	__isl_keep isl_union_set *uset, __isl_keep isl_multi_union_pw_aff *obj)
+{
+	return isl_union_set_opt_multi_union_pw_aff(uset, 1, obj);
+}

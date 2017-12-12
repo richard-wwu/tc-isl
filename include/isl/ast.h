@@ -64,15 +64,21 @@ __isl_null isl_ast_expr *isl_ast_expr_free(__isl_take isl_ast_expr *expr);
 isl_ctx *isl_ast_expr_get_ctx(__isl_keep isl_ast_expr *expr);
 enum isl_ast_expr_type isl_ast_expr_get_type(__isl_keep isl_ast_expr *expr);
 __isl_give isl_val *isl_ast_expr_get_val(__isl_keep isl_ast_expr *expr);
+__isl_export
 __isl_give isl_id *isl_ast_expr_get_id(__isl_keep isl_ast_expr *expr);
 
+__isl_export
 enum isl_ast_op_type isl_ast_expr_get_op_type(__isl_keep isl_ast_expr *expr);
+__isl_export
 int isl_ast_expr_get_op_n_arg(__isl_keep isl_ast_expr *expr);
+__isl_export
 __isl_give isl_ast_expr *isl_ast_expr_get_op_arg(__isl_keep isl_ast_expr *expr,
 	int pos);
+__isl_export
 __isl_give isl_ast_expr *isl_ast_expr_set_op_arg(__isl_take isl_ast_expr *expr,
 	int pos, __isl_take isl_ast_expr *arg);
 
+__isl_export
 isl_bool isl_ast_expr_is_equal(__isl_keep isl_ast_expr *expr1,
 	__isl_keep isl_ast_expr *expr2);
 
@@ -91,39 +97,56 @@ __isl_give isl_ast_node *isl_ast_node_copy(__isl_keep isl_ast_node *node);
 __isl_null isl_ast_node *isl_ast_node_free(__isl_take isl_ast_node *node);
 
 isl_ctx *isl_ast_node_get_ctx(__isl_keep isl_ast_node *node);
+__isl_export
 enum isl_ast_node_type isl_ast_node_get_type(__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_ast_node *isl_ast_node_set_annotation(
 	__isl_take isl_ast_node *node, __isl_take isl_id *annotation);
+__isl_export
 __isl_give isl_id *isl_ast_node_get_annotation(__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_ast_expr *isl_ast_node_for_get_iterator(
 	__isl_keep isl_ast_node *node);
+__isl_export
 __isl_give isl_ast_expr *isl_ast_node_for_get_init(
 	__isl_keep isl_ast_node *node);
+__isl_export
 __isl_give isl_ast_expr *isl_ast_node_for_get_cond(
 	__isl_keep isl_ast_node *node);
+__isl_export
 __isl_give isl_ast_expr *isl_ast_node_for_get_inc(
 	__isl_keep isl_ast_node *node);
+__isl_export
 __isl_give isl_ast_node *isl_ast_node_for_get_body(
 	__isl_keep isl_ast_node *node);
+__isl_export
 isl_bool isl_ast_node_for_is_degenerate(__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_ast_expr *isl_ast_node_if_get_cond(
 	__isl_keep isl_ast_node *node);
+__isl_export
 __isl_give isl_ast_node *isl_ast_node_if_get_then(
 	__isl_keep isl_ast_node *node);
+__isl_export
 isl_bool isl_ast_node_if_has_else(__isl_keep isl_ast_node *node);
+__isl_export
 __isl_give isl_ast_node *isl_ast_node_if_get_else(
 	__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_ast_node_list *isl_ast_node_block_get_children(
 	__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_id *isl_ast_node_mark_get_id(__isl_keep isl_ast_node *node);
+__isl_export
 __isl_give isl_ast_node *isl_ast_node_mark_get_node(
 	__isl_keep isl_ast_node *node);
 
+__isl_export
 __isl_give isl_ast_expr *isl_ast_node_user_get_expr(
 	__isl_keep isl_ast_node *node);
 
