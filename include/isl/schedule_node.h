@@ -207,6 +207,7 @@ __isl_give isl_union_map *isl_schedule_node_expansion_get_expansion(
 __isl_export
 __isl_give isl_union_pw_multi_aff *isl_schedule_node_expansion_get_contraction(
 	__isl_keep isl_schedule_node *node);
+__isl_export
 __isl_give isl_union_map *isl_schedule_node_extension_get_extension(
 	__isl_keep isl_schedule_node *node);
 __isl_export
