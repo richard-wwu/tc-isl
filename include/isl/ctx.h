@@ -257,10 +257,6 @@ int isl_ctx_last_error_line(isl_ctx *ctx);
 void isl_ctx_reset_error(isl_ctx *ctx);
 void isl_ctx_set_error(isl_ctx *ctx, enum isl_error error);
 
-void isl_ctx_set_error_handler(isl_ctx *ctx,
-	void (*handler)(isl_ctx *, enum isl_error,
-	const char *msg, const char *file, int line));
-
 #if defined(__cplusplus)
 }
 #endif

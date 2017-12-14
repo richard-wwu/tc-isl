@@ -7,9 +7,7 @@
 #include <isl/union_map.h>
 #include <isl/flow.h>
 #include <isl/schedule.h>
-#include <isl/schedule_band.h>
 #include <isl/schedule_node.h>
-#include <isl/schedule_tree.h>
 #include <isl/ast_build.h>
 #include <isl/constraint.h>
 #include <isl/id.h>
