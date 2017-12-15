@@ -110,18 +110,12 @@ void isl_handle_error(isl_ctx *ctx, enum isl_error error, const char *msg,
 
 	switch (ctx->opt->on_error) {
 	case ISL_ON_ERROR_WARN:
-		if (ctx->error_handler)
-			(ctx->error_handler)(ctx, error, msg, file, line);
-		else
-			fprintf(stderr, "%s:%d: %s\n", file, line, msg);
+		fprintf(stderr, "%s:%d: %s\n", file, line, msg);
 		return;
 	case ISL_ON_ERROR_CONTINUE:
 		return;
 	case ISL_ON_ERROR_ABORT:
-		if (ctx->error_handler)
-			(ctx->error_handler)(ctx, error, msg, file, line);
-		else
-			fprintf(stderr, "%s:%d: %s\n", file, line, msg);
+		fprintf(stderr, "%s:%d: %s\n", file, line, msg);
 		abort();
 		return;
 	}
@@ -227,8 +221,6 @@ isl_ctx *isl_ctx_alloc_with_options(struct isl_args *args, void *user_opt)
 
 	ctx->operations = 0;
 	isl_ctx_set_max_operations(ctx, ctx->opt->max_operations);
-
-	ctx->error_handler = NULL;
 
 	return ctx;
 error:
@@ -338,13 +330,6 @@ void isl_ctx_reset_error(isl_ctx *ctx)
 void isl_ctx_set_error(isl_ctx *ctx, enum isl_error error)
 {
 	isl_ctx_set_full_error(ctx, error, NULL, NULL, -1);
-}
-
-void isl_ctx_set_error_handler(isl_ctx *ctx,
-	void (*handler)(isl_ctx *, enum isl_error,
-	const char *msg, const char *file, int line))
-{
-	ctx->error_handler = handler;
 }
 
 void isl_ctx_abort(isl_ctx *ctx)

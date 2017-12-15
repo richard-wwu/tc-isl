@@ -43,7 +43,7 @@ int isl_schedule_tree_is_leaf(__isl_keep isl_schedule_tree *tree)
  * By default, the single node tree does not have any anchored nodes.
  * The caller is responsible for updating the anchored field if needed.
  */
-__isl_give isl_schedule_tree *isl_schedule_tree_alloc(isl_ctx *ctx,
+static __isl_give isl_schedule_tree *isl_schedule_tree_alloc(isl_ctx *ctx,
 	enum isl_schedule_node_type type)
 {
 	isl_schedule_tree *tree;

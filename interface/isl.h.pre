@@ -170,7 +170,11 @@ public:
 };
 
 class id {
+  friend inline isl::id manage(__isl_take isl_id *ptr);
+
   isl_id *ptr;
+
+  inline explicit id(__isl_take isl_id *id);
 public:
   id(isl::ctx ctx, const std::string &name) {
     ptr = isl_id_alloc(ctx.release(), name.c_str(), nullptr);
@@ -200,7 +204,6 @@ public:
   }
 
   inline /* implicit */ id();
-  inline /* implicit */ id(isl_id *id);
   inline /* implicit */ id(const isl::id &obj);
   inline isl::id &operator=(isl::id obj);
   inline ~id();

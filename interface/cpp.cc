@@ -171,7 +171,43 @@ void cpp_generator::print_implementations(ostream &os)
 	}
 }
 
+/* If "clazz" is a subclass that is based on a type function,
+ * then introduce a "type" field that holds the value of the type
+ * corresponding to the subclass and make the fields of the class
+ * accessible to the "isa" and "as" methods of the superclass.
+ * In particular, "isa" needs access to the type field itself,
+ * while "as" needs access to the private constructor.
+ */
+void cpp_generator::print_subclass_type(ostream &os, const isl_class &clazz)
+{
+	std::string cppstring = type2cpp(clazz);
+	std::string super = type2cpp(clazz.name);
+	const char *cppname = cppstring.c_str();
+	const char *supername = super.c_str();
+
+	if (!clazz.is_type_subclass())
+		return;
+
+	osprintf(os, "  friend %s %s::isa<%s>();\n",
+		isl_bool2cpp().c_str(), supername, cppname);
+	osprintf(os, "  friend %s %s::as<%s>();\n",
+		cppname, supername, cppname);
+	osprintf(os, "  static const auto type = %s;\n",
+		clazz.subclass_name.c_str());
+}
+
 /* Print declarations for class "clazz" to "os".
+ *
+ * If "clazz" is a subclass based on a type function,
+ * then it is made to inherit from the superclass and
+ * a "type" attribute is added for use in the "as" and "isa"
+ * methods of the superclass.
+ *
+ * Conversely, if "clazz" is a superclass with a type function,
+ * then declare those "as" and "isa" methods.
+ *
+ * The pointer to the isl object is only added for classes that
+ * are not subclasses, since subclasses refer to the same isl object.
  */
 void cpp_generator::print_common_class_body(ostream &os, const isl_class &clazz,
 	bool is_template_specialization)
@@ -186,12 +222,19 @@ void cpp_generator::print_common_class_body(ostream &os, const isl_class &clazz,
 	osprintf(os, "\n");
 	if (is_template_specialization)
 		osprintf(os, "template <>\n");
-	osprintf(os, "class %s {\n", cppname);
+	osprintf(os, "class %s ", cppname);
+	if (clazz.is_type_subclass())
+		osprintf(os, ": public %s ", type2cpp(clazz.name).c_str());
+	osprintf(os, "{\n");
+	print_subclass_type(os, clazz);
 	print_class_factory_decl(os, clazz, "  friend ");
 	osprintf(os, "\n");
-	osprintf(os, "  %s *ptr = nullptr;\n", name);
-	osprintf(os, "\n");
-	print_private_constructors_decl(os, clazz);
+	osprintf(os, "protected:\n");
+	if (!clazz.is_type_subclass()) {
+		osprintf(os, "  %s *ptr = nullptr;\n", name);
+		osprintf(os, "\n");
+	}
+	print_protected_constructors_decl(os, clazz);
 	osprintf(os, "\n");
 	osprintf(os, "public:\n");
 	print_public_constructors_decl(os, clazz);
@@ -199,6 +242,7 @@ void cpp_generator::print_common_class_body(ostream &os, const isl_class &clazz,
 	print_copy_assignment_decl(os, clazz);
 	print_destructor_decl(os, clazz);
 	print_ptr_decl(os, clazz);
+	print_downcast_decl(os, clazz);
 	print_get_ctx_decl(os);
 	print_str_decl(os, clazz);
 	osprintf(os, "\n");
@@ -249,6 +293,10 @@ void cpp_generator::print_class_forward_decl(ostream &os,
  * manage_copy() can be called on any isl raw pointer and the corresponding
  * object is automatically created, without the user having to choose the right
  * isl object type.
+ *
+ * For a subclass based on a type function, no factory functions
+ * are introduced because they share the C object type with
+ * the superclass.
  */
 void cpp_generator::print_class_factory_decl(ostream &os,
 	const isl_class &clazz, const std::string &prefix)
@@ -256,6 +304,9 @@ void cpp_generator::print_class_factory_decl(ostream &os,
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
 	const char *cppname = cppstring.c_str();
+
+	if (clazz.is_type_subclass())
+		return;
 
 	os << prefix;
 	osprintf(os, "inline isl::%s manage(__isl_take %s *ptr);\n", cppname,
@@ -265,9 +316,9 @@ void cpp_generator::print_class_factory_decl(ostream &os,
 		cppname, name);
 }
 
-/* Print declarations of private constructors for class "clazz" to "os".
+/* Print declarations of protected constructors for class "clazz" to "os".
  *
- * Each class has currently one private constructor:
+ * Each class has currently one protected constructor:
  *
  * 	1) Constructor from a plain isl_* C pointer
  *
@@ -275,10 +326,10 @@ void cpp_generator::print_class_factory_decl(ostream &os,
  *
  * 	set(__isl_take isl_set *ptr);
  *
- * The raw pointer constructor is kept private. Object creation is only
+ * The raw pointer constructor is kept protected. Object creation is only
  * possible through isl::manage() or isl::manage_copy().
  */
-void cpp_generator::print_private_constructors_decl(ostream &os,
+void cpp_generator::print_protected_constructors_decl(ostream &os,
 	const isl_class &clazz)
 {
 	const char *name = clazz.name.c_str();
@@ -368,16 +419,23 @@ void cpp_generator::print_copy_assignment_decl(ostream &os,
 }
 
 /* Print declaration of destructor for class "clazz" to "os".
+ *
+ * No explicit destructor is needed for type based subclasses.
  */
 void cpp_generator::print_destructor_decl(ostream &os, const isl_class &clazz)
 {
 	std::string cppstring = type2cpp(clazz);
 	const char *cppname = cppstring.c_str();
 
+	if (clazz.is_type_subclass())
+		return;
+
 	osprintf(os, "  inline ~%s();\n", cppname);
 }
 
 /* Print declaration of pointer functions for class "clazz" to "os".
+ * Since type based subclasses share the pointer with their superclass,
+ * they can also reuse these functions from the superclass.
  *
  * To obtain a raw pointer three functions are provided:
  *
@@ -401,6 +459,11 @@ void cpp_generator::print_destructor_decl(ostream &os, const isl_class &clazz)
  *
  * 	  Check if the current object is a null pointer.
  *
+ * 	4) explicit operator bool()
+ *
+ * 	  Check if the current object represents a valid isl object,
+ *	  i.e., if it is not a null pointer.
+ *
  * The functions get() and release() model the value_ptr proposed in
  * http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3339.pdf.
  * The copy() function is an extension to allow the user to explicitly
@@ -413,14 +476,32 @@ void cpp_generator::print_ptr_decl(ostream &os, const isl_class &clazz)
 {
 	const char *name = clazz.name.c_str();
 
+	if (clazz.is_type_subclass())
+		return;
+
 	osprintf(os, "  inline __isl_give %s *copy() const &;\n", name);
 	osprintf(os, "  inline __isl_give %s *copy() && = delete;\n", name);
 	osprintf(os, "  inline __isl_keep %s *get() const;\n", name);
 	osprintf(os, "  inline __isl_give %s *release();\n", name);
-        if (extensions) {
-		osprintf(os, "  inline explicit operator bool() const;\n", name);
-        }
 	osprintf(os, "  inline bool is_null() const;\n");
+	osprintf(os, "  inline explicit operator bool() const;\n");
+}
+
+/* Print declarations for the "as" and "isa" methods, if "clazz"
+ * is a superclass with a type function.
+ *
+ * "isa" checks whether an object is of a given subclass type.
+ * "as" tries to cast an object to a given subclass type, returning
+ * an invalid object if the object is not of the given type.
+ */
+void cpp_generator::print_downcast_decl(ostream &os, const isl_class &clazz)
+{
+	if (!clazz.fn_type)
+		return;
+
+	osprintf(os, "  template <class T> inline %s isa();\n",
+		isl_bool2cpp().c_str());
+	osprintf(os, "  template <class T> inline T as();\n");
 }
 
 /* Print the declaration of the get_ctx method.
@@ -519,7 +600,7 @@ void cpp_generator::print_class_impl(ostream &os, const isl_class &clazz)
 	osprintf(os, "\n");
 	print_public_constructors_impl(os, clazz);
 	osprintf(os, "\n");
-	print_private_constructors_impl(os, clazz);
+	print_protected_constructors_impl(os, clazz);
 	osprintf(os, "\n");
 	print_constructors_impl(os, clazz);
 	osprintf(os, "\n");
@@ -535,6 +616,8 @@ void cpp_generator::print_class_impl(ostream &os, const isl_class &clazz)
           print_str_impl(os, clazz);
         }
 	osprintf(os, "\n");
+	if (print_downcast_impl(os, clazz))
+		osprintf(os, "\n");
 	print_get_ctx_impl(os, clazz);
 	osprintf(os, "\n");
 	print_methods_impl(os, clazz);
@@ -562,6 +645,10 @@ static void print_throw_NULL_input(ostream &os)
  * both functions require the argument to be non-NULL.
  * An exception is thrown if anything went wrong during the copying
  * in manage_copy.
+ *
+ * For a subclass based on a type function, no factory functions
+ * are introduced because they share the C object type with
+ * the superclass.
  */
 void cpp_generator::print_class_factory_impl(ostream &os,
 	const isl_class &clazz)
@@ -569,6 +656,9 @@ void cpp_generator::print_class_factory_impl(ostream &os,
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
 	const char *cppname = cppstring.c_str();
+
+	if (clazz.is_type_subclass())
+		return;
 
 	osprintf(os, "isl::%s manage(__isl_take %s *ptr) {\n", cppname, name);
 	if (!noexceptions) {
@@ -595,26 +685,38 @@ void cpp_generator::print_class_factory_impl(ostream &os,
 	osprintf(os, "}\n");
 }
 
-/* Print implementations of private constructors for class "clazz" to "os".
+/* Print implementations of protected constructors for class "clazz" to "os".
+ *
+ * The pointer to the isl object is either initialized directly or
+ * through the superclass.
  */
-void cpp_generator::print_private_constructors_impl(ostream &os,
+void cpp_generator::print_protected_constructors_impl(ostream &os,
 	const isl_class &clazz)
 {
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
+	std::string super = type2cpp(clazz.name);
 	const char *cppname = cppstring.c_str();
+	bool subclass = clazz.is_type_subclass();
 	std::string constructor_string =
 		is_list_type(clazz) ? instance_type(cppstring) : cppstring;
 	const char *constructor_name = constructor_string.c_str();
 
-	osprintf(os, "%s::%s(__isl_take %s *ptr)\n    : ptr(ptr) {}\n",
+	osprintf(os, "%s::%s(__isl_take %s *ptr)\n",
 		 cppname, constructor_name, name);
+	if (subclass)
+		osprintf(os, "    : %s(ptr) {}\n", super.c_str());
+	else
+		osprintf(os, "    : ptr(ptr) {}\n");
 }
 
 /* Print implementations of public constructors for class "clazz" to "os".
  *
+ * The pointer to the isl object is either initialized directly or
+ * through the superclass.
+ *
  * Throw an exception from the copy constructor if anything went wrong
- * during the copying.
+ * during the copying, if any copying is performed.
  * No exceptions are thrown if C++ bindings without exceptions
  * are being generated,
  */
@@ -623,17 +725,26 @@ void cpp_generator::print_public_constructors_impl(ostream &os,
 {
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
+	std::string super = type2cpp(clazz.name);
 	const char *cppname = cppstring.c_str();
+	bool subclass = clazz.is_type_subclass();
 	std::string constructor_string =
 		is_list_type(clazz) ? instance_type(cppstring) : cppstring;
 	const char *constructor_name = constructor_string.c_str();
 
-	osprintf(os, "%s::%s()\n    : ptr(nullptr) {}\n\n", cppname,
-		constructor_name);
-	osprintf(os, "%s::%s(const isl::%s &obj)\n    : ptr(obj.copy())\n",
+	osprintf(os, "%s::%s()\n", cppname, constructor_name);
+	if (subclass)
+		osprintf(os, "    : %s() {}\n\n", super.c_str());
+	else
+		osprintf(os, "    : ptr(nullptr) {}\n\n");
+	osprintf(os, "%s::%s(const isl::%s &obj)\n",
 		 cppname, constructor_name, cppname);
+	if (subclass)
+		osprintf(os, "    : %s(obj)\n", super.c_str());
+	else
+		osprintf(os, "    : ptr(obj.copy())\n");
 	osprintf(os, "{\n");
-	if (!noexceptions) {
+	if (!noexceptions && !subclass) {
 		osprintf(os, "  if (obj.ptr && !ptr)\n");
 		osprintf(os,
 			"    throw exception::create_from_last_error("
@@ -677,6 +788,8 @@ void cpp_generator::print_copy_assignment_impl(ostream &os,
 }
 
 /* Print implementation of destructor for class "clazz" to "os".
+ *
+ * No explicit destructor is needed for type based subclasses.
  */
 void cpp_generator::print_destructor_impl(ostream &os,
 	const isl_class &clazz)
@@ -688,6 +801,9 @@ void cpp_generator::print_destructor_impl(ostream &os,
 		is_list_type(clazz) ? instance_type(cppstring) : cppstring;
 	const char *constructor_name = constructor_string.c_str();
 
+	if (clazz.is_type_subclass())
+		return;
+
 	osprintf(os, "%s::~%s() {\n", cppname, constructor_name);
 	osprintf(os, "  if (ptr)\n");
 	osprintf(os, "    %s_free(ptr);\n", name);
@@ -695,12 +811,17 @@ void cpp_generator::print_destructor_impl(ostream &os,
 }
 
 /* Print implementation of ptr() functions for class "clazz" to "os".
+ * Since type based subclasses share the pointer with their superclass,
+ * they can also reuse these functions from the superclass.
  */
 void cpp_generator::print_ptr_impl(ostream &os, const isl_class &clazz)
 {
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
 	const char *cppname = cppstring.c_str();
+
+	if (clazz.is_type_subclass())
+		return;
 
 	osprintf(os, "__isl_give %s *%s::copy() const & {\n", name, cppname);
 	osprintf(os, "  return %s_copy(ptr);\n", name);
@@ -713,14 +834,60 @@ void cpp_generator::print_ptr_impl(ostream &os, const isl_class &clazz)
 	osprintf(os, "  ptr = nullptr;\n");
 	osprintf(os, "  return tmp;\n");
 	osprintf(os, "}\n\n");
-	if (extensions) {
-		osprintf(os, "%s::operator bool() const {\n", cppname);
-		osprintf(os, "  return !is_null();\n");
-		osprintf(os, "}\n\n");
-	}
 	osprintf(os, "bool %s::is_null() const {\n", cppname);
 	osprintf(os, "  return ptr == nullptr;\n");
 	osprintf(os, "}\n");
+	osprintf(os, "%s::operator bool() const\n", cppname);
+	osprintf(os, "{\n");
+	osprintf(os, "  return !is_null();\n");
+	osprintf(os, "}\n");
+}
+
+/* Print implementations for the "as" and "isa" methods, if "clazz"
+ * is a superclass with a type function.
+ *
+ * "isa" checks whether an object is of a given subclass type.
+ * "as" tries to cast an object to a given subclass type, returning
+ * an invalid object if the object is not of the given type.
+ *
+ * If the input is an invalid object, then these methods raise
+ * an exception.
+ * If bindings without exceptions are being generated,
+ * then an invalid isl::boolean or object is returned instead.
+ *
+ * Return true if anything was printed.
+ */
+bool cpp_generator::print_downcast_impl(ostream &os, const isl_class &clazz)
+{
+	std::string cppstring = type2cpp(clazz);
+	const char *cppname = cppstring.c_str();
+
+	if (!clazz.fn_type)
+		return false;
+
+	osprintf(os, "template <class T>\n");
+	osprintf(os, "%s %s::isa()\n", isl_bool2cpp().c_str(), cppname);
+	osprintf(os, "{\n");
+	osprintf(os, "  if (is_null())\n");
+	if (noexceptions)
+		osprintf(os, "    return isl::boolean();\n");
+	else
+		print_throw_NULL_input(os);
+	osprintf(os, "  return %s(get()) == T::type;\n",
+		clazz.fn_type->getNameAsString().c_str());
+	osprintf(os, "}\n");
+
+	osprintf(os, "template <class T>\n");
+	osprintf(os, "T %s::as()\n", cppname);
+	osprintf(os, "{\n");
+	if (noexceptions) {
+		osprintf(os, "  if (is_null())\n");
+		osprintf(os, "    T();\n");
+	}
+	osprintf(os, "  return isa<T>() ? T(copy()) : T();\n");
+	osprintf(os, "}\n");
+
+	return true;
 }
 
 /* Print the implementation of the get_ctx method.
@@ -1119,6 +1286,23 @@ void cpp_generator::print_exceptional_execution_check(ostream &os,
 	osprintf(os, ");\n");
 }
 
+/* If "clazz" is a subclass that is based on a type function and
+ * if "type" corresponds to the superclass data type,
+ * then replace "type" by the subclass data type of "clazz" and return true.
+ */
+bool cpp_generator::super2sub(const isl_class &clazz, string &type)
+{
+	if (!clazz.is_type_subclass())
+		return false;
+
+	if (type != "isl::" + type2cpp(clazz.name))
+		return false;
+
+	type = "isl::" + type2cpp(clazz);
+
+	return true;
+}
+
 /* Print definition for "method" in class "clazz" to "os".
  *
  * "fullname" is the name of the generated C++ method.  It commonly corresponds
@@ -1142,6 +1326,9 @@ void cpp_generator::print_exceptional_execution_check(ostream &os,
  * then an isl_bool return type is transformed into an isl::boolean and
  * an isl_stat into an isl::stat since no exceptions can be generated
  * on negative results from the isl function.
+ * If "clazz" is a subclass that is based on a type function and
+ * if the return type corresponds to the superclass data type,
+ * then it is replaced by the subclass data type.
  *
  * Static methods call "method" by passing all arguments to the underlying isl
  * function, as no this-pointer is available. The result is a newly managed
@@ -1167,12 +1354,12 @@ void cpp_generator::print_exceptional_execution_check(ostream &os,
 void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	const string &fullname, FunctionDecl *method, function_kind kind)
 {
-	string cname = fullname.substr(clazz.name.length() + 1);
 	string methodname = method->getName();
 	int num_params = method->getNumParams();
 	QualType return_type = method->getReturnType();
 	string rettype_str = type2cpp(return_type);
 	bool has_callback = false;
+	bool returns_super = super2sub(clazz, rettype_str);
 
 	print_method_header(os, clazz, method, fullname, false, kind);
 	osprintf(os, "{\n");
@@ -1210,7 +1397,11 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 		osprintf(os, "  ptr = res;\n");
 	} else if (is_isl_type(return_type) ||
 		    (noexceptions && is_isl_bool(return_type))) {
-		osprintf(os, "  return manage(res);\n");
+		if (returns_super)
+			osprintf(os, "  return manage(res).as<%s>();\n",
+				rettype_str.c_str());
+		else
+			osprintf(os, "  return manage(res);\n");
 	} else if (has_callback) {
 		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
 	} else if (is_string(return_type)) {
@@ -1277,7 +1468,7 @@ void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
 	FunctionDecl *method, const string &fullname, bool is_declaration,
 	function_kind kind)
 {
-	string cname = fullname.substr(clazz.name.length() + 1);
+	string cname = clazz.method_suffix(fullname);
 	string rettype_str = type2cpp(method->getReturnType());
 	string classname = type2cpp(clazz);
 	int num_params = method->getNumParams();
@@ -1303,6 +1494,7 @@ void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
 		}
 	}
 
+	super2sub(clazz, rettype_str);
 	if (kind != function_kind_constructor)
 		osprintf(os, "%s ", rettype_str.c_str());
 
@@ -1412,49 +1604,92 @@ string cpp_generator::generate_callback_type(QualType type)
 	return type_str;
 }
 
-/* Print the call to the C++ callback function "call", wrapped
+/* Print the call to the C++ callback function "call",
+ * with return type "type", wrapped
  * for use inside the lambda function that is used as the C callback function,
  * in the case where C++ bindings without exceptions are being generated.
  *
  * In particular, print
  *
- *        stat ret = @call@;
+ *        auto ret = @call@;
  *        return isl_stat(ret);
+ * or
+ *        auto ret = @call@;
+ *        return ret.release();
+ *
+ * depending on the return type.
  */
 void cpp_generator::print_wrapped_call_noexceptions(ostream &os,
-	const string &call)
+	const string &call, QualType rtype)
 {
-	osprintf(os, "    stat ret = %s;\n", call.c_str());
-	osprintf(os, "    return isl_stat(ret);\n");
+	osprintf(os, "    auto ret = %s;\n", call.c_str());
+	if (is_isl_stat(rtype))
+		osprintf(os, "    return isl_stat(ret);\n");
+	else
+		osprintf(os, "    return ret.release();\n");
 }
 
-/* Print the call to the C++ callback function "call", wrapped
+/* Print the call to the C++ callback function "call",
+ * with return type "type", wrapped
  * for use inside the lambda function that is used as the C callback function.
  *
  * In particular, print
  *
  *        try {
- *          stat ret = @call@;
+ *          @call@;
  *          return isl_stat_ok;
  *        } catch (...) {
  *          data->eptr = std::current_exception();
  *          return isl_stat_error;
  *        }
+ * or
+ *        try {
+ *          auto ret = @call@;
+ *          return ret ? isl_bool_true : isl_bool_false;;
+ *        } catch (...) {
+ *          data->eptr = std::current_exception();
+ *          return isl_bool_error;
+ *        }
+ * or
+ *        try {
+ *          auto ret = @call@;
+ *          return ret.release();
+ *        } catch (...) {
+ *          data->eptr = std::current_exception();
+ *          return NULL;
+ *        }
+ *
+ * depending on the return type.
  *
  * If C++ bindings without exceptions are being generated, then
  * the call is wrapped differently.
  */
-void cpp_generator::print_wrapped_call(ostream &os, const string &call)
+void cpp_generator::print_wrapped_call(ostream &os, const string &call,
+	QualType rtype)
 {
 	if (noexceptions)
-		return print_wrapped_call_noexceptions(os, call);
+		return print_wrapped_call_noexceptions(os, call, rtype);
 
 	osprintf(os, "    try {\n");
-	osprintf(os, "      %s;\n", call.c_str());
-	osprintf(os, "      return isl_stat_ok;\n");
+	if (is_isl_stat(rtype))
+		osprintf(os, "      %s;\n", call.c_str());
+	else
+		osprintf(os, "      auto ret = %s;\n", call.c_str());
+	if (is_isl_stat(rtype))
+		osprintf(os, "      return isl_stat_ok;\n");
+	else if (is_isl_bool(rtype))
+		osprintf(os,
+			"      return ret ? isl_bool_true : isl_bool_false;\n");
+	else
+		osprintf(os, "      return ret.release();\n");
 	osprintf(os, "    } catch (...) {\n"
 		     "      data->eptr = std::current_exception();\n");
-	osprintf(os, "      return isl_stat_error;\n");
+	if (is_isl_stat(rtype))
+		osprintf(os, "      return isl_stat_error;\n");
+	else if (is_isl_bool(rtype))
+		osprintf(os, "      return isl_bool_error;\n");
+	else
+		osprintf(os, "      return NULL;\n");
 	osprintf(os, "    }\n");
 }
 
@@ -1504,11 +1739,14 @@ void cpp_generator::print_wrapped_call(ostream &os, const string &call)
  *
  *        stat ret = (*data->func)(isl::manage(arg_0));
  *        return isl_stat(ret);
+ *
+ * If the C callback does not take its arguments, then
+ * isl::manage_copy is used instead of isl::manage.
  */
 void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param)
 {
 	string pname;
-	QualType ptype;
+	QualType ptype, rtype;
 	string call, c_args, cpp_args, rettype, last_idx;
 	const FunctionProtoType *callback;
 	int num_params;
@@ -1520,14 +1758,19 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param)
 	cpp_args = generate_callback_type(ptype);
 
 	callback = ptype->getPointeeType()->getAs<FunctionProtoType>();
-	rettype = callback->getReturnType().getAsString();
+	rtype = callback->getReturnType();
+	rettype = rtype.getAsString();
 	num_params = callback->getNumArgs();
 
 	last_idx = ::to_string(num_params - 1);
 
 	call = "(*data->func)(";
 	for (long i = 0; i < num_params - 1; i++) {
-		call += "isl::manage(arg_" + ::to_string(i) + ")";
+		if (!callback_takes_arguments(callback))
+			call += "isl::manage_copy";
+		else
+			call += "isl::manage";
+		call += "(arg_" + ::to_string(i) + ")";
 		if (i != num_params - 2)
 			call += ", ";
 	}
@@ -1543,7 +1786,7 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param)
 	osprintf(os,
 		 "    auto *data = static_cast<struct %s_data *>(arg_%s);\n",
 		 pname.c_str(), last_idx.c_str());
-	print_wrapped_call(os, call);
+	print_wrapped_call(os, call, rtype);
 	osprintf(os, "  };\n");
 }
 
@@ -1570,13 +1813,14 @@ std::string cpp_generator::rename_method(std::string name)
 }
 
 /* Translate isl class "clazz" to its corresponding C++ type.
+ * Use the name of the type based subclass, if any.
  */
 string cpp_generator::type2cpp(const isl_class &clazz)
 {
 	if (is_list_type(clazz))
 		return "list<" + type2cpp(list_types[clazz.name]) + ">";
 
-	return type2cpp(clazz.name);
+	return type2cpp(clazz.subclass_name);
 }
 
 /* Translate type string "type_str" to its C++ name counterpart.
@@ -1584,6 +1828,15 @@ string cpp_generator::type2cpp(const isl_class &clazz)
 string cpp_generator::type2cpp(string type_str)
 {
 	return type_str.substr(4);
+}
+
+/* Return the C++ counterpart to the isl_bool type.
+ * If C++ bindings without exceptions are being generated,
+ * then this is isl::boolean.  Otherwise, it is simply "bool".
+ */
+string cpp_generator::isl_bool2cpp()
+{
+	return noexceptions ? "isl::boolean" : "bool";
 }
 
 /* Translate QualType "type" to its C++ name counterpart.
@@ -1604,7 +1857,7 @@ string cpp_generator::type2cpp(QualType type)
 		return "isl::" + type2cpp(type->getPointeeType().getAsString());
 
 	if (is_isl_bool(type))
-		return noexceptions ? "isl::boolean" : "bool";
+		return isl_bool2cpp();
 
 	if (is_isl_stat(type))
 		return noexceptions ? "isl::stat" : "void";
@@ -1620,8 +1873,8 @@ string cpp_generator::type2cpp(QualType type)
           }
         }
 
-        if (type->isIntegerType())
-          return type.getAsString();
+	if (type->isIntegerType())
+		return type.getAsString();
 
 	if (is_string(type))
 		return "std::string";

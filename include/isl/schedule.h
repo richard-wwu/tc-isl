@@ -3,7 +3,6 @@
 
 #include <isl/union_set_type.h>
 #include <isl/union_map_type.h>
-#include <isl/schedule_tree.h>
 #include <isl/schedule_type.h>
 #include <isl/aff_type.h>
 #include <isl/space.h>
@@ -151,9 +150,6 @@ __isl_give isl_schedule *isl_union_set_compute_schedule(
 	__isl_take isl_union_map *validity,
 	__isl_take isl_union_map *proximity);
 
-__isl_export
-__isl_give isl_schedule *isl_schedule_from_schedule_tree(isl_ctx *ctx,
-	__isl_take isl_schedule_tree *tree);
 __isl_give isl_schedule *isl_schedule_empty(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_schedule *isl_schedule_from_domain(
@@ -224,10 +220,6 @@ __isl_give isl_printer *isl_printer_print_schedule(__isl_take isl_printer *p,
 	__isl_keep isl_schedule *schedule);
 void isl_schedule_dump(__isl_keep isl_schedule *schedule);
 __isl_give char *isl_schedule_to_str(__isl_keep isl_schedule *schedule);
-
-
-__isl_keep isl_schedule_tree *isl_schedule_get_tree(
-	__isl_keep isl_schedule *schedule);
 
 #if defined(__cplusplus)
 }
