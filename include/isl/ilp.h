@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+__isl_export
 __isl_give isl_val *isl_basic_set_max_val(__isl_keep isl_basic_set *bset,
 	__isl_keep isl_aff *obj);
 __isl_export
