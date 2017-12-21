@@ -3955,6 +3955,35 @@ C<*residue>.
 If the dimension does not attain only a single value and if no modulo
 can be found then assign C<1> to C<*modulo> and C<1> to C<*residue>.
 
+	#include <isl/set.h>
+	__isl_give isl_stride_info *isl_set_get_stride_info(
+		__isl_keep isl_set *set, int pos);
+	__isl_give isl_val *isl_set_get_stride(
+		__isl_keep isl_set *set, int pos);
+
+Check if the values of the given set dimension are equal to
+some affine expression of the other dimensions (the offset)
+modulo some integer stride.
+If no more specific information can be found, then the stride
+is taken to be one and the offset is taken to be the zero expression.
+The function C<isl_set_get_stride_info> performs the same
+computation but only returns the stride.
+Otherwise,
+the stride and offset can be extracted from the returned object
+using the following functions.
+
+	#include <isl/set.h>
+	__isl_give isl_val *isl_stride_info_get_stride(
+		__isl_keep isl_stride_info *si);
+	__isl_give isl_aff *isl_stride_info_get_offset(
+		__isl_keep isl_stride_info *si);
+
+The stride info object can be released using the following function.
+
+	#include <isl/set.h>
+	__isl_null isl_stride_info *isl_stride_info_free(
+		__isl_take isl_stride_info *si);
+
 =item * Dependence
 
 To check whether the description of a set, relation or function depends
@@ -4498,6 +4527,9 @@ parameters.
 	__isl_give isl_union_map *isl_union_map_project_out(
 		__isl_take isl_union_map *umap,
 		enum isl_dim_type type, unsigned first, unsigned n);
+	__isl_give isl_union_map *
+	isl_union_map_project_out_all_params(
+		__isl_take isl_union_map *umap);
 	__isl_give isl_set *isl_union_map_params(
 		__isl_take isl_union_map *umap);
 	__isl_give isl_union_set *isl_union_map_domain(
@@ -5252,6 +5284,16 @@ over the points in C<set>, returning the result in C<opt>.
 The result is C<NULL> in case of an error, the optimal value in case
 there is one, negative infinity or infinity if the problem is unbounded and
 NaN if the problem is empty.
+
+	#include <isl/ilp.h>
+	__isl_give isl_val *isl_basic_set_dim_max_val(
+		__isl_take isl_basic_set *bset, int pos);
+
+Return the maximal value attained by the given set dimension,
+independently of the parameter values and of any other dimensions.
+The result is C<NULL> in case of an error, the optimal value in case
+there is one, infinity if the problem is unbounded and
+NaN if the input is empty.
 
 =item * Parametric optimization
 
