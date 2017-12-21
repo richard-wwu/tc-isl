@@ -292,6 +292,7 @@ set (libisl_common_sources
     ${ISL_SOURCE_DIR}/isl_sort.c
     ${ISL_SOURCE_DIR}/isl_space.c
     ${ISL_SOURCE_DIR}/isl_stream.c
+    ${ISL_SOURCE_DIR}/isl_stride.c
     ${ISL_SOURCE_DIR}/isl_tab.c
     ${ISL_SOURCE_DIR}/isl_tab_pip.c
     ${ISL_SOURCE_DIR}/isl_tarjan.c
