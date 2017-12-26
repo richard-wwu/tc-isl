@@ -996,6 +996,7 @@ __isl_give isl_union_pw_aff *isl_union_pw_aff_add(
 __isl_export
 __isl_give isl_union_pw_aff *isl_union_pw_aff_union_add(
 	__isl_take isl_union_pw_aff *upa1, __isl_take isl_union_pw_aff *upa2);
+__isl_export
 __isl_give isl_union_pw_aff *isl_union_pw_aff_sub(
 	__isl_take isl_union_pw_aff *upa1, __isl_take isl_union_pw_aff *upa2);
 
