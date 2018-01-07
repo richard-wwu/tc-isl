@@ -58,7 +58,7 @@ include_directories(${LLVM_INCDIR})
 link_directories(${LLVM_LIBDIR})
 add_executable(extract_interface cpp.cc extract_interface.cc generator.cc python.cc)
 
-target_link_libraries(extract_interface isl clangFrontend clangParse clangSema clangEdit clangAnalysis clangAST clangLex clangBasic clangDriver clangSerialization clang LLVMOption LLVMX86Disassembler LLVMX86AsmParser LLVMX86CodeGen LLVMX86Desc LLVMX86Info LLVMX86AsmPrinter LLVMX86Utils LLVMMCDisassembler LLVMGlobalISel LLVMSelectionDAG LLVMAsmPrinter LLVMDebugInfoCodeView LLVMDebugInfoMSF LLVMCodeGen LLVMTarget LLVMScalarOpts LLVMInstCombine LLVMTransformUtils LLVMBitWriter LLVMAnalysis LLVMObject LLVMBitReader LLVMProfileData LLVMCore LLVMMCParser LLVMMC LLVMSupport LLVMDemangle rt dl pthread z m tinfo)
+target_link_libraries(extract_interface isl clangFrontend clangParse clangSema clangEdit clangAnalysis clangAST clangLex clangBasic clangDriver clangSerialization clang LLVM rt dl pthread z m)
 
 ################################################################################
 # Generate isl-noexceptions.h and isl.h
@@ -81,7 +81,7 @@ add_custom_command(
   COMMAND extract_interface --language=cpp-noexceptions
   -I${CMAKE_CURRENT_BINARY_DIR} -I${CMAKE_CURRENT_BINARY_DIR}/../include
   -I${CMAKE_CURRENT_LIST_DIR}/.. -I${CMAKE_CURRENT_LIST_DIR}/../include
-  -I${CMAKE_CURRENT_LIST_DIR} 
+  -I${CMAKE_CURRENT_LIST_DIR}
   ${LIST_SYSTEM_INCLUDES} -I.
   ${CMAKE_CURRENT_LIST_DIR}/all.h >> isl-noexceptions.h
   COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/isl-noexceptions.h.bot >> isl-noexceptions.h
