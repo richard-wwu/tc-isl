@@ -14,7 +14,7 @@ jobs:
           command: |
             cd ~/isl
             export ISL_DIR=$(pwd)
-            VERBOSE=1 TRAVIS=1 CORES=16 CMAKE_VERSION="cmake" CLANG_PREFIX="$(/clang+llvm-4.0/bin/llvm-config --prefix)" ./build.sh --isl
+            VERBOSE=1 CORES=16 CMAKE_VERSION="cmake" CLANG_PREFIX="$(/clang+llvm-4.0/bin/llvm-config --prefix)" ./build.sh --isl
 
       - run:
           name: test_isl
@@ -37,7 +37,7 @@ jobs:
           command: |
             cd ~/isl
             export ISL_DIR=$(pwd)
-            VERBOSE=1 TRAVIS=1 CORES=16 CMAKE_VERSION="cmake" CLANG_PREFIX="$(/clang+llvm-4.0/bin/llvm-config --prefix)" ./build.sh --isl
+            VERBOSE=1 CORES=16 CMAKE_VERSION="cmake" CLANG_PREFIX="$(/clang+llvm-4.0/bin/llvm-config --prefix)" ./build.sh --isl
 
       - run:
           name: test_isl
