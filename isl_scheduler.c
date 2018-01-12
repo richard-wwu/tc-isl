@@ -7779,6 +7779,10 @@ static __isl_give isl_schedule_node *compute_component_schedule(
  * If the schedule_serialize_sccs option is set, then we check for strongly
  * connected components instead and compute a separate schedule for
  * each such strongly connected component.
+ *
+ * If a merge callback has been set, then skip the detection
+ * of weakly connected components such that it can decide about
+ * merging these components.
  */
 static __isl_give isl_schedule_node *compute_schedule(isl_schedule_node *node,
 	struct isl_sched_graph *graph)
@@ -7792,17 +7796,15 @@ static __isl_give isl_schedule_node *compute_schedule(isl_schedule_node *node,
 	if (isl_options_get_schedule_serialize_sccs(ctx)) {
 		if (detect_sccs(ctx, graph) < 0)
 			return isl_schedule_node_free(node);
-	} else {
+	} else if (!graph->merge_callback) {
 		if (detect_wccs(ctx, graph) < 0)
 			return isl_schedule_node_free(node);
+	} else {
+		graph->scc = 1;
 	}
 
-	if (graph->scc > 1) {
-		if (graph->merge_callback)
-			return compute_schedule_wcc_clustering(node, graph);
-		else
-			return compute_component_schedule(node, graph, 1);
-	}
+	if (graph->scc > 1)
+		return compute_component_schedule(node, graph, 1);
 
 	return compute_schedule_wcc(node, graph);
 }
