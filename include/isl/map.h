@@ -154,6 +154,10 @@ __isl_give isl_basic_map *isl_map_unshifted_simple_hull_from_map_list(
 	__isl_take isl_map *map, __isl_take isl_map_list *list);
 
 __isl_export
+__isl_give isl_basic_map_list *isl_map_get_basic_map_list(
+	__isl_keep isl_map *map);
+
+__isl_export
 __isl_give isl_basic_map *isl_basic_map_intersect_domain(
 		__isl_take isl_basic_map *bmap,
 		__isl_take isl_basic_set *bset);
