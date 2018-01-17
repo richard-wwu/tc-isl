@@ -19,9 +19,6 @@ set(IMATH_BINARY_DIR "${ISL_BINARY_DIR}/imath")
 if (NOT ISL_INT)
 message(FATAL_ERROR "-DISL_INT=gmp required")
 endif()
-if (NOT CLANG_PREFIX)
-message(FATAL_ERROR "-DCLANG_PREFIX=... required")
-endif()
 if (NOT CMAKE_INSTALL_PREFIX)
 message(FATAL_ERROR "-DCMAKE_INSTALL_PREFIX=... required")
 endif()
@@ -410,7 +407,12 @@ add_test(NAME codegen_test
 )
 set_tests_properties(isl_test codegen_test PROPERTIES ENVIRONMENT "srcdir=${ISL_SOURCE_DIR}")
 
-add_subdirectory(interface)
+if (WITH_BINDINGS)
+  if (NOT CLANG_PREFIX)
+    message(FATAL_ERROR "-DCLANG_PREFIX=... required")
+  endif()
+  add_subdirectory(interface)
+endif()
 
 ################################################################################
 # Install libisl and includes
@@ -426,6 +428,7 @@ install (TARGETS isl-static
          RUNTIME DESTINATION bin)
 
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/isl DESTINATION include)
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/interface/ DESTINATION include/isl/interface FILES_MATCHING PATTERN "isl.h")
 
 ################################################################################
 # Install generated files that isl puts in the source tree in automake mode
