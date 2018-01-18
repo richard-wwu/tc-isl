@@ -20,9 +20,8 @@ if(NOT EXISTS ${CLANG_PREFIX}/bin/llvm-config)
 endif()
 execute_process(COMMAND ${CLANG_PREFIX}/bin/llvm-config --version
                 OUTPUT_VARIABLE CLANG_VERSION)
-if ((NOT CLANG_VERSION GREATER 4.0.0) OR (NOT CLANG_VERSION GREATER 4.0.0))
-  message(STATUS  " Must use Clang >= 4.0.0, but found " ${CLANG_PREFIX}/bin/llvm-config with version " " ${CLANG_VERSION})
-  return()
+if ((NOT CLANG_VERSION GREATER 4.0.0) AND (NOT CLANG_VERSION EQUAL 4.0.0))
+  message(FATAL_ERROR  " Must use Clang >= 4.0.0, but found " ${CLANG_PREFIX}/bin/llvm-config with version " " ${CLANG_VERSION})
 endif()
 
 ################################################################################
