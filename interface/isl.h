@@ -836,6 +836,7 @@ public:
   inline isl::basic_set deltas() const;
   inline isl::basic_map detect_equalities() const;
   inline unsigned int dim(enum isl::dim_type type) const;
+  inline isl::basic_set domain() const;
   static inline isl::basic_map empty(isl::space space);
   inline isl::basic_map flatten() const;
   inline isl::basic_map flatten_domain() const;
@@ -1219,6 +1220,7 @@ public:
   inline /* implicit */ map();
   inline /* implicit */ map(const isl::map &obj);
   inline explicit map(isl::ctx ctx, const std::string &str);
+  inline /* implicit */ map(isl::basic_map bmap);
   inline explicit map(isl::set domain, isl::set range);
   inline explicit map(isl::aff aff);
   inline explicit map(isl::multi_aff maff);
@@ -1261,10 +1263,10 @@ public:
   inline isl::map flatten_range() const;
   inline void foreach_basic_map(const std::function<void(isl::basic_map)> &fn) const;
   static inline isl::map from(isl::pw_multi_aff pma);
-  static inline isl::map from_basic_map(isl::basic_map bmap);
   static inline isl::map from_domain(isl::set set);
   static inline isl::map from_range(isl::set set);
   static inline isl::map from_union_map(isl::union_map umap);
+  inline isl::list<isl::basic_map> get_basic_map_list() const;
   inline isl::id get_dim_id(enum isl::dim_type type, unsigned int pos) const;
   inline isl::space get_space() const;
   inline isl::id get_tuple_id(enum isl::dim_type type) const;
@@ -2764,6 +2766,7 @@ public:
   inline isl::union_map identity() const;
   inline isl::union_set intersect(isl::union_set uset2) const;
   inline isl::union_set intersect_params(isl::set set) const;
+  inline bool is_disjoint(const isl::union_set &uset2) const;
   inline bool is_empty() const;
   inline bool is_equal(const isl::union_set &uset2) const;
   inline bool is_params() const;
@@ -4588,6 +4591,18 @@ unsigned int basic_map::dim(enum isl::dim_type type) const
   options_scoped_set_on_error saved_on_error(get_ctx(), ISL_ON_ERROR_CONTINUE);
   auto res = isl_basic_map_dim(get(), static_cast<enum isl_dim_type>(type));
   return res;
+}
+
+isl::basic_set basic_map::domain() const
+{
+  if (!ptr)
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  options_scoped_set_on_error saved_on_error(get_ctx(), ISL_ON_ERROR_CONTINUE);
+  auto res = isl_basic_map_domain(copy());
+  if (!res)
+    throw exception::create_from_last_error(get_ctx());
+  return manage(res);
 }
 
 isl::basic_map basic_map::empty(isl::space space)
@@ -6714,6 +6729,18 @@ map::map(isl::ctx ctx, const std::string &str)
     throw exception::create_from_last_error(ctx);
   ptr = res;
 }
+map::map(isl::basic_map bmap)
+{
+  if (bmap.is_null())
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  auto ctx = bmap.get_ctx();
+  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
+  auto res = isl_map_from_basic_map(bmap.release());
+  if (!res)
+    throw exception::create_from_last_error(ctx);
+  ptr = res;
+}
 map::map(isl::set domain, isl::set range)
 {
   if (domain.is_null() || range.is_null())
@@ -7155,19 +7182,6 @@ isl::map map::from(isl::pw_multi_aff pma)
   return manage(res);
 }
 
-isl::map map::from_basic_map(isl::basic_map bmap)
-{
-  if (bmap.is_null())
-    throw isl::exception::create(isl_error_invalid,
-        "NULL input", __FILE__, __LINE__);
-  auto ctx = bmap.get_ctx();
-  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
-  auto res = isl_map_from_basic_map(bmap.release());
-  if (!res)
-    throw exception::create_from_last_error(ctx);
-  return manage(res);
-}
-
 isl::map map::from_domain(isl::set set)
 {
   if (set.is_null())
@@ -7204,6 +7218,18 @@ isl::map map::from_union_map(isl::union_map umap)
   auto res = isl_map_from_union_map(umap.release());
   if (!res)
     throw exception::create_from_last_error(ctx);
+  return manage(res);
+}
+
+isl::list<isl::basic_map> map::get_basic_map_list() const
+{
+  if (!ptr)
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  options_scoped_set_on_error saved_on_error(get_ctx(), ISL_ON_ERROR_CONTINUE);
+  auto res = isl_map_get_basic_map_list(get());
+  if (!res)
+    throw exception::create_from_last_error(get_ctx());
   return manage(res);
 }
 
@@ -17829,6 +17855,18 @@ isl::union_set union_set::intersect_params(isl::set set) const
   if (!res)
     throw exception::create_from_last_error(get_ctx());
   return manage(res);
+}
+
+bool union_set::is_disjoint(const isl::union_set &uset2) const
+{
+  if (!ptr || uset2.is_null())
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  options_scoped_set_on_error saved_on_error(get_ctx(), ISL_ON_ERROR_CONTINUE);
+  auto res = isl_union_set_is_disjoint(get(), uset2.get());
+  if (res < 0)
+    throw exception::create_from_last_error(get_ctx());
+  return res;
 }
 
 bool union_set::is_empty() const

@@ -752,6 +752,7 @@ public:
   inline isl::basic_set deltas() const;
   inline isl::basic_map detect_equalities() const;
   inline unsigned int dim(enum isl::dim_type type) const;
+  inline isl::basic_set domain() const;
   static inline isl::basic_map empty(isl::space space);
   inline isl::basic_map flatten() const;
   inline isl::basic_map flatten_domain() const;
@@ -1135,6 +1136,7 @@ public:
   inline /* implicit */ map();
   inline /* implicit */ map(const isl::map &obj);
   inline explicit map(isl::ctx ctx, const std::string &str);
+  inline /* implicit */ map(isl::basic_map bmap);
   inline explicit map(isl::set domain, isl::set range);
   inline explicit map(isl::aff aff);
   inline explicit map(isl::multi_aff maff);
@@ -1177,10 +1179,10 @@ public:
   inline isl::map flatten_range() const;
   inline isl::stat foreach_basic_map(const std::function<isl::stat(isl::basic_map)> &fn) const;
   static inline isl::map from(isl::pw_multi_aff pma);
-  static inline isl::map from_basic_map(isl::basic_map bmap);
   static inline isl::map from_domain(isl::set set);
   static inline isl::map from_range(isl::set set);
   static inline isl::map from_union_map(isl::union_map umap);
+  inline isl::list<isl::basic_map> get_basic_map_list() const;
   inline isl::id get_dim_id(enum isl::dim_type type, unsigned int pos) const;
   inline isl::space get_space() const;
   inline isl::id get_tuple_id(enum isl::dim_type type) const;
@@ -2680,6 +2682,7 @@ public:
   inline isl::union_map identity() const;
   inline isl::union_set intersect(isl::union_set uset2) const;
   inline isl::union_set intersect_params(isl::set set) const;
+  inline isl::boolean is_disjoint(const isl::union_set &uset2) const;
   inline isl::boolean is_empty() const;
   inline isl::boolean is_equal(const isl::union_set &uset2) const;
   inline isl::boolean is_params() const;
@@ -3877,6 +3880,12 @@ unsigned int basic_map::dim(enum isl::dim_type type) const
 {
   auto res = isl_basic_map_dim(get(), static_cast<enum isl_dim_type>(type));
   return res;
+}
+
+isl::basic_set basic_map::domain() const
+{
+  auto res = isl_basic_map_domain(copy());
+  return manage(res);
 }
 
 isl::basic_map basic_map::empty(isl::space space)
@@ -5204,6 +5213,11 @@ map::map(isl::ctx ctx, const std::string &str)
   auto res = isl_map_read_from_str(ctx.release(), str.c_str());
   ptr = res;
 }
+map::map(isl::basic_map bmap)
+{
+  auto res = isl_map_from_basic_map(bmap.release());
+  ptr = res;
+}
 map::map(isl::set domain, isl::set range)
 {
   auto res = isl_map_from_domain_and_range(domain.release(), range.release());
@@ -5452,12 +5466,6 @@ isl::map map::from(isl::pw_multi_aff pma)
   return manage(res);
 }
 
-isl::map map::from_basic_map(isl::basic_map bmap)
-{
-  auto res = isl_map_from_basic_map(bmap.release());
-  return manage(res);
-}
-
 isl::map map::from_domain(isl::set set)
 {
   auto res = isl_map_from_domain(set.release());
@@ -5473,6 +5481,12 @@ isl::map map::from_range(isl::set set)
 isl::map map::from_union_map(isl::union_map umap)
 {
   auto res = isl_map_from_union_map(umap.release());
+  return manage(res);
+}
+
+isl::list<isl::basic_map> map::get_basic_map_list() const
+{
+  auto res = isl_map_get_basic_map_list(get());
   return manage(res);
 }
 
@@ -11687,6 +11701,12 @@ isl::union_set union_set::intersect(isl::union_set uset2) const
 isl::union_set union_set::intersect_params(isl::set set) const
 {
   auto res = isl_union_set_intersect_params(copy(), set.release());
+  return manage(res);
+}
+
+isl::boolean union_set::is_disjoint(const isl::union_set &uset2) const
+{
+  auto res = isl_union_set_is_disjoint(get(), uset2.get());
   return manage(res);
 }
 
