@@ -1493,11 +1493,11 @@ protected:
 public:
   inline /* implicit */ multi_union_pw_aff();
   inline /* implicit */ multi_union_pw_aff(const isl::multi_union_pw_aff &obj);
+  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline /* implicit */ multi_union_pw_aff(isl::union_pw_aff upa);
   inline /* implicit */ multi_union_pw_aff(isl::multi_pw_aff mpa);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_val mv);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma);
-  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_union_pw_aff &operator=(isl::multi_union_pw_aff obj);
   inline ~multi_union_pw_aff();
   inline __isl_give isl_multi_union_pw_aff *copy() const &;
@@ -1531,6 +1531,7 @@ public:
   inline isl::id get_tuple_id(enum isl::dim_type type) const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::union_pw_aff get_union_pw_aff(int pos) const;
+  inline isl::multi_union_pw_aff gist(isl::union_set context) const;
   inline bool has_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_union_pw_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff neg() const;
@@ -2236,7 +2237,6 @@ public:
   inline /* implicit */ set();
   inline /* implicit */ set(const isl::set &obj);
   inline explicit set(isl::ctx ctx, const std::string &str);
-  inline explicit set(isl::space space);
   inline /* implicit */ set(isl::basic_set bset);
   inline /* implicit */ set(isl::point pnt);
   inline isl::set &operator=(isl::set obj);
@@ -2263,6 +2263,7 @@ public:
   inline bool dim_has_upper_bound(enum isl::dim_type type, unsigned int pos) const;
   inline isl::pw_aff dim_max(int pos) const;
   inline isl::pw_aff dim_min(int pos) const;
+  static inline isl::set empty(isl::space space);
   inline int find_dim_by_id(enum isl::dim_type type, const isl::id &id) const;
   inline int find_dim_by_name(enum isl::dim_type type, const std::string &name) const;
   inline isl::set flatten() const;
@@ -9186,6 +9187,14 @@ multi_union_pw_aff::multi_union_pw_aff(const isl::multi_union_pw_aff &obj)
 multi_union_pw_aff::multi_union_pw_aff(__isl_take isl_multi_union_pw_aff *ptr)
     : ptr(ptr) {}
 
+multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
+{
+  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
+  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
+  if (!res)
+    throw exception::create_from_last_error(ctx);
+  ptr = res;
+}
 multi_union_pw_aff::multi_union_pw_aff(isl::union_pw_aff upa)
 {
   if (upa.is_null())
@@ -9230,14 +9239,6 @@ multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma)
   auto ctx = domain.get_ctx();
   options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
   auto res = isl_multi_union_pw_aff_multi_aff_on_domain(domain.release(), ma.release());
-  if (!res)
-    throw exception::create_from_last_error(ctx);
-  ptr = res;
-}
-multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
-{
-  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
-  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
   if (!res)
     throw exception::create_from_last_error(ctx);
   ptr = res;
@@ -9548,6 +9549,18 @@ isl::union_pw_aff multi_union_pw_aff::get_union_pw_aff(int pos) const
         "NULL input", __FILE__, __LINE__);
   options_scoped_set_on_error saved_on_error(get_ctx(), ISL_ON_ERROR_CONTINUE);
   auto res = isl_multi_union_pw_aff_get_union_pw_aff(get(), pos);
+  if (!res)
+    throw exception::create_from_last_error(get_ctx());
+  return manage(res);
+}
+
+isl::multi_union_pw_aff multi_union_pw_aff::gist(isl::union_set context) const
+{
+  if (!ptr || context.is_null())
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  options_scoped_set_on_error saved_on_error(get_ctx(), ISL_ON_ERROR_CONTINUE);
+  auto res = isl_multi_union_pw_aff_gist(copy(), context.release());
   if (!res)
     throw exception::create_from_last_error(get_ctx());
   return manage(res);
@@ -13804,18 +13817,6 @@ set::set(isl::ctx ctx, const std::string &str)
     throw exception::create_from_last_error(ctx);
   ptr = res;
 }
-set::set(isl::space space)
-{
-  if (space.is_null())
-    throw isl::exception::create(isl_error_invalid,
-        "NULL input", __FILE__, __LINE__);
-  auto ctx = space.get_ctx();
-  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
-  auto res = isl_set_empty(space.release());
-  if (!res)
-    throw exception::create_from_last_error(ctx);
-  ptr = res;
-}
 set::set(isl::basic_set bset)
 {
   if (bset.is_null())
@@ -14048,6 +14049,19 @@ isl::pw_aff set::dim_min(int pos) const
   auto res = isl_set_dim_min(copy(), pos);
   if (!res)
     throw exception::create_from_last_error(get_ctx());
+  return manage(res);
+}
+
+isl::set set::empty(isl::space space)
+{
+  if (space.is_null())
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  auto ctx = space.get_ctx();
+  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
+  auto res = isl_set_empty(space.release());
+  if (!res)
+    throw exception::create_from_last_error(ctx);
   return manage(res);
 }
 

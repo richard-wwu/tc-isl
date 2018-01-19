@@ -1409,11 +1409,11 @@ protected:
 public:
   inline /* implicit */ multi_union_pw_aff();
   inline /* implicit */ multi_union_pw_aff(const isl::multi_union_pw_aff &obj);
+  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline /* implicit */ multi_union_pw_aff(isl::union_pw_aff upa);
   inline /* implicit */ multi_union_pw_aff(isl::multi_pw_aff mpa);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_val mv);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma);
-  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_union_pw_aff &operator=(isl::multi_union_pw_aff obj);
   inline ~multi_union_pw_aff();
   inline __isl_give isl_multi_union_pw_aff *copy() const &;
@@ -1447,6 +1447,7 @@ public:
   inline isl::id get_tuple_id(enum isl::dim_type type) const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::union_pw_aff get_union_pw_aff(int pos) const;
+  inline isl::multi_union_pw_aff gist(isl::union_set context) const;
   inline isl::boolean has_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_union_pw_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff neg() const;
@@ -2152,7 +2153,6 @@ public:
   inline /* implicit */ set();
   inline /* implicit */ set(const isl::set &obj);
   inline explicit set(isl::ctx ctx, const std::string &str);
-  inline explicit set(isl::space space);
   inline /* implicit */ set(isl::basic_set bset);
   inline /* implicit */ set(isl::point pnt);
   inline isl::set &operator=(isl::set obj);
@@ -2179,6 +2179,7 @@ public:
   inline isl::boolean dim_has_upper_bound(enum isl::dim_type type, unsigned int pos) const;
   inline isl::pw_aff dim_max(int pos) const;
   inline isl::pw_aff dim_min(int pos) const;
+  static inline isl::set empty(isl::space space);
   inline int find_dim_by_id(enum isl::dim_type type, const isl::id &id) const;
   inline int find_dim_by_name(enum isl::dim_type type, const std::string &name) const;
   inline isl::set flatten() const;
@@ -6541,6 +6542,11 @@ multi_union_pw_aff::multi_union_pw_aff(const isl::multi_union_pw_aff &obj)
 multi_union_pw_aff::multi_union_pw_aff(__isl_take isl_multi_union_pw_aff *ptr)
     : ptr(ptr) {}
 
+multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
+{
+  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
+  ptr = res;
+}
 multi_union_pw_aff::multi_union_pw_aff(isl::union_pw_aff upa)
 {
   auto res = isl_multi_union_pw_aff_from_union_pw_aff(upa.release());
@@ -6559,11 +6565,6 @@ multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_val mv)
 multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma)
 {
   auto res = isl_multi_union_pw_aff_multi_aff_on_domain(domain.release(), ma.release());
-  ptr = res;
-}
-multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
-{
-  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
   ptr = res;
 }
 
@@ -6749,6 +6750,12 @@ std::string multi_union_pw_aff::get_tuple_name(enum isl::dim_type type) const
 isl::union_pw_aff multi_union_pw_aff::get_union_pw_aff(int pos) const
 {
   auto res = isl_multi_union_pw_aff_get_union_pw_aff(get(), pos);
+  return manage(res);
+}
+
+isl::multi_union_pw_aff multi_union_pw_aff::gist(isl::union_set context) const
+{
+  auto res = isl_multi_union_pw_aff_gist(copy(), context.release());
   return manage(res);
 }
 
@@ -9377,11 +9384,6 @@ set::set(isl::ctx ctx, const std::string &str)
   auto res = isl_set_read_from_str(ctx.release(), str.c_str());
   ptr = res;
 }
-set::set(isl::space space)
-{
-  auto res = isl_set_empty(space.release());
-  ptr = res;
-}
 set::set(isl::basic_set bset)
 {
   auto res = isl_set_from_basic_set(bset.release());
@@ -9524,6 +9526,12 @@ isl::pw_aff set::dim_max(int pos) const
 isl::pw_aff set::dim_min(int pos) const
 {
   auto res = isl_set_dim_min(copy(), pos);
+  return manage(res);
+}
+
+isl::set set::empty(isl::space space)
+{
+  auto res = isl_set_empty(space.release());
   return manage(res);
 }
 
