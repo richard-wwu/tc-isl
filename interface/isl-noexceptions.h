@@ -1409,11 +1409,11 @@ protected:
 public:
   inline /* implicit */ multi_union_pw_aff();
   inline /* implicit */ multi_union_pw_aff(const isl::multi_union_pw_aff &obj);
-  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline /* implicit */ multi_union_pw_aff(isl::union_pw_aff upa);
   inline /* implicit */ multi_union_pw_aff(isl::multi_pw_aff mpa);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_val mv);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma);
+  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_union_pw_aff &operator=(isl::multi_union_pw_aff obj);
   inline ~multi_union_pw_aff();
   inline __isl_give isl_multi_union_pw_aff *copy() const &;
@@ -3716,7 +3716,7 @@ isl::ast_node list<ast_node>::operator[](int pos) const {
 
 typename isl::list<ast_node>::iterator
 list<ast_node>::begin() const {
-  return list_iterator<ast_node>(this, 0);
+  return list_iterator<ast_node>(this, size() == 0 ? -1 : 0);
 }
 
 typename isl::list<ast_node>::iterator
@@ -4141,7 +4141,7 @@ isl::basic_map list<basic_map>::operator[](int pos) const {
 
 typename isl::list<basic_map>::iterator
 list<basic_map>::begin() const {
-  return list_iterator<basic_map>(this, 0);
+  return list_iterator<basic_map>(this, size() == 0 ? -1 : 0);
 }
 
 typename isl::list<basic_map>::iterator
@@ -4574,7 +4574,7 @@ isl::basic_set list<basic_set>::operator[](int pos) const {
 
 typename isl::list<basic_set>::iterator
 list<basic_set>::begin() const {
-  return list_iterator<basic_set>(this, 0);
+  return list_iterator<basic_set>(this, size() == 0 ? -1 : 0);
 }
 
 typename isl::list<basic_set>::iterator
@@ -4868,7 +4868,7 @@ isl::constraint list<constraint>::operator[](int pos) const {
 
 typename isl::list<constraint>::iterator
 list<constraint>::begin() const {
-  return list_iterator<constraint>(this, 0);
+  return list_iterator<constraint>(this, size() == 0 ? -1 : 0);
 }
 
 typename isl::list<constraint>::iterator
@@ -4959,7 +4959,7 @@ isl::id list<id>::operator[](int pos) const {
 
 typename isl::list<id>::iterator
 list<id>::begin() const {
-  return list_iterator<id>(this, 0);
+  return list_iterator<id>(this, size() == 0 ? -1 : 0);
 }
 
 typename isl::list<id>::iterator
@@ -6541,11 +6541,6 @@ multi_union_pw_aff::multi_union_pw_aff(const isl::multi_union_pw_aff &obj)
 multi_union_pw_aff::multi_union_pw_aff(__isl_take isl_multi_union_pw_aff *ptr)
     : ptr(ptr) {}
 
-multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
-{
-  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
-  ptr = res;
-}
 multi_union_pw_aff::multi_union_pw_aff(isl::union_pw_aff upa)
 {
   auto res = isl_multi_union_pw_aff_from_union_pw_aff(upa.release());
@@ -6564,6 +6559,11 @@ multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_val mv)
 multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma)
 {
   auto res = isl_multi_union_pw_aff_multi_aff_on_domain(domain.release(), ma.release());
+  ptr = res;
+}
+multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
+{
+  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
   ptr = res;
 }
 
@@ -9991,7 +9991,7 @@ isl::set list<set>::operator[](int pos) const {
 
 typename isl::list<set>::iterator
 list<set>::begin() const {
-  return list_iterator<set>(this, 0);
+  return list_iterator<set>(this, size() == 0 ? -1 : 0);
 }
 
 typename isl::list<set>::iterator
@@ -12369,7 +12369,7 @@ isl::val list<val>::operator[](int pos) const {
 
 typename isl::list<val>::iterator
 list<val>::begin() const {
-  return list_iterator<val>(this, 0);
+  return list_iterator<val>(this, size() == 0 ? -1 : 0);
 }
 
 typename isl::list<val>::iterator
