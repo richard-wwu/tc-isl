@@ -1010,7 +1010,9 @@ void cpp_generator::print_custom_methods_impl(ostream &os,
 
 		osprintf(os, "typename isl::%s::iterator\n", cname);
 		osprintf(os, "%s::begin() const {\n", cname);
-		osprintf(os, "  return list_iterator<%s>(this, 0);\n",
+		osprintf(os,
+			"  return list_iterator<%s>"
+			"(this, size() == 0 ? -1 : 0);\n",
 			element_cpptype);
 		osprintf(os, "}\n\n");
 
