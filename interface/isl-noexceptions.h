@@ -2694,6 +2694,7 @@ public:
   inline isl::multi_val max_multi_union_pw_aff(const isl::multi_union_pw_aff &obj) const;
   inline isl::multi_val min_multi_union_pw_aff(const isl::multi_union_pw_aff &obj) const;
   inline int n_set() const;
+  inline isl::set params() const;
   inline isl::union_set polyhedral_hull() const;
   inline isl::union_set preimage(isl::multi_aff ma) const;
   inline isl::union_set preimage(isl::pw_multi_aff pma) const;
@@ -11776,6 +11777,12 @@ int union_set::n_set() const
 {
   auto res = isl_union_set_n_set(get());
   return res;
+}
+
+isl::set union_set::params() const
+{
+  auto res = isl_union_set_params(copy());
+  return manage(res);
 }
 
 isl::union_set union_set::polyhedral_hull() const
