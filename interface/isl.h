@@ -1336,7 +1336,6 @@ public:
   inline /* implicit */ multi_aff();
   inline /* implicit */ multi_aff(const isl::multi_aff &obj);
   inline /* implicit */ multi_aff(isl::aff aff);
-  inline explicit multi_aff(isl::space space);
   inline explicit multi_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_aff &operator=(isl::multi_aff obj);
   inline ~multi_aff();
@@ -1370,6 +1369,7 @@ public:
   inline isl::id get_tuple_id(enum isl::dim_type type) const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline bool has_tuple_id(enum isl::dim_type type) const;
+  static inline isl::multi_aff identity(isl::space space);
   inline isl::multi_aff insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff neg() const;
@@ -1493,11 +1493,11 @@ protected:
 public:
   inline /* implicit */ multi_union_pw_aff();
   inline /* implicit */ multi_union_pw_aff(const isl::multi_union_pw_aff &obj);
-  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline /* implicit */ multi_union_pw_aff(isl::union_pw_aff upa);
   inline /* implicit */ multi_union_pw_aff(isl::multi_pw_aff mpa);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_val mv);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma);
+  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_union_pw_aff &operator=(isl::multi_union_pw_aff obj);
   inline ~multi_union_pw_aff();
   inline __isl_give isl_multi_union_pw_aff *copy() const &;
@@ -2572,8 +2572,8 @@ public:
   inline isl::union_map fixed_power(isl::val exp) const;
   inline isl::union_map flat_range_product(isl::union_map umap2) const;
   inline void foreach_map(const std::function<void(isl::map)> &fn) const;
-  static inline isl::union_map from(isl::union_pw_multi_aff upma);
   static inline isl::union_map from(isl::multi_union_pw_aff mupa);
+  static inline isl::union_map from(isl::union_pw_multi_aff upma);
   static inline isl::union_map from_domain(isl::union_set uset);
   static inline isl::union_map from_domain_and_range(isl::union_set domain, isl::union_set range);
   static inline isl::union_map from_range(isl::union_set uset);
@@ -7866,18 +7866,6 @@ multi_aff::multi_aff(isl::aff aff)
     throw exception::create_from_last_error(ctx);
   ptr = res;
 }
-multi_aff::multi_aff(isl::space space)
-{
-  if (space.is_null())
-    throw isl::exception::create(isl_error_invalid,
-        "NULL input", __FILE__, __LINE__);
-  auto ctx = space.get_ctx();
-  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
-  auto res = isl_multi_aff_identity(space.release());
-  if (!res)
-    throw exception::create_from_last_error(ctx);
-  ptr = res;
-}
 multi_aff::multi_aff(isl::ctx ctx, const std::string &str)
 {
   options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
@@ -8183,6 +8171,19 @@ bool multi_aff::has_tuple_id(enum isl::dim_type type) const
   if (res < 0)
     throw exception::create_from_last_error(get_ctx());
   return res;
+}
+
+isl::multi_aff multi_aff::identity(isl::space space)
+{
+  if (space.is_null())
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  auto ctx = space.get_ctx();
+  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
+  auto res = isl_multi_aff_identity(space.release());
+  if (!res)
+    throw exception::create_from_last_error(ctx);
+  return manage(res);
 }
 
 isl::multi_aff multi_aff::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const
@@ -9188,14 +9189,6 @@ multi_union_pw_aff::multi_union_pw_aff(const isl::multi_union_pw_aff &obj)
 multi_union_pw_aff::multi_union_pw_aff(__isl_take isl_multi_union_pw_aff *ptr)
     : ptr(ptr) {}
 
-multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
-{
-  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
-  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
-  if (!res)
-    throw exception::create_from_last_error(ctx);
-  ptr = res;
-}
 multi_union_pw_aff::multi_union_pw_aff(isl::union_pw_aff upa)
 {
   if (upa.is_null())
@@ -9240,6 +9233,14 @@ multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma)
   auto ctx = domain.get_ctx();
   options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
   auto res = isl_multi_union_pw_aff_multi_aff_on_domain(domain.release(), ma.release());
+  if (!res)
+    throw exception::create_from_last_error(ctx);
+  ptr = res;
+}
+multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
+{
+  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
+  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
   if (!res)
     throw exception::create_from_last_error(ctx);
   ptr = res;
@@ -16303,19 +16304,6 @@ void union_map::foreach_map(const std::function<void(isl::map)> &fn) const
   return void(res);
 }
 
-isl::union_map union_map::from(isl::union_pw_multi_aff upma)
-{
-  if (upma.is_null())
-    throw isl::exception::create(isl_error_invalid,
-        "NULL input", __FILE__, __LINE__);
-  auto ctx = upma.get_ctx();
-  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
-  auto res = isl_union_map_from_union_pw_multi_aff(upma.release());
-  if (!res)
-    throw exception::create_from_last_error(ctx);
-  return manage(res);
-}
-
 isl::union_map union_map::from(isl::multi_union_pw_aff mupa)
 {
   if (mupa.is_null())
@@ -16324,6 +16312,19 @@ isl::union_map union_map::from(isl::multi_union_pw_aff mupa)
   auto ctx = mupa.get_ctx();
   options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
   auto res = isl_union_map_from_multi_union_pw_aff(mupa.release());
+  if (!res)
+    throw exception::create_from_last_error(ctx);
+  return manage(res);
+}
+
+isl::union_map union_map::from(isl::union_pw_multi_aff upma)
+{
+  if (upma.is_null())
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  auto ctx = upma.get_ctx();
+  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
+  auto res = isl_union_map_from_union_pw_multi_aff(upma.release());
   if (!res)
     throw exception::create_from_last_error(ctx);
   return manage(res);

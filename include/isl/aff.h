@@ -455,7 +455,7 @@ ISL_DECLARE_MULTI_WITH_DOMAIN(aff)
 
 __isl_constructor
 __isl_give isl_multi_aff *isl_multi_aff_from_aff(__isl_take isl_aff *aff);
-__isl_constructor
+__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_identity(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_multi_aff *isl_multi_aff_domain_map(__isl_take isl_space *space);

@@ -1252,7 +1252,6 @@ public:
   inline /* implicit */ multi_aff();
   inline /* implicit */ multi_aff(const isl::multi_aff &obj);
   inline /* implicit */ multi_aff(isl::aff aff);
-  inline explicit multi_aff(isl::space space);
   inline explicit multi_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_aff &operator=(isl::multi_aff obj);
   inline ~multi_aff();
@@ -1286,6 +1285,7 @@ public:
   inline isl::id get_tuple_id(enum isl::dim_type type) const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::boolean has_tuple_id(enum isl::dim_type type) const;
+  static inline isl::multi_aff identity(isl::space space);
   inline isl::multi_aff insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff neg() const;
@@ -1409,11 +1409,11 @@ protected:
 public:
   inline /* implicit */ multi_union_pw_aff();
   inline /* implicit */ multi_union_pw_aff(const isl::multi_union_pw_aff &obj);
-  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline /* implicit */ multi_union_pw_aff(isl::union_pw_aff upa);
   inline /* implicit */ multi_union_pw_aff(isl::multi_pw_aff mpa);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_val mv);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma);
+  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_union_pw_aff &operator=(isl::multi_union_pw_aff obj);
   inline ~multi_union_pw_aff();
   inline __isl_give isl_multi_union_pw_aff *copy() const &;
@@ -2488,8 +2488,8 @@ public:
   inline isl::union_map fixed_power(isl::val exp) const;
   inline isl::union_map flat_range_product(isl::union_map umap2) const;
   inline isl::stat foreach_map(const std::function<isl::stat(isl::map)> &fn) const;
-  static inline isl::union_map from(isl::union_pw_multi_aff upma);
   static inline isl::union_map from(isl::multi_union_pw_aff mupa);
+  static inline isl::union_map from(isl::union_pw_multi_aff upma);
   static inline isl::union_map from_domain(isl::union_set uset);
   static inline isl::union_map from_domain_and_range(isl::union_set domain, isl::union_set range);
   static inline isl::union_map from_range(isl::union_set uset);
@@ -5813,11 +5813,6 @@ multi_aff::multi_aff(isl::aff aff)
   auto res = isl_multi_aff_from_aff(aff.release());
   ptr = res;
 }
-multi_aff::multi_aff(isl::space space)
-{
-  auto res = isl_multi_aff_identity(space.release());
-  ptr = res;
-}
 multi_aff::multi_aff(isl::ctx ctx, const std::string &str)
 {
   auto res = isl_multi_aff_read_from_str(ctx.release(), str.c_str());
@@ -6000,6 +5995,12 @@ std::string multi_aff::get_tuple_name(enum isl::dim_type type) const
 isl::boolean multi_aff::has_tuple_id(enum isl::dim_type type) const
 {
   auto res = isl_multi_aff_has_tuple_id(get(), static_cast<enum isl_dim_type>(type));
+  return manage(res);
+}
+
+isl::multi_aff multi_aff::identity(isl::space space)
+{
+  auto res = isl_multi_aff_identity(space.release());
   return manage(res);
 }
 
@@ -6543,11 +6544,6 @@ multi_union_pw_aff::multi_union_pw_aff(const isl::multi_union_pw_aff &obj)
 multi_union_pw_aff::multi_union_pw_aff(__isl_take isl_multi_union_pw_aff *ptr)
     : ptr(ptr) {}
 
-multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
-{
-  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
-  ptr = res;
-}
 multi_union_pw_aff::multi_union_pw_aff(isl::union_pw_aff upa)
 {
   auto res = isl_multi_union_pw_aff_from_union_pw_aff(upa.release());
@@ -6566,6 +6562,11 @@ multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_val mv)
 multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma)
 {
   auto res = isl_multi_union_pw_aff_multi_aff_on_domain(domain.release(), ma.release());
+  ptr = res;
+}
+multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
+{
+  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
   ptr = res;
 }
 
@@ -10837,15 +10838,15 @@ isl::stat union_map::foreach_map(const std::function<isl::stat(isl::map)> &fn) c
   return isl::stat(res);
 }
 
-isl::union_map union_map::from(isl::union_pw_multi_aff upma)
-{
-  auto res = isl_union_map_from_union_pw_multi_aff(upma.release());
-  return manage(res);
-}
-
 isl::union_map union_map::from(isl::multi_union_pw_aff mupa)
 {
   auto res = isl_union_map_from_multi_union_pw_aff(mupa.release());
+  return manage(res);
+}
+
+isl::union_map union_map::from(isl::union_pw_multi_aff upma)
+{
+  auto res = isl_union_map_from_union_pw_multi_aff(upma.release());
   return manage(res);
 }
 
