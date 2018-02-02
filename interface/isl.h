@@ -1383,7 +1383,7 @@ public:
   inline isl::multi_aff range_splice(unsigned int pos, isl::multi_aff multi2) const;
   inline isl::multi_aff reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_aff reset_user() const;
-  inline isl::multi_aff scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_aff scale_down(isl::multi_val mv) const;
   inline isl::multi_aff scale_down_val(isl::val v) const;
   inline isl::multi_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff scale_val(isl::val v) const;
@@ -1463,7 +1463,7 @@ public:
   inline isl::multi_pw_aff range_splice(unsigned int pos, isl::multi_pw_aff multi2) const;
   inline isl::multi_pw_aff reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_pw_aff reset_user() const;
-  inline isl::multi_pw_aff scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_pw_aff scale_down(isl::multi_val mv) const;
   inline isl::multi_pw_aff scale_down_val(isl::val v) const;
   inline isl::multi_pw_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_pw_aff scale_val(isl::val v) const;
@@ -1542,7 +1542,7 @@ public:
   inline isl::multi_union_pw_aff range_splice(unsigned int pos, isl::multi_union_pw_aff multi2) const;
   inline isl::multi_union_pw_aff reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_union_pw_aff reset_user() const;
-  inline isl::multi_union_pw_aff scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_union_pw_aff scale_down(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff scale_down_val(isl::val v) const;
   inline isl::multi_union_pw_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff scale_val(isl::val v) const;
@@ -1613,7 +1613,7 @@ public:
   inline isl::multi_val range_splice(unsigned int pos, isl::multi_val multi2) const;
   inline isl::multi_val reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_val reset_user() const;
-  inline isl::multi_val scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_val scale_down(isl::multi_val mv) const;
   inline isl::multi_val scale_down_val(isl::val v) const;
   inline isl::multi_val scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_val scale_val(isl::val v) const;
@@ -2572,8 +2572,8 @@ public:
   inline isl::union_map fixed_power(isl::val exp) const;
   inline isl::union_map flat_range_product(isl::union_map umap2) const;
   inline void foreach_map(const std::function<void(isl::map)> &fn) const;
-  static inline isl::union_map from(isl::multi_union_pw_aff mupa);
   static inline isl::union_map from(isl::union_pw_multi_aff upma);
+  static inline isl::union_map from(isl::multi_union_pw_aff mupa);
   static inline isl::union_map from_domain(isl::union_set uset);
   static inline isl::union_map from_domain_and_range(isl::union_set domain, isl::union_set range);
   static inline isl::union_map from_range(isl::union_set uset);
@@ -8344,7 +8344,7 @@ isl::multi_aff multi_aff::reset_user() const
   return manage(res);
 }
 
-isl::multi_aff multi_aff::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_aff multi_aff::scale_down(isl::multi_val mv) const
 {
   if (!ptr || mv.is_null())
     throw isl::exception::create(isl_error_invalid,
@@ -9024,7 +9024,7 @@ isl::multi_pw_aff multi_pw_aff::reset_user() const
   return manage(res);
 }
 
-isl::multi_pw_aff multi_pw_aff::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_pw_aff multi_pw_aff::scale_down(isl::multi_val mv) const
 {
   if (!ptr || mv.is_null())
     throw isl::exception::create(isl_error_invalid,
@@ -9688,7 +9688,7 @@ isl::multi_union_pw_aff multi_union_pw_aff::reset_user() const
   return manage(res);
 }
 
-isl::multi_union_pw_aff multi_union_pw_aff::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_union_pw_aff multi_union_pw_aff::scale_down(isl::multi_val mv) const
 {
   if (!ptr || mv.is_null())
     throw isl::exception::create(isl_error_invalid,
@@ -10259,7 +10259,7 @@ isl::multi_val multi_val::reset_user() const
   return manage(res);
 }
 
-isl::multi_val multi_val::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_val multi_val::scale_down(isl::multi_val mv) const
 {
   if (!ptr || mv.is_null())
     throw isl::exception::create(isl_error_invalid,
@@ -16304,19 +16304,6 @@ void union_map::foreach_map(const std::function<void(isl::map)> &fn) const
   return void(res);
 }
 
-isl::union_map union_map::from(isl::multi_union_pw_aff mupa)
-{
-  if (mupa.is_null())
-    throw isl::exception::create(isl_error_invalid,
-        "NULL input", __FILE__, __LINE__);
-  auto ctx = mupa.get_ctx();
-  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
-  auto res = isl_union_map_from_multi_union_pw_aff(mupa.release());
-  if (!res)
-    throw exception::create_from_last_error(ctx);
-  return manage(res);
-}
-
 isl::union_map union_map::from(isl::union_pw_multi_aff upma)
 {
   if (upma.is_null())
@@ -16325,6 +16312,19 @@ isl::union_map union_map::from(isl::union_pw_multi_aff upma)
   auto ctx = upma.get_ctx();
   options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
   auto res = isl_union_map_from_union_pw_multi_aff(upma.release());
+  if (!res)
+    throw exception::create_from_last_error(ctx);
+  return manage(res);
+}
+
+isl::union_map union_map::from(isl::multi_union_pw_aff mupa)
+{
+  if (mupa.is_null())
+    throw isl::exception::create(isl_error_invalid,
+        "NULL input", __FILE__, __LINE__);
+  auto ctx = mupa.get_ctx();
+  options_scoped_set_on_error saved_on_error(ctx, ISL_ON_ERROR_CONTINUE);
+  auto res = isl_union_map_from_multi_union_pw_aff(mupa.release());
   if (!res)
     throw exception::create_from_last_error(ctx);
   return manage(res);
