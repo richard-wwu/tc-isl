@@ -1252,7 +1252,6 @@ public:
   inline /* implicit */ multi_aff();
   inline /* implicit */ multi_aff(const isl::multi_aff &obj);
   inline /* implicit */ multi_aff(isl::aff aff);
-  inline explicit multi_aff(isl::space space);
   inline explicit multi_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_aff &operator=(isl::multi_aff obj);
   inline ~multi_aff();
@@ -1286,6 +1285,7 @@ public:
   inline isl::id get_tuple_id(enum isl::dim_type type) const;
   inline std::string get_tuple_name(enum isl::dim_type type) const;
   inline isl::boolean has_tuple_id(enum isl::dim_type type) const;
+  static inline isl::multi_aff identity(isl::space space);
   inline isl::multi_aff insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const;
   inline isl::multi_aff mod_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff neg() const;
@@ -1299,7 +1299,7 @@ public:
   inline isl::multi_aff range_splice(unsigned int pos, isl::multi_aff multi2) const;
   inline isl::multi_aff reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_aff reset_user() const;
-  inline isl::multi_aff scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_aff scale_down(isl::multi_val mv) const;
   inline isl::multi_aff scale_down_val(isl::val v) const;
   inline isl::multi_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_aff scale_val(isl::val v) const;
@@ -1379,7 +1379,7 @@ public:
   inline isl::multi_pw_aff range_splice(unsigned int pos, isl::multi_pw_aff multi2) const;
   inline isl::multi_pw_aff reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_pw_aff reset_user() const;
-  inline isl::multi_pw_aff scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_pw_aff scale_down(isl::multi_val mv) const;
   inline isl::multi_pw_aff scale_down_val(isl::val v) const;
   inline isl::multi_pw_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_pw_aff scale_val(isl::val v) const;
@@ -1409,11 +1409,11 @@ protected:
 public:
   inline /* implicit */ multi_union_pw_aff();
   inline /* implicit */ multi_union_pw_aff(const isl::multi_union_pw_aff &obj);
-  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline /* implicit */ multi_union_pw_aff(isl::union_pw_aff upa);
   inline /* implicit */ multi_union_pw_aff(isl::multi_pw_aff mpa);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_val mv);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma);
+  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_union_pw_aff &operator=(isl::multi_union_pw_aff obj);
   inline ~multi_union_pw_aff();
   inline __isl_give isl_multi_union_pw_aff *copy() const &;
@@ -1458,7 +1458,7 @@ public:
   inline isl::multi_union_pw_aff range_splice(unsigned int pos, isl::multi_union_pw_aff multi2) const;
   inline isl::multi_union_pw_aff reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_union_pw_aff reset_user() const;
-  inline isl::multi_union_pw_aff scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_union_pw_aff scale_down(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff scale_down_val(isl::val v) const;
   inline isl::multi_union_pw_aff scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_union_pw_aff scale_val(isl::val v) const;
@@ -1529,7 +1529,7 @@ public:
   inline isl::multi_val range_splice(unsigned int pos, isl::multi_val multi2) const;
   inline isl::multi_val reset_tuple_id(enum isl::dim_type type) const;
   inline isl::multi_val reset_user() const;
-  inline isl::multi_val scale_down_multi_val(isl::multi_val mv) const;
+  inline isl::multi_val scale_down(isl::multi_val mv) const;
   inline isl::multi_val scale_down_val(isl::val v) const;
   inline isl::multi_val scale_multi_val(isl::multi_val mv) const;
   inline isl::multi_val scale_val(isl::val v) const;
@@ -5813,11 +5813,6 @@ multi_aff::multi_aff(isl::aff aff)
   auto res = isl_multi_aff_from_aff(aff.release());
   ptr = res;
 }
-multi_aff::multi_aff(isl::space space)
-{
-  auto res = isl_multi_aff_identity(space.release());
-  ptr = res;
-}
 multi_aff::multi_aff(isl::ctx ctx, const std::string &str)
 {
   auto res = isl_multi_aff_read_from_str(ctx.release(), str.c_str());
@@ -6003,6 +5998,12 @@ isl::boolean multi_aff::has_tuple_id(enum isl::dim_type type) const
   return manage(res);
 }
 
+isl::multi_aff multi_aff::identity(isl::space space)
+{
+  auto res = isl_multi_aff_identity(space.release());
+  return manage(res);
+}
+
 isl::multi_aff multi_aff::insert_dims(enum isl::dim_type type, unsigned int first, unsigned int n) const
 {
   auto res = isl_multi_aff_insert_dims(copy(), static_cast<enum isl_dim_type>(type), first, n);
@@ -6081,7 +6082,7 @@ isl::multi_aff multi_aff::reset_user() const
   return manage(res);
 }
 
-isl::multi_aff multi_aff::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_aff multi_aff::scale_down(isl::multi_val mv) const
 {
   auto res = isl_multi_aff_scale_down_multi_val(copy(), mv.release());
   return manage(res);
@@ -6456,7 +6457,7 @@ isl::multi_pw_aff multi_pw_aff::reset_user() const
   return manage(res);
 }
 
-isl::multi_pw_aff multi_pw_aff::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_pw_aff multi_pw_aff::scale_down(isl::multi_val mv) const
 {
   auto res = isl_multi_pw_aff_scale_down_multi_val(copy(), mv.release());
   return manage(res);
@@ -6543,11 +6544,6 @@ multi_union_pw_aff::multi_union_pw_aff(const isl::multi_union_pw_aff &obj)
 multi_union_pw_aff::multi_union_pw_aff(__isl_take isl_multi_union_pw_aff *ptr)
     : ptr(ptr) {}
 
-multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
-{
-  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
-  ptr = res;
-}
 multi_union_pw_aff::multi_union_pw_aff(isl::union_pw_aff upa)
 {
   auto res = isl_multi_union_pw_aff_from_union_pw_aff(upa.release());
@@ -6566,6 +6562,11 @@ multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_val mv)
 multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma)
 {
   auto res = isl_multi_union_pw_aff_multi_aff_on_domain(domain.release(), ma.release());
+  ptr = res;
+}
+multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
+{
+  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
   ptr = res;
 }
 
@@ -6820,7 +6821,7 @@ isl::multi_union_pw_aff multi_union_pw_aff::reset_user() const
   return manage(res);
 }
 
-isl::multi_union_pw_aff multi_union_pw_aff::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_union_pw_aff multi_union_pw_aff::scale_down(isl::multi_val mv) const
 {
   auto res = isl_multi_union_pw_aff_scale_down_multi_val(copy(), mv.release());
   return manage(res);
@@ -7141,7 +7142,7 @@ isl::multi_val multi_val::reset_user() const
   return manage(res);
 }
 
-isl::multi_val multi_val::scale_down_multi_val(isl::multi_val mv) const
+isl::multi_val multi_val::scale_down(isl::multi_val mv) const
 {
   auto res = isl_multi_val_scale_down_multi_val(copy(), mv.release());
   return manage(res);
