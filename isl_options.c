@@ -139,6 +139,10 @@ ISL_ARG_INT(struct isl_options, schedule_max_coefficient, 0,
 	"schedule-max-coefficient", "limit", -1, "Only consider schedules "
 	"where the coefficients of the variable and parameter dimensions "
         "do not exceed <limit>. A value of -1 allows arbitrary coefficients.")
+ISL_ARG_BOOL(struct isl_options, schedule_unit_max_var_coefficient_sum, 0,
+	"schedule-unit-max-var-coefficient-sum", 0,
+	"bound the sum of the coefficients of the variables by one "
+	"for each statement")
 ISL_ARG_INT(struct isl_options, schedule_max_constant_term, 0,
 	"schedule-max-constant-term", "limit", -1, "Only consider schedules "
 	"where the coefficients of the constant dimension do not exceed "
@@ -251,6 +255,11 @@ ISL_CTX_SET_INT_DEF(isl_options, struct isl_options, isl_options_args,
 	schedule_max_coefficient)
 ISL_CTX_GET_INT_DEF(isl_options, struct isl_options, isl_options_args,
 	schedule_max_coefficient)
+
+ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
+	schedule_unit_max_var_coefficient_sum)
+ISL_CTX_GET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
+	schedule_unit_max_var_coefficient_sum)
 
 ISL_CTX_SET_INT_DEF(isl_options, struct isl_options, isl_options_args,
 	schedule_max_constant_term)
