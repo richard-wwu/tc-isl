@@ -20,6 +20,10 @@ typedef struct isl_schedule_constraints isl_schedule_constraints;
 isl_stat isl_options_set_schedule_max_coefficient(isl_ctx *ctx, int val);
 int isl_options_get_schedule_max_coefficient(isl_ctx *ctx);
 
+isl_stat isl_options_set_schedule_unit_max_var_coefficient_sum(isl_ctx *ctx,
+	int val);
+int isl_options_get_schedule_unit_max_var_coefficient_sum(isl_ctx *ctx);
+
 isl_stat isl_options_set_schedule_max_constant_term(isl_ctx *ctx, int val);
 int isl_options_get_schedule_max_constant_term(isl_ctx *ctx);
 

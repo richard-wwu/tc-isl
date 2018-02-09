@@ -9648,6 +9648,11 @@ L</"Schedule Trees">.
 		isl_ctx *ctx);
 	isl_stat isl_options_set_schedule_max_constant_term(
 		isl_ctx *ctx, int val);
+	int isl_options_get_schedule_unit_max_var_coefficient_sum(
+		isl_ctx *ctx);
+	isl_stat
+	isl_options_set_schedule_unit_max_var_coefficient_sum(
+		isl_ctx *ctx, int val);
 	int isl_options_get_schedule_max_constant_term(
 		isl_ctx *ctx);
 	isl_stat isl_options_set_schedule_serialize_sccs(
@@ -9700,6 +9705,14 @@ This option can significantly increase the speed of the scheduling calculation
 and may also prevent fusing of unrelated dimensions. A value of -1 means that
 this option does not introduce bounds on the variable or parameter
 coefficients.
+
+=item * schedule_unit_max_var_coefficient_sum
+
+If this option is set, then the sum of the coefficients for the variables
+(in absolute values) is bounded by one for each statement.
+This means that only schedules that are combinations of permutations and
+reversals on the statement indices are allowed.
+This option has no effect on the Feautrier style scheduler.
 
 =item * schedule_max_constant_term
 

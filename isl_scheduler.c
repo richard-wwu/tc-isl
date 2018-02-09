@@ -2943,6 +2943,60 @@ static isl_stat add_bound_coefficient_constraints(isl_ctx *ctx,
 	return isl_stat_ok;
 }
 
+/* Count the number of constraints that will be added by
+ * add_bound_coefficient_sum_constraints and increment *n_eq and *n_ineq
+ * accordingly.
+ *
+ * In practice, add_bound_coefficient_sum_constraints only adds
+ * inequality constraints.
+ */
+static isl_stat count_bound_coefficient_sum_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph, int *n_eq, int *n_ineq)
+{
+	if (!isl_options_get_schedule_unit_max_var_coefficient_sum(ctx))
+		return isl_stat_ok;
+
+	*n_ineq += graph->n;
+
+	return isl_stat_ok;
+}
+
+/* If the schedule_unit_max_var_coefficient_sum option is set,
+ * then add a constraint for each node that ensures that
+ * the sum of the absolute values of the coefficients of
+ * the variables of the node is bounded by one.
+ */
+static isl_stat add_bound_coefficient_sum_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph)
+{
+	int i;
+	int total;
+
+	if (!isl_options_get_schedule_unit_max_var_coefficient_sum(ctx))
+		return isl_stat_ok;
+
+	total = isl_basic_set_dim(graph->lp, isl_dim_set);
+
+	for (i = 0; i < graph->n; ++i) {
+		int j, k;
+		struct isl_sched_node *node = &graph->node[i];
+
+		k = isl_basic_set_alloc_inequality(graph->lp);
+		if (k < 0)
+			return isl_stat_error;
+		isl_seq_clr(graph->lp->ineq[k], 1 + total);
+		for (j = 0; j < node->nvar; ++j) {
+			int pos = 1 + node_var_coef_pos(node, j);
+
+			isl_int_set_si(graph->lp->ineq[k][pos], -1);
+			isl_int_set_si(graph->lp->ineq[k][pos + 1], -1);
+		}
+		isl_int_set_si(graph->lp->ineq[k][0], 1);
+	}
+
+	return isl_stat_ok;
+}
+
 /* Add a constraint to graph->lp that equates the value at position
  * "sum_pos" to the sum of the "n" values starting at "first".
  */
@@ -3077,6 +3131,9 @@ static isl_stat setup_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 		return isl_stat_error;
 	if (count_bound_coefficient_constraints(ctx, graph, &n_eq, &n_ineq) < 0)
 		return isl_stat_error;
+	if (count_bound_coefficient_sum_constraints(ctx, graph,
+							    &n_eq, &n_ineq) < 0)
+		return isl_stat_error;
 
 	space = isl_space_set_alloc(ctx, 0, total);
 	isl_basic_set_free(graph->lp);
@@ -3093,6 +3150,8 @@ static isl_stat setup_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 	if (add_bound_constant_constraints(ctx, graph) < 0)
 		return isl_stat_error;
 	if (add_bound_coefficient_constraints(ctx, graph) < 0)
+		return isl_stat_error;
+	if (add_bound_coefficient_sum_constraints(ctx, graph) < 0)
 		return isl_stat_error;
 	if (add_all_validity_constraints(graph, use_coincidence) < 0)
 		return isl_stat_error;
