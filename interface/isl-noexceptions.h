@@ -1409,11 +1409,11 @@ protected:
 public:
   inline /* implicit */ multi_union_pw_aff();
   inline /* implicit */ multi_union_pw_aff(const isl::multi_union_pw_aff &obj);
+  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline /* implicit */ multi_union_pw_aff(isl::union_pw_aff upa);
   inline /* implicit */ multi_union_pw_aff(isl::multi_pw_aff mpa);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_val mv);
   inline explicit multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma);
-  inline explicit multi_union_pw_aff(isl::ctx ctx, const std::string &str);
   inline isl::multi_union_pw_aff &operator=(isl::multi_union_pw_aff obj);
   inline ~multi_union_pw_aff();
   inline __isl_give isl_multi_union_pw_aff *copy() const &;
@@ -2220,6 +2220,7 @@ public:
   inline unsigned int n_param() const;
   static inline isl::set nat_universe(isl::space dim);
   inline isl::set params() const;
+  inline isl::val plain_get_val_if_fixed(enum isl::dim_type type, unsigned int pos) const;
   inline isl::boolean plain_is_universe() const;
   inline isl::basic_set polyhedral_hull() const;
   inline isl::set preimage_multi_aff(isl::multi_aff ma) const;
@@ -2488,8 +2489,8 @@ public:
   inline isl::union_map fixed_power(isl::val exp) const;
   inline isl::union_map flat_range_product(isl::union_map umap2) const;
   inline isl::stat foreach_map(const std::function<isl::stat(isl::map)> &fn) const;
-  static inline isl::union_map from(isl::union_pw_multi_aff upma);
   static inline isl::union_map from(isl::multi_union_pw_aff mupa);
+  static inline isl::union_map from(isl::union_pw_multi_aff upma);
   static inline isl::union_map from_domain(isl::union_set uset);
   static inline isl::union_map from_domain_and_range(isl::union_set domain, isl::union_set range);
   static inline isl::union_map from_range(isl::union_set uset);
@@ -6544,6 +6545,11 @@ multi_union_pw_aff::multi_union_pw_aff(const isl::multi_union_pw_aff &obj)
 multi_union_pw_aff::multi_union_pw_aff(__isl_take isl_multi_union_pw_aff *ptr)
     : ptr(ptr) {}
 
+multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
+{
+  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
+  ptr = res;
+}
 multi_union_pw_aff::multi_union_pw_aff(isl::union_pw_aff upa)
 {
   auto res = isl_multi_union_pw_aff_from_union_pw_aff(upa.release());
@@ -6562,11 +6568,6 @@ multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_val mv)
 multi_union_pw_aff::multi_union_pw_aff(isl::union_set domain, isl::multi_aff ma)
 {
   auto res = isl_multi_union_pw_aff_multi_aff_on_domain(domain.release(), ma.release());
-  ptr = res;
-}
-multi_union_pw_aff::multi_union_pw_aff(isl::ctx ctx, const std::string &str)
-{
-  auto res = isl_multi_union_pw_aff_read_from_str(ctx.release(), str.c_str());
   ptr = res;
 }
 
@@ -9786,6 +9787,12 @@ isl::set set::params() const
   return manage(res);
 }
 
+isl::val set::plain_get_val_if_fixed(enum isl::dim_type type, unsigned int pos) const
+{
+  auto res = isl_set_plain_get_val_if_fixed(get(), static_cast<enum isl_dim_type>(type), pos);
+  return manage(res);
+}
+
 isl::boolean set::plain_is_universe() const
 {
   auto res = isl_set_plain_is_universe(get());
@@ -10838,15 +10845,15 @@ isl::stat union_map::foreach_map(const std::function<isl::stat(isl::map)> &fn) c
   return isl::stat(res);
 }
 
-isl::union_map union_map::from(isl::union_pw_multi_aff upma)
-{
-  auto res = isl_union_map_from_union_pw_multi_aff(upma.release());
-  return manage(res);
-}
-
 isl::union_map union_map::from(isl::multi_union_pw_aff mupa)
 {
   auto res = isl_union_map_from_multi_union_pw_aff(mupa.release());
+  return manage(res);
+}
+
+isl::union_map union_map::from(isl::union_pw_multi_aff upma)
+{
+  auto res = isl_union_map_from_union_pw_multi_aff(upma.release());
   return manage(res);
 }
 
