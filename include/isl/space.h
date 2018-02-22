@@ -231,6 +231,7 @@ unsigned isl_space_dim(__isl_keep isl_space *dim, enum isl_dim_type type);
 
 __isl_export
 __isl_give isl_space *isl_space_flatten_domain(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_space *isl_space_flatten_range(__isl_take isl_space *space);
 
 __isl_give char *isl_space_to_str(__isl_keep isl_space *space);
