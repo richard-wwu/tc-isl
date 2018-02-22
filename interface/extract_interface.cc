@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <stdlib.h>
 #ifdef HAVE_ADT_OWNINGPTR_H
 #include <llvm/ADT/OwningPtr.h>
 #else
@@ -423,7 +424,7 @@ static void generate(MyASTConsumer &consumer)
 	} else {
 		cerr << "Language '" << Language << "' not recognized." << endl
 		     << "Not generating bindings." << endl;
-		return;
+		exit(EXIT_FAILURE);
 	}
 
 	gen->generate();
@@ -488,5 +489,5 @@ int main(int argc, char *argv[])
 	delete Clang;
 	llvm::llvm_shutdown();
 
-	return 0;
+	return EXIT_SUCCESS;
 }
