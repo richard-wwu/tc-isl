@@ -205,6 +205,7 @@ isl_bool isl_space_can_uncurry(__isl_keep isl_space *space);
 __isl_export
 __isl_give isl_space *isl_space_uncurry(__isl_take isl_space *space);
 
+__isl_export
 isl_bool isl_space_is_domain(__isl_keep isl_space *space1,
 	__isl_keep isl_space *space2);
 isl_bool isl_space_is_range(__isl_keep isl_space *space1,
