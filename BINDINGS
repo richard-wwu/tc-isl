@@ -4,4 +4,3 @@ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DISL_INT=gmp  -DCMAKE_INSTALL_PREFIX=$
 make -j 32
 cd ..
 cp build/interface/isl.h interface/
-cp build/interface/isl-noexceptions.h interface/
