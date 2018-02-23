@@ -124,11 +124,6 @@ target_link_libraries(isl_test_cpp isl)
 add_dependencies(isl_test_cpp generate_isl)
 
 ################################################################################
-# isl_test_cpp (no gtest yet here)
-################################################################################
-add_subdirectory(test)
-
-################################################################################
 # Install generated interfaces isl.h and isl-noexceptions.h
 ################################################################################
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} DESTINATION include/isl FILES_MATCHING PATTERN "isl.h")
