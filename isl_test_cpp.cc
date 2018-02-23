@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include <isl/options.h>
-#include <isl.h>
+#include <isl/cpp.h>
 
 static void die_impl(const char *file, int line, const char *message)
 {
@@ -132,10 +132,10 @@ static void test_exception(isl::ctx ctx)
 	try {
 		auto umap = isl::union_map::from(mupa);
 	} catch (const isl::exception &error) {
-		assert(strstr(error.what(), "without explicit domain"));
+		assert(strstr(error.what(), "cannot determine domain"));
 		copy = error;
 	}
-	assert(strstr(copy.what(), "without explicit domain"));
+	assert(strstr(copy.what(), "cannot determine domain"));
 }
 
 /* Test basic schedule tree functionality.

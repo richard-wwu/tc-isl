@@ -1,6 +1,5 @@
-# Build bindings, update and commit them with:
+# Build bindings with:
 cd build
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DISL_INT=gmp  -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCLANG_PREFIX=${CLANG_DIR} -DWITH_BINDINGS=1 ..
 make -j 32
 cd ..
-cp build/interface/isl.h interface/
