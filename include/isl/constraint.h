@@ -159,9 +159,7 @@ __isl_give isl_aff *isl_constraint_get_bound(
 __isl_export
 __isl_give isl_aff *isl_constraint_get_aff(
 	__isl_keep isl_constraint *constraint);
-__isl_constructor
 __isl_give isl_constraint *isl_equality_from_aff(__isl_take isl_aff *aff);
-__isl_constructor
 __isl_give isl_constraint *isl_inequality_from_aff(__isl_take isl_aff *aff);
 
 __isl_export
