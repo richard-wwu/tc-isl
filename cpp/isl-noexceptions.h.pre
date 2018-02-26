@@ -257,21 +257,6 @@ enum class ast_loop_type {
 	separate = isl_ast_loop_separate
 };
 
-enum class schedule_node_type {
-        error = isl_schedule_node_error,
-        band = isl_schedule_node_band,
-        context = isl_schedule_node_context,
-        domain = isl_schedule_node_domain,
-        expansion = isl_schedule_node_expansion,
-        extension = isl_schedule_node_extension,
-        filter = isl_schedule_node_filter,
-        leaf = isl_schedule_node_leaf,
-        guard = isl_schedule_node_guard,
-        mark = isl_schedule_node_mark,
-        sequence = isl_schedule_node_sequence,
-        set = isl_schedule_node_set
-};
-
 template <typename T>
 class list;
 
