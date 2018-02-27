@@ -115,7 +115,7 @@ void python_generator::print_copy(QualType type)
 	printf("isl.%s_copy", type_s.c_str());
 }
 
-/* Construct a wrapper for a callback argument (at position "arg").
+/* Construct a wrapper for callback argument "param" (at position "arg").
  * Assign the wrapper to "cb".  We assume here that a function call
  * has at most one callback argument.
  *
@@ -132,8 +132,9 @@ void python_generator::print_copy(QualType type)
  * Otherwise, None is returned to indicate an error and
  * a copy of the object in case of success.
  */
-void python_generator::print_callback(QualType type, int arg)
+void python_generator::print_callback(ParmVarDecl *param, int arg)
 {
+	QualType type = param->getOriginalType()->getPointeeType();
 	const FunctionProtoType *fn = type->getAs<FunctionProtoType>();
 	QualType return_type = fn->getReturnType();
 	unsigned n_arg = fn->getNumArgs();
@@ -329,7 +330,7 @@ void python_generator::print_method(const isl_class &clazz,
 		QualType type = param->getOriginalType();
 		if (!is_callback(type))
 			continue;
-		print_callback(type->getPointeeType(), i - drop_ctx);
+		print_callback(param, i - drop_ctx);
 	}
 	if (drop_ctx)
 		printf("        ctx = Context.getDefaultInstance()\n");
