@@ -49,6 +49,8 @@ static int prefixcmp(const char *s, const char *prefix)
 	return strncmp(s, prefix, strlen(prefix));
 }
 
+const char *isl_class::set_callback_prefix = "set_";
+
 /* Should "method" be considered to be a static method?
  * That is, is the first argument something other than
  * an instance of the class?
@@ -66,6 +68,30 @@ bool generator::is_static(const isl_class &clazz, FunctionDecl *method)
 	if (!is_isl_type(type))
 		return true;
 	return extract_type(type) != clazz.name;
+}
+
+/* Does "fd" modify an object of "clazz"?
+ * That is, is it an object method that takes the object and
+ * returns (gives) an object of the same type?
+ */
+bool generator::is_mutator(const isl_class &clazz, FunctionDecl *fd)
+{
+	ParmVarDecl *param;
+	QualType type, return_type;
+
+	if (fd->getNumParams() < 1)
+		return false;
+	if (is_static(clazz, fd))
+		return false;
+
+	if (!gives(fd))
+		return false;
+	param = fd->getParamDecl(0);
+	if (!takes(param))
+		return false;
+	type = param->getOriginalType();
+	return_type = fd->getReturnType();
+	return return_type == type;
 }
 
 /* Find the FunctionDecl with name "name",
@@ -138,8 +164,40 @@ void generator::add_type_subclasses(FunctionDecl *fn_type)
 	}
 }
 
+/* Return the callback argument of a function setting
+ * a persistent callback.
+ * This callback is in the second argument (position 1).
+ */
+ParmVarDecl *generator::persistent_callback_arg(FunctionDecl *fd)
+{
+	return fd->getParamDecl(1);
+}
+
+/* Does the given function set a persistent callback?
+ * The following heuristics are used to determine this property:
+ * - the function returns an object of the same type
+ * - its name starts with "set_"
+ * - it has exactly three arguments
+ * - the second (position 1) of which is a callback
+ */
+static bool sets_persistent_callback(isl_class *c, FunctionDecl *fd)
+{
+	ParmVarDecl *param;
+
+	if (!generator::is_mutator(*c, fd))
+		return false;
+	if (fd->getNumParams() != 3)
+		return false;
+	param = generator::persistent_callback_arg(fd);
+	if (!generator::is_callback(param->getType()))
+		return false;
+	return prefixcmp(c->method_name(fd).c_str(),
+			 c->set_callback_prefix) == 0;
+}
+
 /* Collect all functions that belong to a certain type, separating
- * constructors from regular methods and keeping track of the _to_str,
+ * constructors from methods that set persistent callback and
+ * from regular methods, while keeping track of the _to_str,
  * _copy and _free functions, if any, separately.  If there are any overloaded
  * functions, then they are grouped based on their name after removing the
  * argument type suffix.
@@ -183,6 +241,8 @@ generator::generator(SourceManager &SM, set<RecordDecl *> &exported_types,
 			continue;
 		if (is_constructor(method)) {
 			c->constructors.insert(method);
+		} else if (sets_persistent_callback(c, method)) {
+			c->persistent_callbacks.insert(method);
 		} else {
 			string fullname = c->name_without_type_suffix(method);
 			c->methods[fullname].insert(method);
