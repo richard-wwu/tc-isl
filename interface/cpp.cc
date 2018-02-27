@@ -1591,7 +1591,7 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param)
 
 	call = "(*data->func)(";
 	for (long i = 0; i < num_params - 1; i++) {
-		if (!callback_takes_arguments(callback))
+		if (!callback_takes_argument(param, i))
 			call += "isl::manage_copy";
 		else
 			call += "isl::manage";

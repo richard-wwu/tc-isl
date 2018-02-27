@@ -163,7 +163,7 @@ void python_generator::print_callback(ParmVarDecl *param, int arg)
 		arg_type = type2python(extract_type(fn->getArgType(i)));
 		printf("            cb_arg%d = %s(ctx=arg0.ctx, ptr=",
 			i, arg_type.c_str());
-		if (!callback_takes_arguments(fn))
+		if (!callback_takes_argument(param, i))
 			print_copy(fn->getArgType(i));
 		printf("(cb_arg%d))\n", i);
 	}

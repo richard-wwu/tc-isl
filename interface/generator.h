@@ -69,7 +69,7 @@ protected:
 	void add_class(RecordDecl *decl);
 	void add_type_subclasses(FunctionDecl *method);
 	isl_class *method2class(FunctionDecl *fd);
-	bool callback_takes_arguments(const FunctionProtoType *fn_type);
+	bool callback_takes_argument(ParmVarDecl *param, int pos);
 	FunctionDecl *find_by_name(const string &name, bool required);
 public:
 	static void die(const char *msg) __attribute__((noreturn));
