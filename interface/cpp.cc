@@ -1295,11 +1295,10 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 		osprintf(os, "  ptr = res;\n");
 	} else if (is_isl_type(return_type) ||
 		    (noexceptions && is_isl_bool(return_type))) {
+		osprintf(os, "  return manage(res)");
 		if (returns_super)
-			osprintf(os, "  return manage(res).as<%s>();\n",
-				rettype_str.c_str());
-		else
-			osprintf(os, "  return manage(res);\n");
+			osprintf(os, ".as<%s>()", rettype_str.c_str());
+		osprintf(os, ";\n");
 	} else if (has_callback) {
 		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
 	} else if (is_string(return_type)) {
