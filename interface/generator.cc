@@ -133,8 +133,9 @@ void generator::add_type_subclasses(FunctionDecl *fn_type)
  * any other functions in order to be able to detect those other
  * functions as belonging to the subclasses.
  */
-generator::generator(set<RecordDecl *> &exported_types,
-	set<FunctionDecl *> exported_functions, set<FunctionDecl *> functions)
+generator::generator(SourceManager &SM, set<RecordDecl *> &exported_types,
+	set<FunctionDecl *> exported_functions, set<FunctionDecl *> functions) :
+	SM(SM)
 {
 	map<string, isl_class>::iterator ci;
 
