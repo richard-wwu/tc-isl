@@ -41,9 +41,10 @@ struct isl_class {
 	bool is_type_subclass() const { return name != subclass_name; }
 	/* Return name of "fd" without type suffix, if any. */
 	static string name_without_type_suffix(FunctionDecl *fd);
-	/* Extract the method name from the C function name. */
-	string method_suffix(const string &function_name) const {
-		return function_name.substr(subclass_name.length() + 1);
+	/* Extract the method name corresponding to "fd". */
+	string method_name(FunctionDecl *fd) const {
+		string name = name_without_type_suffix(fd);
+		return name.substr(subclass_name.length() + 1);
 	}
 };
 

@@ -296,7 +296,7 @@ void python_generator::print_method(const isl_class &clazz,
 	FunctionDecl *method, vector<string> super)
 {
 	string fullname = method->getName();
-	string cname = clazz.method_suffix(fullname);
+	string cname = clazz.method_name(method);
 	int num_params = method->getNumParams();
 	int drop_user = 0;
 	int drop_ctx = first_arg_is_isl_ctx(method);
@@ -423,7 +423,7 @@ void python_generator::print_method(const isl_class &clazz,
 		return;
 	}
 
-	cname = clazz.method_suffix(fullname);
+	cname = clazz.method_name(any_method);
 	num_params = any_method->getNumParams();
 
 	print_method_header(is_static(clazz, any_method), cname, num_params);
@@ -449,7 +449,7 @@ void python_generator::print_constructor(const isl_class &clazz,
 	FunctionDecl *cons)
 {
 	string fullname = cons->getName();
-	string cname = clazz.method_suffix(fullname);
+	string cname = clazz.method_name(cons);
 	int num_params = cons->getNumParams();
 	int drop_ctx = first_arg_is_isl_ctx(cons);
 
