@@ -39,6 +39,8 @@ struct isl_class {
 
 	/* Is this class a subclass based on a type function? */
 	bool is_type_subclass() const { return name != subclass_name; }
+	/* Return name of "fd" without type suffix, if any. */
+	static string name_without_type_suffix(FunctionDecl *fd);
 	/* Extract the method name from the C function name. */
 	string method_suffix(const string &function_name) const {
 		return function_name.substr(subclass_name.length() + 1);
@@ -68,7 +70,6 @@ protected:
 	bool callback_takes_arguments(const FunctionProtoType *fn_type);
 	FunctionDecl *find_by_name(const string &name, bool required);
 public:
-	static string name_without_type_suffix(FunctionDecl *method);
 	static void die(const char *msg) __attribute__((noreturn));
 	static void die(string msg) __attribute__((noreturn));
 	static vector<string> find_superclasses(Decl *decl);
