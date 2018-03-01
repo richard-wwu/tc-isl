@@ -68,7 +68,7 @@ protected:
 	bool callback_takes_arguments(const FunctionProtoType *fn_type);
 	FunctionDecl *find_by_name(const string &name, bool required);
 public:
-	static string drop_type_suffix(string name, FunctionDecl *method);
+	static string name_without_type_suffix(FunctionDecl *method);
 	static void die(const char *msg) __attribute__((noreturn));
 	static void die(string msg) __attribute__((noreturn));
 	static vector<string> find_superclasses(Decl *decl);
