@@ -78,6 +78,22 @@ static void osprintf(ostream &os, const char *format, ...)
 	va_end(arguments);
 }
 
+/* Print string formatted according to "fmt" to ostream "os"
+ * with the given indentation.
+ *
+ * This osprintf method allows us to use printf style formatting constructs when
+ * writing to an ostream.
+ */
+static void osprintf(ostream &os, int indent, const char *format, ...)
+{
+	va_list arguments;
+
+	osprintf(os, "%*s", indent, " ");
+	va_start(arguments, format);
+	osprintf(os, format, arguments);
+	va_end(arguments);
+}
+
 /* Convert "l" to a string.
  */
 static std::string to_string(long l)
@@ -549,13 +565,22 @@ void cpp_generator::print_class_impl(ostream &os, const isl_class &clazz)
 	print_methods_impl(os, clazz);
 }
 
+/* Print code with the given indentation
+ * for throwing an exception with the given message.
+ */
+static void print_throw(ostream &os, int indent, const char *msg)
+{
+	osprintf(os, indent,
+	    "throw isl::exception::create(isl_error_invalid,\n");
+	osprintf(os, indent,
+	    "    \"%s\", __FILE__, __LINE__);\n", msg);
+}
+
 /* Print code for throwing an exception on NULL input.
  */
 static void print_throw_NULL_input(ostream &os)
 {
-	osprintf(os,
-	    "    throw isl::exception::create(isl_error_invalid,\n"
-	    "        \"NULL input\", __FILE__, __LINE__);\n");
+	print_throw(os, 4, "NULL input");
 }
 
 /* Print implementation of global factory functions to "os".
