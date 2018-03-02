@@ -412,6 +412,70 @@ if (WITH_BINDINGS)
     message(FATAL_ERROR "-DCLANG_PREFIX=... required")
   endif()
   add_subdirectory(interface)
+
+  ##############################################################################
+  # Generate interface/isl-noexceptions.h and include/isl/cpp.h
+  ##############################################################################
+  # TODO: another level or horror to make this work.. still it seems to build
+  execute_process(COMMAND bash "-c" "echo | ${CLANG_PREFIX}/bin/clang++ -x c++ -E -Wp,-v - 2>&1 | sed -e 's/^[^ ].*//' | uniq -u | tr '\n' ' ' | sed -e 's:\\s\\+:-I:g'"
+		  OUTPUT_VARIABLE SYSTEM_INCLUDES)
+  string(REPLACE "-I" ";-I" SYSTEM_INCLUDES ${SYSTEM_INCLUDES})
+  set(LIST_SYSTEM_INCLUDES ${SYSTEM_INCLUDES})
+
+  add_custom_command(
+    OUTPUT interface/isl-noexceptions.h
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cpp/isl-noexceptions.h.top
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cpp/isl-noexceptions.h.pre
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/all.h
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cpp/isl-noexceptions.h.bot
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/cpp/isl-noexceptions.h.top > interface/isl-noexceptions.h
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/all.h >> interface/isl-noexceptions.h
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/cpp/isl-noexceptions.h.pre >> interface/isl-noexceptions.h
+    COMMAND extract_interface --language=cpp-noexceptions
+    -I${CMAKE_CURRENT_BINARY_DIR} -I${CMAKE_CURRENT_BINARY_DIR}/include
+    -I${CMAKE_CURRENT_LIST_DIR} -I${CMAKE_CURRENT_LIST_DIR}/include
+    ${LIST_SYSTEM_INCLUDES} -I.
+    ${CMAKE_CURRENT_LIST_DIR}/all.h >> interface/isl-noexceptions.h
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/cpp/isl-noexceptions.h.bot >> interface/isl-noexceptions.h
+    DEPENDS extract_interface
+  )
+
+  add_custom_command(
+    OUTPUT include/isl/cpp.h
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cpp/cpp.h.top
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cpp/cpp.h.pre
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/all.h
+    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/cpp/cpp.h.bot
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/cpp/cpp.h.top > include/isl/cpp.h
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/all.h >> include/isl/cpp.h
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/cpp/cpp.h.pre >> include/isl/cpp.h
+    COMMAND extract_interface --language=cpp
+    -I${CMAKE_CURRENT_BINARY_DIR} -I${CMAKE_CURRENT_BINARY_DIR}/include
+    -I${CMAKE_CURRENT_LIST_DIR} -I${CMAKE_CURRENT_LIST_DIR}/include
+    ${LIST_SYSTEM_INCLUDES} -I.
+    ${CMAKE_CURRENT_LIST_DIR}/all.h >> include/isl/cpp.h
+    COMMAND cat ${CMAKE_CURRENT_LIST_DIR}/cpp/cpp.h.bot >> include/isl/cpp.h
+    DEPENDS extract_interface
+  )
+
+  ##############################################################################
+  # Custom target for targets that depend on interface/isl-noexceptions.h or
+  # include/isl/cpp.h
+  ##############################################################################
+  add_custom_target(generate_isl-noexceptions DEPENDS interface/isl-noexceptions.h)
+  add_custom_target(generate_isl DEPENDS include/isl/cpp.h)
+
+  ##############################################################################
+  # isl_test_cpp-noexceptions and isl_test_cpp (no gtest yet here)
+  ##############################################################################
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+  add_executable(isl_test_cpp-noexceptions isl_test_cpp-noexceptions.cc)
+  target_link_libraries(isl_test_cpp-noexceptions isl)
+  add_dependencies(isl_test_cpp-noexceptions generate_isl-noexceptions)
+  add_executable(isl_test_cpp isl_test_cpp.cc)
+  target_link_libraries(isl_test_cpp isl)
+  add_dependencies(isl_test_cpp generate_isl)
+
 endif()
 
 ################################################################################
@@ -428,9 +492,13 @@ install (TARGETS isl-static
          RUNTIME DESTINATION bin)
 
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/isl DESTINATION include)
-install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/interface/ DESTINATION include/isl/interface FILES_MATCHING PATTERN "isl.h")
 
 ################################################################################
 # Install generated files that isl puts in the source tree in automake mode
 ################################################################################
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/isl DESTINATION include FILES_MATCHING PATTERN "stdint.h")
+
+################################################################################
+# Install generated interfaces include/isl/cpp.h
+################################################################################
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/isl DESTINATION include FILES_MATCHING PATTERN "cpp.h")
