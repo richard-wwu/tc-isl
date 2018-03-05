@@ -60,7 +60,7 @@ EXPORT									\
 int isl_##EL##_list_n(__isl_keep isl_##EL##_list *list);		\
 int isl_##EL##_list_n_##EL(__isl_keep isl_##EL##_list *list);		\
 EXPORT									\
-__isl_give isl_##EL *isl_##EL##_list_get(				\
+__isl_give isl_##EL *isl_##EL##_list_get_at(				\
 	__isl_keep isl_##EL##_list *list, int index);			\
 __isl_give isl_##EL *isl_##EL##_list_get_##EL(				\
 	__isl_keep isl_##EL##_list *list, int index);			\
