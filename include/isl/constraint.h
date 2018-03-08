@@ -24,9 +24,8 @@ extern "C" {
 
 struct __isl_export isl_constraint;
 typedef struct isl_constraint isl_constraint;
-struct __isl_list(isl_constraint) isl_constraint_list;
 
-ISL_DECLARE_LIST(constraint)
+ISL_DECLARE_EXPORTED_LIST(constraint)
 
 isl_ctx *isl_constraint_get_ctx(__isl_keep isl_constraint *c);
 
