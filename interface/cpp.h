@@ -12,11 +12,11 @@ class cpp_generator : public generator {
 protected:
 	bool noexceptions;
 public:
-	cpp_generator(set<RecordDecl *> &exported_types,
+	cpp_generator(SourceManager &SM, set<RecordDecl *> &exported_types,
 		set<FunctionDecl *> exported_functions,
 		set<FunctionDecl *> functions,
 		bool noexceptions = false) :
-		generator(exported_types, exported_functions, functions),
+		generator(SM, exported_types, exported_functions, functions),
 		noexceptions(noexceptions) {}
 
 	enum function_kind {
@@ -48,10 +48,9 @@ private:
 	void print_str_decl(ostream &os, const isl_class &clazz);
 	void print_methods_decl(ostream &os, const isl_class &clazz);
 	void print_method_group_decl(ostream &os, const isl_class &clazz,
-		const string &fullname, const set<FunctionDecl *> &methods);
+		const set<FunctionDecl *> &methods);
 	void print_method_decl(ostream &os, const isl_class &clazz,
-		const string &fullname, FunctionDecl *method,
-		function_kind kind);
+		FunctionDecl *method, function_kind kind);
 	void print_implementations(ostream &os);
 	void print_class_impl(ostream &os, const isl_class &clazz);
 	void print_class_factory_impl(ostream &os, const isl_class &clazz);
@@ -69,7 +68,7 @@ private:
 	void print_operators_impl(ostream &os, const isl_class &clazz);
 	void print_methods_impl(ostream &os, const isl_class &clazz);
 	void print_method_group_impl(ostream &os, const isl_class &clazz,
-		const string &fullname, const set<FunctionDecl *> &methods);
+		const set<FunctionDecl *> &methods);
 	void print_argument_validity_check(ostream &os, FunctionDecl *method,
 		function_kind kind);
 	void print_save_ctx(ostream &os, FunctionDecl *method,
@@ -81,14 +80,12 @@ private:
 	void print_exceptional_execution_check(ostream &os,
 		FunctionDecl *method, function_kind kind);
 	void print_method_impl(ostream &os, const isl_class &clazz,
-		const string &fullname,	FunctionDecl *method,
-		function_kind kind);
+		FunctionDecl *method, function_kind kind);
 	void print_method_param_use(ostream &os, ParmVarDecl *param,
 		bool load_from_this_ptr);
 	bool super2sub(const isl_class &clazz, std::string &type);
 	void print_method_header(ostream &os, const isl_class &clazz,
-		FunctionDecl *method, const string &fullname,
-		bool is_declaration, function_kind kind);
+		FunctionDecl *method, bool is_declaration, function_kind kind);
 	string generate_callback_args(QualType type, bool cpp);
 	string generate_callback_type(QualType type);
 	void print_wrapped_call_noexceptions(std::ostream &os,

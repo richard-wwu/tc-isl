@@ -115,7 +115,7 @@ void python_generator::print_copy(QualType type)
 	printf("isl.%s_copy", type_s.c_str());
 }
 
-/* Construct a wrapper for a callback argument (at position "arg").
+/* Construct a wrapper for callback argument "param" (at position "arg").
  * Assign the wrapper to "cb".  We assume here that a function call
  * has at most one callback argument.
  *
@@ -132,8 +132,9 @@ void python_generator::print_copy(QualType type)
  * Otherwise, None is returned to indicate an error and
  * a copy of the object in case of success.
  */
-void python_generator::print_callback(QualType type, int arg)
+void python_generator::print_callback(ParmVarDecl *param, int arg)
 {
+	QualType type = param->getOriginalType()->getPointeeType();
 	const FunctionProtoType *fn = type->getAs<FunctionProtoType>();
 	QualType return_type = fn->getReturnType();
 	unsigned n_arg = fn->getNumArgs();
@@ -162,7 +163,7 @@ void python_generator::print_callback(QualType type, int arg)
 		arg_type = type2python(extract_type(fn->getArgType(i)));
 		printf("            cb_arg%d = %s(ctx=arg0.ctx, ptr=",
 			i, arg_type.c_str());
-		if (!callback_takes_arguments(fn))
+		if (!callback_takes_argument(param, i))
 			print_copy(fn->getArgType(i));
 		printf("(cb_arg%d))\n", i);
 	}
@@ -296,7 +297,7 @@ void python_generator::print_method(const isl_class &clazz,
 	FunctionDecl *method, vector<string> super)
 {
 	string fullname = method->getName();
-	string cname = clazz.method_suffix(fullname);
+	string cname = clazz.method_name(method);
 	int num_params = method->getNumParams();
 	int drop_user = 0;
 	int drop_ctx = first_arg_is_isl_ctx(method);
@@ -329,7 +330,7 @@ void python_generator::print_method(const isl_class &clazz,
 		QualType type = param->getOriginalType();
 		if (!is_callback(type))
 			continue;
-		print_callback(type->getPointeeType(), i - drop_ctx);
+		print_callback(param, i - drop_ctx);
 	}
 	if (drop_ctx)
 		printf("        ctx = Context.getDefaultInstance()\n");
@@ -423,7 +424,7 @@ void python_generator::print_method(const isl_class &clazz,
 		return;
 	}
 
-	cname = clazz.method_suffix(fullname);
+	cname = clazz.method_name(any_method);
 	num_params = any_method->getNumParams();
 
 	print_method_header(is_static(clazz, any_method), cname, num_params);
@@ -449,7 +450,7 @@ void python_generator::print_constructor(const isl_class &clazz,
 	FunctionDecl *cons)
 {
 	string fullname = cons->getName();
-	string cname = clazz.method_suffix(fullname);
+	string cname = clazz.method_name(cons);
 	int num_params = cons->getNumParams();
 	int drop_ctx = first_arg_is_isl_ctx(cons);
 
