@@ -134,9 +134,12 @@
  * an AST from a schedule tree or if we are not inside a band node.
  *
  * "loop_type" originally contains loop AST generation types for
- * the "n" members of "node" and it is updated (along with "n") when
+ * the "n" members of "node", while
+ * "coincident" originally contains the coincidence information
+ * of the same members.
+ * Both fields are updated (along with "n") when
  * a schedule dimension is inserted.
- * It is NULL if "node" is NULL.
+ * They are NULL if "node" is NULL.
  *
  * "isolated" is the piece of the schedule domain isolated by the isolate
  * option on the current band.  This set may be NULL if we have not checked
@@ -196,6 +199,7 @@ struct isl_ast_build {
 	isl_schedule_node *node;
 	int n;
 	enum isl_ast_loop_type *loop_type;
+	isl_bool *coincident;
 	isl_set *isolated;
 };
 
@@ -319,6 +323,7 @@ __isl_give isl_set *isl_ast_build_eliminate_divs(
 
 enum isl_ast_loop_type isl_ast_build_get_loop_type(
 	__isl_keep isl_ast_build *build, int isolated);
+isl_bool isl_ast_build_is_coincident(__isl_keep isl_ast_build *build);
 
 __isl_give isl_map *isl_ast_build_map_to_iterator(
 	__isl_keep isl_ast_build *build, __isl_take isl_set *set);

@@ -123,6 +123,7 @@ __isl_give isl_ast_node *isl_ast_node_for_get_body(
 	__isl_keep isl_ast_node *node);
 __isl_export
 isl_bool isl_ast_node_for_is_degenerate(__isl_keep isl_ast_node *node);
+isl_bool isl_ast_node_for_is_coincident(__isl_keep isl_ast_node *node);
 
 __isl_export
 __isl_give isl_ast_expr *isl_ast_node_if_get_cond(

@@ -1138,6 +1138,27 @@ isl_bool isl_ast_node_for_is_degenerate(__isl_keep isl_ast_node *node)
 	return node->u.f.degenerate;
 }
 
+/* Mark the given for node as being coincident.
+ */
+__isl_give isl_ast_node *isl_ast_node_for_mark_coincident(
+	__isl_take isl_ast_node *node)
+{
+	node = isl_ast_node_cow(node);
+	if (!node)
+		return NULL;
+	node->u.f.coincident = 1;
+	return node;
+}
+
+/* Is "node" marked coincident?
+ */
+isl_bool isl_ast_node_for_is_coincident(__isl_keep isl_ast_node *node)
+{
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
+		return isl_bool_error;
+	return node->u.f.coincident;
+}
+
 __isl_give isl_ast_expr *isl_ast_node_for_get_iterator(
 	__isl_keep isl_ast_node *node)
 {

@@ -48,6 +48,8 @@ __isl_give isl_ast_expr *isl_ast_expr_alloc_binary(enum isl_ast_op_type type,
 /* A node is either a block, an if, a for, a user node or a mark node.
  * "else_node" is NULL if the if node does not have an else branch.
  * "cond" and "inc" are NULL for degenerate for nodes.
+ * "coincident" is set on a for node if it corresponds
+ * to a coincident band member.
  * In case of a mark node, "mark" is the mark and "node" is the marked node.
  */
 struct isl_ast_node {
@@ -67,6 +69,7 @@ struct isl_ast_node {
 		} i;
 		struct {
 			unsigned degenerate : 1;
+			unsigned coincident : 1;
 			isl_ast_expr *iterator;
 			isl_ast_expr *init;
 			isl_ast_expr *cond;
@@ -87,6 +90,8 @@ struct isl_ast_node {
 
 __isl_give isl_ast_node *isl_ast_node_alloc_for(__isl_take isl_id *id);
 __isl_give isl_ast_node *isl_ast_node_for_mark_degenerate(
+	__isl_take isl_ast_node *node);
+__isl_give isl_ast_node *isl_ast_node_for_mark_coincident(
 	__isl_take isl_ast_node *node);
 __isl_give isl_ast_node *isl_ast_node_alloc_if(__isl_take isl_ast_expr *guard);
 __isl_give isl_ast_node *isl_ast_node_alloc_block(
