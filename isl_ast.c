@@ -2167,6 +2167,7 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
 
 /* Print the body "node" of a for or if node.
  * If "else_node" is set, then it is printed as well.
+ * "parent" is the parent of "node" (and "else_node if it is set).
  * If "force_block" is set, then print out the body as a block.
  *
  * We first check if we need to print out a block.
@@ -2186,6 +2187,7 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
  *	}
  */
 static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
+	__isl_keep isl_ast_node *parent,
 	__isl_keep isl_ast_node *node, __isl_keep isl_ast_node *else_node,
 	__isl_keep isl_ast_print_options *options, int force_block)
 {
@@ -2214,7 +2216,8 @@ static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
 			p = print_if_c(p, else_node, options, 0, 1);
 		} else {
 			p = isl_printer_print_str(p, " else");
-			p = print_body_c(p, else_node, NULL, options, 1);
+			p = print_body_c(p, parent, else_node, NULL,
+					options, 1);
 		}
 	} else
 		p = isl_printer_end_line(p);
@@ -2292,7 +2295,7 @@ static __isl_give isl_printer *print_for_c(__isl_take isl_printer *p,
 		p = isl_printer_print_str(p, " += ");
 		p = isl_printer_print_ast_expr(p, node->u.f.inc);
 		p = isl_printer_print_str(p, ")");
-		p = print_body_c(p, node->u.f.body, NULL, options, 0);
+		p = print_body_c(p, node, node->u.f.body, NULL, options, 0);
 	} else {
 		id = isl_ast_expr_get_id(node->u.f.iterator);
 		name = isl_id_get_name(id);
@@ -2329,7 +2332,7 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
 	p = isl_printer_print_str(p, "if (");
 	p = isl_printer_print_ast_expr(p, node->u.i.guard);
 	p = isl_printer_print_str(p, ")");
-	p = print_body_c(p, node->u.i.then, node->u.i.else_node, options,
+	p = print_body_c(p, node, node->u.i.then, node->u.i.else_node, options,
 			force_block);
 
 	return p;
