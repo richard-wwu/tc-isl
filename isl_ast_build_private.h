@@ -256,7 +256,7 @@ int isl_ast_build_has_value(__isl_keep isl_ast_build *build);
 __isl_give isl_id *isl_ast_build_get_iterator_id(
 	__isl_keep isl_ast_build *build, int pos);
 
-int isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build);
+isl_bool isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build);
 __isl_give isl_schedule_node *isl_ast_build_get_schedule_node(
 	__isl_keep isl_ast_build *build);
 __isl_give isl_ast_build *isl_ast_build_set_schedule_node(

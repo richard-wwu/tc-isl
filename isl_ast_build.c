@@ -1024,10 +1024,10 @@ error:
 /* Does "build" point to a band node?
  * That is, are we currently handling a band node inside a schedule tree?
  */
-int isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build)
+isl_bool isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build)
 {
 	if (!build)
-		return -1;
+		return isl_bool_error;
 	return build->node != NULL;
 }
 
