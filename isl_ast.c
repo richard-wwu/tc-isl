@@ -2165,6 +2165,23 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
 	__isl_keep isl_ast_print_options *options, int new_line,
 	int force_block);
 
+/* If "node" is a coincident for node, then print " // coincident" to "p".
+ */
+static __isl_give isl_printer *print_coincident(__isl_take isl_printer *p,
+	__isl_keep isl_ast_node *node)
+{
+	isl_bool coincident;
+
+	if (node->type != isl_ast_node_for)
+		return p;
+	coincident = isl_ast_node_for_is_coincident(node);
+	if (coincident < 0)
+		return isl_printer_free(p);
+	if (coincident)
+		p = isl_printer_print_str(p, " // coincident");
+	return p;
+}
+
 /* Print the body "node" of a for or if node.
  * If "else_node" is set, then it is printed as well.
  * "parent" is the parent of "node" (and "else_node if it is set).
@@ -2174,6 +2191,9 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
  * We always print out a block if there is an else node to make
  * sure that the else node is matched to the correct if node.
  * For consistency, the corresponding else node is also printed as a block.
+ *
+ * If "node" is a coincident for node, then print " // coincident"
+ * at the end of the line.
  *
  * If the else node is itself an if, then we print it as
  *
@@ -2195,6 +2215,7 @@ static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
 		return isl_printer_free(p);
 
 	if (!force_block && !else_node && !need_block(node)) {
+		p = print_coincident(p, parent);
 		p = isl_printer_end_line(p);
 		p = isl_printer_indent(p, 2);
 		p = isl_ast_node_print(node, p,
@@ -2204,6 +2225,7 @@ static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
 	}
 
 	p = isl_printer_print_str(p, " {");
+	p = print_coincident(p, parent);
 	p = isl_printer_end_line(p);
 	p = isl_printer_indent(p, 2);
 	p = print_ast_node_c(p, node, options, 1, 0);
