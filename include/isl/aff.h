@@ -1091,6 +1091,7 @@ __isl_export
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_floor(
 	__isl_take isl_multi_union_pw_aff *mupa);
 
+__isl_export
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_intersect_domain(
 	__isl_take isl_multi_union_pw_aff *mupa,
 	__isl_take isl_union_set *uset);
