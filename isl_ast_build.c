@@ -1056,10 +1056,11 @@ __isl_give isl_schedule_node *isl_ast_build_get_schedule_node(
 	return isl_schedule_node_copy(build->node);
 }
 
-/* Extract the loop AST generation types for the members of build->node
+/* Extract information attached to the members of build->node.
+ * In particular, extract the loop AST generation types
  * and store them in build->loop_type.
  */
-static __isl_give isl_ast_build *extract_loop_types(
+static __isl_give isl_ast_build *extract_member_data(
 	__isl_take isl_ast_build *build)
 {
 	int i, n;
@@ -1100,7 +1101,7 @@ __isl_give isl_ast_build *isl_ast_build_set_schedule_node(
 	isl_schedule_node_free(build->node);
 	build->node = node;
 
-	build = extract_loop_types(build);
+	build = extract_member_data(build);
 
 	return build;
 error:
@@ -2223,7 +2224,7 @@ __isl_give isl_set *isl_ast_build_get_option_domain(
 
 /* How does the user want the current schedule dimension to be generated?
  * These choices have been extracted from the schedule node
- * in extract_loop_types and stored in build->loop_type.
+ * in extract_member_data and stored in build->loop_type.
  * They have been updated to reflect any dimension insertion in
  * node_insert_dim.
  * Return isl_ast_domain_error on error.
