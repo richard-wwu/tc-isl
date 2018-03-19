@@ -176,6 +176,23 @@ __isl_give isl_ast_build *isl_ast_build_copy(__isl_keep isl_ast_build *build)
 	return build;
 }
 
+/* Allocate memory for information extracted from band members.
+ */
+static __isl_give isl_ast_build *alloc_member_data(
+	__isl_take isl_ast_build *build, int n)
+{
+	isl_ctx *ctx;
+
+	if (!build)
+		return NULL;
+	ctx = isl_ast_build_get_ctx(build);
+	build->n = n;
+	build->loop_type = isl_alloc_array(ctx, enum isl_ast_loop_type, n);
+	if (n && !build->loop_type)
+		return isl_ast_build_free(build);
+	return build;
+}
+
 __isl_give isl_ast_build *isl_ast_build_dup(__isl_keep isl_ast_build *build)
 {
 	isl_ctx *ctx;
@@ -220,11 +237,9 @@ __isl_give isl_ast_build *isl_ast_build_dup(__isl_keep isl_ast_build *build)
 	if (build->loop_type) {
 		int i;
 
-		dup->n = build->n;
-		dup->loop_type = isl_alloc_array(ctx,
-						enum isl_ast_loop_type, dup->n);
-		if (dup->n && !dup->loop_type)
-			return isl_ast_build_free(dup);
+		dup = alloc_member_data(dup, build->n);
+		if (!dup)
+			return NULL;
 		for (i = 0; i < dup->n; ++i)
 			dup->loop_type[i] = build->loop_type[i];
 	}
@@ -1047,7 +1062,7 @@ __isl_give isl_schedule_node *isl_ast_build_get_schedule_node(
 static __isl_give isl_ast_build *extract_loop_types(
 	__isl_take isl_ast_build *build)
 {
-	int i;
+	int i, n;
 	isl_ctx *ctx;
 	isl_schedule_node *node;
 
@@ -1059,11 +1074,10 @@ static __isl_give isl_ast_build *extract_loop_types(
 			return isl_ast_build_free(build));
 
 	free(build->loop_type);
-	build->n = isl_schedule_node_band_n_member(build->node);
-	build->loop_type = isl_alloc_array(ctx,
-					    enum isl_ast_loop_type, build->n);
-	if (build->n && !build->loop_type)
-		return isl_ast_build_free(build);
+	n = isl_schedule_node_band_n_member(build->node);
+	build = alloc_member_data(build, n);
+	if (!build)
+		return NULL;
 	node = build->node;
 	for (i = 0; i < build->n; ++i)
 		build->loop_type[i] =
