@@ -1410,21 +1410,26 @@ void cpp_generator::print_exceptional_execution_check(ostream &os,
 	osprintf(os, ");\n");
 }
 
-/* If "clazz" is a subclass that is based on a type function and
- * if "type" corresponds to the superclass data type,
- * then replace "type" by the subclass data type of "clazz" and return true.
+/* Does "fd" modify an object of a subclass based on a type function?
  */
-bool cpp_generator::super2sub(const isl_class &clazz, string &type)
+static bool is_subclass_mutator(const isl_class &clazz, FunctionDecl *fd)
 {
-	if (!clazz.is_type_subclass())
-		return false;
+	return clazz.is_type_subclass() && generator::is_mutator(clazz, fd);
+}
 
-	if (type != "isl::" + type2cpp(clazz.name))
-		return false;
-
-	type = "isl::" + type2cpp(clazz);
-
-	return true;
+/* Return the C++ return type of the method corresponding to "fd" in "clazz".
+ *
+ * If "fd" modifies an object of a subbclass, then return
+ * the type of this subclass.
+ * Otherwise, return the C++ counterpart of the actual return type.
+ */
+std::string cpp_generator::get_return_type(const isl_class &clazz,
+	FunctionDecl *fd)
+{
+	if (is_subclass_mutator(clazz, fd))
+		return "isl::" + type2cpp(clazz);
+	else
+		return type2cpp(fd->getReturnType());
 }
 
 /* Given a function "method" for setting a "clazz" persistent callback,
@@ -1528,9 +1533,9 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	string methodname = method->getName();
 	int num_params = method->getNumParams();
 	QualType return_type = method->getReturnType();
-	string rettype_str = type2cpp(return_type);
+	string rettype_str = get_return_type(clazz, method);
 	bool has_callback = false;
-	bool returns_super = super2sub(clazz, rettype_str);
+	bool returns_super = is_subclass_mutator(clazz, method);
 
 	print_method_header(os, clazz, method, false, kind);
 	osprintf(os, "{\n");
@@ -1637,7 +1642,7 @@ void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
 	FunctionDecl *method, bool is_declaration, function_kind kind)
 {
 	string cname = clazz.method_name(method);
-	string rettype_str = type2cpp(method->getReturnType());
+	string rettype_str = get_return_type(clazz, method);
 	string classname = type2cpp(clazz);
 	int num_params = method->getNumParams();
 	int first_param = 0;
@@ -1662,7 +1667,6 @@ void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
 		}
 	}
 
-	super2sub(clazz, rettype_str);
 	if (kind != function_kind_constructor)
 		osprintf(os, "%s ", rettype_str.c_str());
 

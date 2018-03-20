@@ -103,7 +103,7 @@ private:
 		FunctionDecl *method, function_kind kind);
 	void print_method_param_use(ostream &os, ParmVarDecl *param,
 		bool load_from_this_ptr);
-	bool super2sub(const isl_class &clazz, std::string &type);
+	std::string get_return_type(const isl_class &clazz, FunctionDecl *fd);
 	void print_method_header(ostream &os, const isl_class &clazz,
 		FunctionDecl *method, bool is_declaration, function_kind kind);
 	string generate_callback_args(QualType type, bool cpp);
