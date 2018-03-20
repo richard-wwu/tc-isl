@@ -46,6 +46,16 @@ private:
 	void print_downcast_decl(ostream &os, const isl_class &clazz);
 	void print_get_ctx_decl(ostream &os);
 	void print_str_decl(ostream &os, const isl_class &clazz);
+	void print_persistent_callback_prototype(ostream &os,
+		const isl_class &clazz, FunctionDecl *method,
+		bool is_declaration);
+	void print_persistent_callback_setter_prototype(ostream &os,
+		const isl_class &clazz, FunctionDecl *method,
+		bool is_declaration);
+	void print_persistent_callback_data(ostream &os, const isl_class &clazz,
+		FunctionDecl *method);
+	void print_persistent_callbacks_decl(ostream &os,
+		const isl_class &clazz);
 	void print_methods_decl(ostream &os, const isl_class &clazz);
 	void print_method_group_decl(ostream &os, const isl_class &clazz,
 		const set<FunctionDecl *> &methods);
@@ -53,6 +63,9 @@ private:
 		FunctionDecl *method, function_kind kind);
 	void print_implementations(ostream &os);
 	void print_class_impl(ostream &os, const isl_class &clazz);
+	void print_check_ptr(ostream &os);
+	void print_check_ptr_start(ostream &os, const isl_class &clazz);
+	void print_check_ptr_end(ostream &os);
 	void print_class_factory_impl(ostream &os, const isl_class &clazz);
 	void print_protected_constructors_impl(ostream &os,
 		const isl_class &clazz);
@@ -61,11 +74,15 @@ private:
 	void print_constructors_impl(ostream &os, const isl_class &clazz);
 	void print_copy_assignment_impl(ostream &os, const isl_class &clazz);
 	void print_destructor_impl(ostream &os, const isl_class &clazz);
+	void print_check_no_persistent_callback(ostream &os,
+		const isl_class &clazz, FunctionDecl *fd);
 	void print_ptr_impl(ostream &os, const isl_class &clazz);
 	bool print_downcast_impl(ostream &os, const isl_class &clazz);
 	void print_get_ctx_impl(ostream &os, const isl_class &clazz);
 	void print_str_impl(ostream &os, const isl_class &clazz);
 	void print_operators_impl(ostream &os, const isl_class &clazz);
+	void print_persistent_callbacks_impl(ostream &os,
+		const isl_class &clazz);
 	void print_methods_impl(ostream &os, const isl_class &clazz);
 	void print_method_group_impl(ostream &os, const isl_class &clazz,
 		const set<FunctionDecl *> &methods);
@@ -78,6 +95,9 @@ private:
 	void print_on_error_continue(ostream &os, FunctionDecl *method,
 		function_kind kind);
 	void print_exceptional_execution_check(ostream &os,
+		const isl_class &clazz, FunctionDecl *method,
+		function_kind kind);
+	void print_set_persistent_callback(ostream &os, const isl_class &clazz,
 		FunctionDecl *method, function_kind kind);
 	void print_method_impl(ostream &os, const isl_class &clazz,
 		FunctionDecl *method, function_kind kind);
@@ -88,10 +108,14 @@ private:
 		FunctionDecl *method, bool is_declaration, function_kind kind);
 	string generate_callback_args(QualType type, bool cpp);
 	string generate_callback_type(QualType type);
-	void print_wrapped_call_noexceptions(std::ostream &os,
+	void print_wrapped_call_noexceptions(std::ostream &os, int indent,
 		const std::string &call, QualType rtype);
-	void print_wrapped_call(std::ostream &os, const std::string &call,
-		QualType rtype);
+	void print_wrapped_call(std::ostream &os, int indent,
+		const std::string &call, QualType rtype);
+	void print_callback_data_decl(ostream &os, ParmVarDecl *param,
+		const string &name);
+	void print_callback_body(ostream &os, int indent, ParmVarDecl *param,
+		const string &name);
 	void print_callback_local(ostream &os, ParmVarDecl *param);
 	std::string rename_method(std::string name);
 	string isl_bool2cpp();

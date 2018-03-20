@@ -49,21 +49,49 @@ bool extensions = true;
  * This osprintf method allows us to use printf style formatting constructs when
  * writing to an ostream.
  */
-static void osprintf(ostream &os, const char *format, ...)
+static void osprintf(ostream &os, const char *format, va_list arguments)
 {
-	va_list arguments;
+	va_list copy;
 	char *string_pointer;
 	size_t size;
 
-	va_start(arguments, format);
-	size = vsnprintf(NULL, 0, format, arguments);
+	va_copy(copy, arguments);
+	size = vsnprintf(NULL, 0, format, copy);
 	string_pointer = new char[size + 1];
-	va_end(arguments);
-	va_start(arguments, format);
+	va_end(copy);
 	vsnprintf(string_pointer, size + 1, format, arguments);
-	va_end(arguments);
 	os << string_pointer;
 	delete[] string_pointer;
+}
+
+/* Print string formatted according to "fmt" to ostream "os".
+ *
+ * This osprintf method allows us to use printf style formatting constructs when
+ * writing to an ostream.
+ */
+static void osprintf(ostream &os, const char *format, ...)
+{
+	va_list arguments;
+
+	va_start(arguments, format);
+	osprintf(os, format, arguments);
+	va_end(arguments);
+}
+
+/* Print string formatted according to "fmt" to ostream "os"
+ * with the given indentation.
+ *
+ * This osprintf method allows us to use printf style formatting constructs when
+ * writing to an ostream.
+ */
+static void osprintf(ostream &os, int indent, const char *format, ...)
+{
+	va_list arguments;
+
+	osprintf(os, "%*s", indent, " ");
+	va_start(arguments, format);
+	osprintf(os, format, arguments);
+	va_end(arguments);
 }
 
 /* Convert "l" to a string.
@@ -223,6 +251,7 @@ void cpp_generator::print_class(ostream &os, const isl_class &clazz)
 	print_get_ctx_decl(os);
 	print_str_decl(os, clazz);
 	osprintf(os, "\n");
+	print_persistent_callbacks_decl(os, clazz);
 	print_methods_decl(os, clazz);
 
 	osprintf(os, "  typedef %s* isl_ptr_t;\n", name);
@@ -468,6 +497,122 @@ void cpp_generator::print_str_decl(ostream &os, const isl_class &clazz)
 	osprintf(os, "  inline std::string to_str() const;\n");
 }
 
+/* Add a space to the return type "type" if needed,
+ * i.e., if it is not the type of a pointer.
+ */
+static string add_space_to_return_type(const string &type)
+{
+	if (type[type.size() - 1] == '*')
+		return type;
+	return type + " ";
+}
+
+/* Print the prototype of the static inline method that is used
+ * as the C callback of "clazz" set by "method" to "os".
+ */
+void cpp_generator::print_persistent_callback_prototype(ostream &os,
+	const isl_class &clazz, FunctionDecl *method, bool is_declaration)
+{
+	string callback_name, rettype, c_args;
+	ParmVarDecl *param = persistent_callback_arg(method);
+	const FunctionProtoType *callback;
+	QualType ptype;
+	string classname;
+
+	ptype = param->getType();
+	callback = extract_prototype(ptype);
+
+	rettype = callback->getReturnType().getAsString();
+	rettype = add_space_to_return_type(rettype);
+	callback_name = clazz.persistent_callback_name(method);
+	c_args = generate_callback_args(ptype, false);
+
+	if (!is_declaration)
+		classname = type2cpp(clazz) + "::";
+
+	osprintf(os, "%s%s%s(%s)",
+		 rettype.c_str(), classname.c_str(),
+		 callback_name.c_str(), c_args.c_str());
+}
+
+/* Print the prototype of the method for setting the callback function
+ * of "clazz" set by "method" to "os".
+ */
+void cpp_generator::print_persistent_callback_setter_prototype(ostream &os,
+	const isl_class &clazz, FunctionDecl *method, bool is_declaration)
+{
+	string classname, callback_name, cpptype;
+	ParmVarDecl *param = persistent_callback_arg(method);
+
+	if (!is_declaration)
+		classname = type2cpp(clazz) + "::";
+
+	cpptype = type2cpp(param->getOriginalType());
+	callback_name = clazz.persistent_callback_name(method);
+	osprintf(os, "void %sset_%s_data(const %s &%s)",
+		classname.c_str(), callback_name.c_str(), cpptype.c_str(),
+		param->getName().str().c_str());
+}
+
+/* Given a function "method" for setting a "clazz" persistent callback,
+ * print the fields that are needed for marshalling the callback to "os".
+ *
+ * In particular, print
+ * - the declaration of a data structure for storing the C++ callback function
+ * - a shared pointer to such a data structure
+ * - the declaration of a static inline method
+ *   for use as the C callback function
+ * - the declaration of a private method for setting the callback function
+ */
+void cpp_generator::print_persistent_callback_data(ostream &os,
+	const isl_class &clazz, FunctionDecl *method)
+{
+	string callback_name;
+	ParmVarDecl *param = persistent_callback_arg(method);
+
+	callback_name = clazz.persistent_callback_name(method);
+	print_callback_data_decl(os, param, callback_name);
+	osprintf(os, ";\n");
+	osprintf(os, "  std::shared_ptr<%s_data> %s_data;\n",
+		callback_name.c_str(), callback_name.c_str());
+	osprintf(os, "  static inline ");
+	print_persistent_callback_prototype(os, clazz, method, true);
+	osprintf(os, ";\n");
+	osprintf(os, "  inline ");
+	print_persistent_callback_setter_prototype(os, clazz, method, true);
+	osprintf(os, ";\n");
+}
+
+/* Print declarations needed for the persistent callbacks of "clazz".
+ *
+ * In particular, if there are any persistent callbacks, then
+ * print a private method for copying callback data from
+ * one object to another,
+ * private data for keeping track of the persistent callbacks and
+ * public methods for setting the persistent callbacks.
+ */
+void cpp_generator::print_persistent_callbacks_decl(ostream &os,
+       const isl_class &clazz)
+{
+	std::string cppstring = type2cpp(clazz);
+	const char *cppname = cppstring.c_str();
+	set<FunctionDecl *>::const_iterator in;
+	const set<FunctionDecl *> &callbacks = clazz.persistent_callbacks;
+
+	if (!clazz.has_persistent_callbacks())
+		return;
+
+	osprintf(os, "private:\n");
+	osprintf(os, "  inline isl::%s &copy_callbacks(const isl::%s &obj);\n",
+		cppname, cppname);
+	for (in = callbacks.begin(); in != callbacks.end(); ++in)
+		print_persistent_callback_data(os, clazz, *in);
+
+	osprintf(os, "public:\n");
+	for (in = callbacks.begin(); in != callbacks.end(); ++in)
+		print_method_decl(os, clazz, *in, function_kind_member_method);
+}
+
 /* Print declarations for methods in class "clazz" to "os".
  */
 void cpp_generator::print_methods_decl(ostream &os, const isl_class &clazz)
@@ -534,16 +679,68 @@ void cpp_generator::print_class_impl(ostream &os, const isl_class &clazz)
 		osprintf(os, "\n");
 	print_get_ctx_impl(os, clazz);
 	osprintf(os, "\n");
+	print_persistent_callbacks_impl(os, clazz);
 	print_methods_impl(os, clazz);
+}
+
+/* Print code with the given indentation
+ * for throwing an exception with the given message.
+ */
+static void print_throw(ostream &os, int indent, const char *msg)
+{
+	osprintf(os, indent,
+	    "throw isl::exception::create(isl_error_invalid,\n");
+	osprintf(os, indent,
+	    "    \"%s\", __FILE__, __LINE__);\n", msg);
 }
 
 /* Print code for throwing an exception on NULL input.
  */
 static void print_throw_NULL_input(ostream &os)
 {
-	osprintf(os,
-	    "    throw isl::exception::create(isl_error_invalid,\n"
-	    "        \"NULL input\", __FILE__, __LINE__);\n");
+	print_throw(os, 4, "NULL input");
+}
+
+/* Print code that checks that "ptr" is not NULL at input.
+ *
+ * Omit the check if C++ bindings without exceptions are being generated,
+ */
+void cpp_generator::print_check_ptr(ostream &os)
+{
+	if (noexceptions)
+		return;
+
+	osprintf(os, "  if (!ptr)\n");
+	print_throw_NULL_input(os);
+}
+
+/* Print code that checks that "ptr" is not NULL at input and
+ * that saves a copy of the isl_ctx of "ptr" for a later check.
+ *
+ * Omit the check if C++ bindings without exceptions are being generated,
+ */
+void cpp_generator::print_check_ptr_start(ostream &os, const isl_class &clazz)
+{
+	if (noexceptions)
+		return;
+
+	print_check_ptr(os);
+	osprintf(os, "  auto ctx = %s_get_ctx(ptr);\n", clazz.name.c_str());
+}
+
+/* Print code that checks that "ptr" is not NULL at the end.
+ * A copy of the isl_ctx is expected to have been saved by
+ * code generated by print_check_ptr_start.
+ *
+ * Omit the check if C++ bindings without exceptions are being generated,
+ */
+void cpp_generator::print_check_ptr_end(ostream &os)
+{
+	if (noexceptions)
+		return;
+
+	osprintf(os, "  if (!ptr)\n");
+	osprintf(os, "    throw exception::create_from_last_error(ctx);\n");
 }
 
 /* Print implementation of global factory functions to "os".
@@ -573,26 +770,15 @@ void cpp_generator::print_class_factory_impl(ostream &os,
 		return;
 
 	osprintf(os, "isl::%s manage(__isl_take %s *ptr) {\n", cppname, name);
-	if (!noexceptions) {
-		osprintf(os, "  if (!ptr)\n");
-		print_throw_NULL_input(os);
-	}
+	print_check_ptr(os);
 	osprintf(os, "  return %s(ptr);\n", cppname);
 	osprintf(os, "}\n");
 
 	osprintf(os, "isl::%s manage_copy(__isl_keep %s *ptr) {\n", cppname,
 		name);
-	if (!noexceptions) {
-		osprintf(os, "  if (!ptr)\n");
-		print_throw_NULL_input(os);
-		osprintf(os, "  auto ctx = %s_get_ctx(ptr);\n", name);
-	}
+	print_check_ptr_start(os, clazz);
 	osprintf(os, "  ptr = %s_copy(ptr);\n", name);
-	if (!noexceptions) {
-		osprintf(os, "  if (!ptr)\n");
-		osprintf(os,
-			"    throw exception::create_from_last_error(ctx);\n");
-	}
+	print_check_ptr_end(os);
 	osprintf(os, "  return %s(ptr);\n", cppname);
 	osprintf(os, "}\n");
 }
@@ -623,6 +809,9 @@ void cpp_generator::print_protected_constructors_impl(ostream &os,
  * The pointer to the isl object is either initialized directly or
  * through the superclass.
  *
+ * If the class has any persistent callbacks, then copy them
+ * from the original object in the copy constructor.
+ *
  * Throw an exception from the copy constructor if anything went wrong
  * during the copying, if any copying is performed.
  * No exceptions are thrown if C++ bindings without exceptions
@@ -648,6 +837,8 @@ void cpp_generator::print_public_constructors_impl(ostream &os,
 	else
 		osprintf(os, "    : ptr(obj.copy())\n");
 	osprintf(os, "{\n");
+	if (clazz.has_persistent_callbacks())
+		osprintf(os, "  copy_callbacks(obj);\n");
 	if (!noexceptions && !subclass) {
 		osprintf(os, "  if (obj.ptr && !ptr)\n");
 		osprintf(os,
@@ -674,6 +865,9 @@ void cpp_generator::print_constructors_impl(ostream &os,
 }
 
 /* Print implementation of copy assignment operator for class "clazz" to "os".
+ *
+ * If the class has any persistent callbacks, then copy them
+ * from the original object.
  */
 void cpp_generator::print_copy_assignment_impl(ostream &os,
 	const isl_class &clazz)
@@ -685,6 +879,8 @@ void cpp_generator::print_copy_assignment_impl(ostream &os,
 	osprintf(os, "%s &%s::operator=(isl::%s obj) {\n", cppname,
 		 cppname, cppname);
 	osprintf(os, "  std::swap(this->ptr, obj.ptr);\n", name);
+	if (clazz.has_persistent_callbacks())
+		osprintf(os, "  copy_callbacks(obj);\n");
 	osprintf(os, "  return *this;\n");
 	osprintf(os, "}\n");
 }
@@ -709,15 +905,39 @@ void cpp_generator::print_destructor_impl(ostream &os,
 	osprintf(os, "}\n");
 }
 
+/* Print a check that the persistent callback corresponding to "fd"
+ * is not set, throwing an exception if it is set.
+ * In the C++ bindings without exceptions, simply return nullptr
+ * if the check fails.
+ */
+void cpp_generator::print_check_no_persistent_callback(ostream &os,
+	const isl_class &clazz, FunctionDecl *fd)
+{
+	string callback_name = clazz.persistent_callback_name(fd);
+
+	osprintf(os, "  if (%s_data)\n", callback_name.c_str());
+	if (noexceptions)
+		osprintf(os, "    return nullptr;\n");
+	else
+		print_throw(os, 4,
+			    "cannot release object with persistent callbacks");
+}
+
 /* Print implementation of ptr() functions for class "clazz" to "os".
  * Since type based subclasses share the pointer with their superclass,
  * they can also reuse these functions from the superclass.
+ *
+ * If an object has persistent callbacks set, then the underlying
+ * C object pointer cannot be released because it references data
+ * in the C++ object.
  */
 void cpp_generator::print_ptr_impl(ostream &os, const isl_class &clazz)
 {
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
 	const char *cppname = cppstring.c_str();
+	set<FunctionDecl *>::const_iterator in;
+	const set<FunctionDecl *> &callbacks = clazz.persistent_callbacks;
 
 	if (clazz.is_type_subclass())
 		return;
@@ -729,6 +949,8 @@ void cpp_generator::print_ptr_impl(ostream &os, const isl_class &clazz)
 	osprintf(os, "  return ptr;\n");
 	osprintf(os, "}\n\n");
 	osprintf(os, "__isl_give %s *%s::release() {\n", name, cppname);
+	for (in = callbacks.begin(); in != callbacks.end(); ++in)
+		print_check_no_persistent_callback(os, clazz, *in);
 	osprintf(os, "  %s *tmp = ptr;\n", name);
 	osprintf(os, "  ptr = nullptr;\n");
 	osprintf(os, "  return tmp;\n");
@@ -843,6 +1065,40 @@ void cpp_generator::print_operators_impl(ostream &os, const isl_class &clazz)
         	osprintf(os, "}\n");
         	osprintf(os, "\n");
         }
+}
+
+/* Print the implementations of the methods needed for the persistent callbacks
+ * of "clazz".
+ */
+void cpp_generator::print_persistent_callbacks_impl(ostream &os,
+       const isl_class &clazz)
+{
+	std::string cppstring = type2cpp(clazz);
+	const char *cppname = cppstring.c_str();
+	string classname = type2cpp(clazz);
+	set<FunctionDecl *>::const_iterator in;
+	const set<FunctionDecl *> &callbacks = clazz.persistent_callbacks;
+
+	if (!clazz.has_persistent_callbacks())
+		return;
+
+	osprintf(os, "%s &%s::copy_callbacks(const isl::%s &obj)\n",
+		cppname, classname.c_str(), cppname);
+	osprintf(os, "{\n");
+	for (in = callbacks.begin(); in != callbacks.end(); ++in) {
+		string callback_name = clazz.persistent_callback_name(*in);
+
+		osprintf(os, "  %s_data = obj.%s_data;\n",
+			callback_name.c_str(), callback_name.c_str());
+	}
+	osprintf(os, "  return *this;\n");
+	osprintf(os, "}\n\n");
+
+	for (in = callbacks.begin(); in != callbacks.end(); ++in) {
+		function_kind kind = function_kind_member_method;
+
+		print_set_persistent_callback(os, clazz, *in, kind);
+	}
 }
 
 /* Print definitions for methods of class "clazz" to "os".
@@ -1067,8 +1323,40 @@ void cpp_generator::print_on_error_continue(ostream &os, FunctionDecl *method,
 	osprintf(os, ", ISL_ON_ERROR_CONTINUE);\n");
 }
 
+/* Print code to "os" that checks whether any of the persistent callbacks
+ * of "clazz" is set and if it failed with an exception.  If so, the "eptr"
+ * in the corresponding data structure contains the exception
+ * that was caught and that needs to be rethrown.
+ * This field is cleared because the callback and its data may get reused.
+ *
+ * The check only needs to be generated for member methods since
+ * an object is needed for any of the persistent callbacks to be set.
+ */
+static void print_persistent_callback_exceptional_execution_check(ostream &os,
+	const isl_class &clazz, cpp_generator::function_kind kind)
+{
+	const set<FunctionDecl *> &callbacks = clazz.persistent_callbacks;
+	set<FunctionDecl *>::const_iterator in;
+
+	if (kind != cpp_generator::function_kind_member_method)
+		return;
+
+	for (in = callbacks.begin(); in != callbacks.end(); ++in) {
+		string callback_name = clazz.persistent_callback_name(*in);
+
+		osprintf(os, "  if (%s_data && %s_data->eptr) {\n",
+			callback_name.c_str(), callback_name.c_str());
+		osprintf(os, "    std::exception_ptr eptr = %s_data->eptr;\n",
+			callback_name.c_str());
+		osprintf(os, "    %s_data->eptr = nullptr;\n",
+			callback_name.c_str());
+		osprintf(os, "    std::rethrow_exception(eptr);\n");
+		osprintf(os, "  }\n");
+	}
+}
+
 /* Print code that checks whether the execution of the core of "method"
- * was successful.
+ * of class "clazz" was successful.
  * "kind" specifies what kind of method "method" is.
  *
  * If bindings without exceptions are being generated,
@@ -1084,7 +1372,7 @@ void cpp_generator::print_on_error_continue(ostream &os, FunctionDecl *method,
  * is an isl type, then a NULL value indicates a failure.
  */
 void cpp_generator::print_exceptional_execution_check(ostream &os,
-	FunctionDecl *method, function_kind kind)
+	const isl_class &clazz, FunctionDecl *method, function_kind kind)
 {
 	int n;
 	bool check_null, check_neg;
@@ -1092,6 +1380,8 @@ void cpp_generator::print_exceptional_execution_check(ostream &os,
 
 	if (noexceptions)
 		return;
+
+	print_persistent_callback_exceptional_execution_check(os, clazz, kind);
 
 	n = method->getNumParams();
 	for (int i = 0; i < n; ++i) {
@@ -1137,6 +1427,54 @@ bool cpp_generator::super2sub(const isl_class &clazz, string &type)
 	return true;
 }
 
+/* Given a function "method" for setting a "clazz" persistent callback,
+ * print the implementations of the methods needed for that callback.
+ *
+ * In particular, print
+ * - the implementation of a static inline method
+ *   for use as the C callback function
+ * - the definition of a private method for setting the callback function
+ * - the public method for constructing a new object with the callback set.
+ */
+void cpp_generator::print_set_persistent_callback(ostream &os,
+	const isl_class &clazz, FunctionDecl *method,
+	function_kind kind)
+{
+	string fullname = method->getName();
+	ParmVarDecl *param = persistent_callback_arg(method);
+	string classname = type2cpp(clazz);
+	string pname;
+	string callback_name = clazz.persistent_callback_name(method);
+
+	print_persistent_callback_prototype(os, clazz, method, false);
+	osprintf(os, "\n");
+	osprintf(os, "{\n");
+	print_callback_body(os, 2, param, callback_name);
+	osprintf(os, "}\n\n");
+
+	pname = param->getName().str();
+	print_persistent_callback_setter_prototype(os, clazz, method, false);
+	osprintf(os, "\n");
+	osprintf(os, "{\n");
+	print_check_ptr_start(os, clazz);
+	osprintf(os, "  %s_data = std::make_shared<struct %s_data>();\n",
+		callback_name.c_str(), callback_name.c_str());
+	osprintf(os, "  %s_data->func = %s;\n",
+		callback_name.c_str(), pname.c_str());
+	osprintf(os, "  ptr = %s(ptr, &%s, %s_data.get());\n",
+		fullname.c_str(), callback_name.c_str(), callback_name.c_str());
+	print_check_ptr_end(os);
+	osprintf(os, "}\n\n");
+
+	print_method_header(os, clazz, method, false, kind);
+	osprintf(os, "{\n");
+	osprintf(os, "  auto copy = *this;\n");
+	osprintf(os, "  copy.set_%s_data(%s);\n",
+		callback_name.c_str(), pname.c_str());
+	osprintf(os, "  return copy;\n");
+	osprintf(os, "}\n\n");
+}
+
 /* Print definition for "method" in class "clazz" to "os".
  *
  * "kind" specifies the kind of method that should be generated.
@@ -1156,6 +1494,9 @@ bool cpp_generator::super2sub(const isl_class &clazz, string &type)
  * then an isl_bool return type is transformed into an isl::boolean and
  * an isl_stat into an isl::stat since no exceptions can be generated
  * on negative results from the isl function.
+ * If the method returns a new instance of the same object type and
+ * if the class has any persistent callbacks, then the data
+ * for these callbacks are copied from the original to the new object.
  * If "clazz" is a subclass that is based on a type function and
  * if the return type corresponds to the superclass data type,
  * then it is replaced by the subclass data type.
@@ -1222,16 +1563,18 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	}
 	osprintf(os, ");\n");
 
-	print_exceptional_execution_check(os, method, kind);
+	print_exceptional_execution_check(os, clazz, method, kind);
 	if (kind == function_kind_constructor) {
 		osprintf(os, "  ptr = res;\n");
 	} else if (is_isl_type(return_type) ||
 		    (noexceptions && is_isl_bool(return_type))) {
+		osprintf(os, "  return manage(res)");
+		if (is_mutator(clazz, method) &&
+		    clazz.has_persistent_callbacks())
+			osprintf(os, ".copy_callbacks(*this)");
 		if (returns_super)
-			osprintf(os, "  return manage(res).as<%s>();\n",
-				rettype_str.c_str());
-		else
-			osprintf(os, "  return manage(res);\n");
+			osprintf(os, ".as<%s>()", rettype_str.c_str());
+		osprintf(os, ";\n");
 	} else if (has_callback) {
 		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
 	} else if (is_string(return_type)) {
@@ -1380,7 +1723,7 @@ string cpp_generator::generate_callback_args(QualType type, bool cpp)
 	const FunctionProtoType *callback;
 	int num_params;
 
-	callback = type->getPointeeType()->getAs<FunctionProtoType>();
+	callback = extract_prototype(type);
 	num_params = callback->getNumArgs();
 	if (cpp)
 		num_params--;
@@ -1416,7 +1759,7 @@ string cpp_generator::generate_callback_args(QualType type, bool cpp)
 string cpp_generator::generate_callback_type(QualType type)
 {
 	std::string type_str;
-	const FunctionProtoType *callback = type->getPointeeType()->getAs<FunctionProtoType>();
+	const FunctionProtoType *callback = extract_prototype(type);
 	QualType return_type = callback->getReturnType();
 	string rettype_str = type2cpp(return_type);
 
@@ -1430,7 +1773,7 @@ string cpp_generator::generate_callback_type(QualType type)
 }
 
 /* Print the call to the C++ callback function "call",
- * with return type "type", wrapped
+ * with the given indentation and with return type "type", wrapped
  * for use inside the lambda function that is used as the C callback function,
  * in the case where C++ bindings without exceptions are being generated.
  *
@@ -1444,18 +1787,18 @@ string cpp_generator::generate_callback_type(QualType type)
  *
  * depending on the return type.
  */
-void cpp_generator::print_wrapped_call_noexceptions(ostream &os,
+void cpp_generator::print_wrapped_call_noexceptions(ostream &os, int indent,
 	const string &call, QualType rtype)
 {
-	osprintf(os, "    auto ret = %s;\n", call.c_str());
+	osprintf(os, indent, "auto ret = %s;\n", call.c_str());
 	if (is_isl_stat(rtype))
-		osprintf(os, "    return isl_stat(ret);\n");
+		osprintf(os, indent, "return isl_stat(ret);\n");
 	else
-		osprintf(os, "    return ret.release();\n");
+		osprintf(os, indent, "return ret.release();\n");
 }
 
 /* Print the call to the C++ callback function "call",
- * with return type "type", wrapped
+ * with the given indentation and with return type "type", wrapped
  * for use inside the lambda function that is used as the C callback function.
  *
  * In particular, print
@@ -1489,33 +1832,131 @@ void cpp_generator::print_wrapped_call_noexceptions(ostream &os,
  * If C++ bindings without exceptions are being generated, then
  * the call is wrapped differently.
  */
-void cpp_generator::print_wrapped_call(ostream &os, const string &call,
-	QualType rtype)
+void cpp_generator::print_wrapped_call(ostream &os, int indent,
+	const string &call, QualType rtype)
 {
 	if (noexceptions)
-		return print_wrapped_call_noexceptions(os, call, rtype);
+		return print_wrapped_call_noexceptions(os, indent, call, rtype);
 
-	osprintf(os, "    try {\n");
+	osprintf(os, indent, "try {\n");
 	if (is_isl_stat(rtype))
-		osprintf(os, "      %s;\n", call.c_str());
+		osprintf(os, indent, "  %s;\n", call.c_str());
 	else
-		osprintf(os, "      auto ret = %s;\n", call.c_str());
+		osprintf(os, indent, "  auto ret = %s;\n", call.c_str());
 	if (is_isl_stat(rtype))
-		osprintf(os, "      return isl_stat_ok;\n");
+		osprintf(os, indent, "  return isl_stat_ok;\n");
 	else if (is_isl_bool(rtype))
-		osprintf(os,
-			"      return ret ? isl_bool_true : isl_bool_false;\n");
+		osprintf(os, indent,
+			"  return ret ? isl_bool_true : isl_bool_false;\n");
 	else
-		osprintf(os, "      return ret.release();\n");
-	osprintf(os, "    } catch (...) {\n"
-		     "      data->eptr = std::current_exception();\n");
+		osprintf(os, indent, "  return ret.release();\n");
+	osprintf(os, indent, "} catch (...) {\n");
+	osprintf(os, indent, "  data->eptr = std::current_exception();\n");
 	if (is_isl_stat(rtype))
-		osprintf(os, "      return isl_stat_error;\n");
+		osprintf(os, indent, "  return isl_stat_error;\n");
 	else if (is_isl_bool(rtype))
-		osprintf(os, "      return isl_bool_error;\n");
+		osprintf(os, indent, "  return isl_bool_error;\n");
 	else
-		osprintf(os, "      return NULL;\n");
-	osprintf(os, "    }\n");
+		osprintf(os, indent, "  return NULL;\n");
+	osprintf(os, indent, "}\n");
+}
+
+/* Print the declaration for a "prefix"_data data structure
+ * that can be used for passing to a C callback function
+ * containing a copy of the C++ callback function "param",
+ * along with an std::exception_ptr that is used to store any
+ * exceptions thrown in the C++ callback.
+ *
+ * If the C callback is of the form
+ *
+ *      isl_stat (*fn)(__isl_take isl_map *map, void *user)
+ *
+ * then the following declaration is printed:
+ *
+ *      struct <prefix>_data {
+ *        std::function<stat(map)> func;
+ *        std::exception_ptr eptr;
+ *      }
+ *
+ * (without a newline or a semicolon).
+ *
+ * The std::exception_ptr object is not added to "prefix"_data
+ * if C++ bindings without exceptions are being generated.
+ */
+void cpp_generator::print_callback_data_decl(ostream &os, ParmVarDecl *param,
+	const string &prefix)
+{
+	string cpp_args;
+
+	cpp_args = generate_callback_type(param->getType());
+
+	osprintf(os, "  struct %s_data {\n", prefix.c_str());
+	osprintf(os, "    %s func;\n", cpp_args.c_str());
+	if (!noexceptions)
+		osprintf(os, "    std::exception_ptr eptr;\n");
+	osprintf(os, "  }");
+}
+
+/* Print the body of C function callback with the given indentation
+ * that can be use as an argument to "param" for marshalling
+ * the corresponding C++ callback.
+ * The data structure that contains the C++ callback is of type
+ * "prefix"_data.
+ *
+ * For a callback of the form
+ *
+ *      isl_stat (*fn)(__isl_take isl_map *map, void *user)
+ *
+ * the following code is generated:
+ *
+ *        auto *data = static_cast<struct <prefix>_data *>(arg_1);
+ *        try {
+ *          stat ret = (data->func)(isl::manage(arg_0));
+ *          return isl_stat_ok;
+ *        } catch (...) {
+ *          data->eptr = std::current_exception();
+ *          return isl_stat_error;
+ *        }
+ *
+ * If C++ bindings without exceptions are being generated, then
+ * generate the following code:
+ *
+ *        auto *data = static_cast<struct <prefix>_data *>(arg_1);
+ *        stat ret = (data->func)(isl::manage(arg_0));
+ *        return isl_stat(ret);
+ */
+void cpp_generator::print_callback_body(ostream &os, int indent,
+	ParmVarDecl *param, const string &prefix)
+{
+	QualType ptype, rtype;
+	string call, last_idx;
+	const FunctionProtoType *callback;
+	int num_params;
+
+	ptype = param->getType();
+
+	callback = extract_prototype(ptype);
+	rtype = callback->getReturnType();
+	num_params = callback->getNumArgs();
+
+	last_idx = ::to_string(num_params - 1);
+
+	call = "(data->func)(";
+	for (long i = 0; i < num_params - 1; i++) {
+		if (!callback_takes_argument(param, i))
+			call += "isl::manage_copy";
+		else
+			call += "isl::manage";
+		call += "(arg_" + ::to_string(i) + ")";
+		if (i != num_params - 2)
+			call += ", ";
+	}
+	call += ")";
+
+	osprintf(os, indent,
+		 "auto *data = static_cast<struct %s_data *>(arg_%s);\n",
+		 prefix.c_str(), last_idx.c_str());
+	print_wrapped_call(os, indent, call, rtype);
 }
 
 /* Print the local variables that are needed for a callback argument,
@@ -1531,7 +1972,7 @@ void cpp_generator::print_wrapped_call(ostream &os, const string &call,
  *      auto fn_lambda = [](isl_map *arg_0, void *arg_1) -> isl_stat {
  *        auto *data = static_cast<struct fn_data *>(arg_1);
  *        try {
- *          stat ret = (*data->func)(isl::manage(arg_0));
+ *          stat ret = (data->func)(isl::manage(arg_0));
  *          return isl_stat_ok;
  *        } catch (...) {
  *          data->eptr = std::current_exception();
@@ -1539,15 +1980,15 @@ void cpp_generator::print_wrapped_call(ostream &os, const string &call,
  *        }
  *      };
  *
- * The pointer to the std::function C++ callback function is stored in
+ * A copy of the std::function C++ callback function is stored in
  * a fn_data data structure for passing to the C callback function,
  * along with an std::exception_ptr that is used to store any
  * exceptions thrown in the C++ callback.
  *
  *      struct fn_data {
- *        const std::function<stat(map)> *func;
+ *        std::function<stat(map)> func;
  *        std::exception_ptr eptr;
- *      } fn_data = { &fn };
+ *      } fn_data = { fn };
  *
  * This std::function object represents the actual user
  * callback function together with the locally captured state at the caller.
@@ -1562,7 +2003,7 @@ void cpp_generator::print_wrapped_call(ostream &os, const string &call,
  * if C++ bindings without exceptions are being generated.
  * The body of the generated lambda function then is as follows:
  *
- *        stat ret = (*data->func)(isl::manage(arg_0));
+ *        stat ret = (data->func)(isl::manage(arg_0));
  *        return isl_stat(ret);
  *
  * If the C callback does not take its arguments, then
@@ -1572,46 +2013,23 @@ void cpp_generator::print_callback_local(ostream &os, ParmVarDecl *param)
 {
 	string pname;
 	QualType ptype, rtype;
-	string call, c_args, cpp_args, rettype, last_idx;
+	string c_args, cpp_args, rettype;
 	const FunctionProtoType *callback;
-	int num_params;
 
 	pname = param->getName().str();
 	ptype = param->getType();
 
 	c_args = generate_callback_args(ptype, false);
-	cpp_args = generate_callback_type(ptype);
 
-	callback = ptype->getPointeeType()->getAs<FunctionProtoType>();
+	callback = extract_prototype(ptype);
 	rtype = callback->getReturnType();
 	rettype = rtype.getAsString();
-	num_params = callback->getNumArgs();
 
-	last_idx = ::to_string(num_params - 1);
-
-	call = "(*data->func)(";
-	for (long i = 0; i < num_params - 1; i++) {
-		if (!callback_takes_argument(param, i))
-			call += "isl::manage_copy";
-		else
-			call += "isl::manage";
-		call += "(arg_" + ::to_string(i) + ")";
-		if (i != num_params - 2)
-			call += ", ";
-	}
-	call += ")";
-
-	osprintf(os, "  struct %s_data {\n", pname.c_str());
-	osprintf(os, "    const %s *func;\n", cpp_args.c_str());
-	if (!noexceptions)
-		osprintf(os, "    std::exception_ptr eptr;\n");
-	osprintf(os, "  } %s_data = { &%s };\n", pname.c_str(), pname.c_str());
+	print_callback_data_decl(os, param, pname);
+	osprintf(os, " %s_data = { %s };\n", pname.c_str(), pname.c_str());
 	osprintf(os, "  auto %s_lambda = [](%s) -> %s {\n",
 		 pname.c_str(), c_args.c_str(), rettype.c_str());
-	osprintf(os,
-		 "    auto *data = static_cast<struct %s_data *>(arg_%s);\n",
-		 pname.c_str(), last_idx.c_str());
-	print_wrapped_call(os, call, rtype);
+	print_callback_body(os, 4, param, pname);
 	osprintf(os, "  };\n");
 }
 
