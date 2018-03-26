@@ -249,6 +249,7 @@ __isl_give isl_set *isl_set_from_params(__isl_take isl_set *set);
 __isl_export
 __isl_give isl_set *isl_set_unbind_params(__isl_take isl_set *set,
 	__isl_take isl_multi_id *tuple);
+__isl_export
 __isl_give isl_map *isl_set_unbind_params_insert_domain(
 	__isl_take isl_set *set, __isl_take isl_multi_id *domain);
 
