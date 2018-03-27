@@ -176,6 +176,24 @@ __isl_give isl_ast_build *isl_ast_build_copy(__isl_keep isl_ast_build *build)
 	return build;
 }
 
+/* Allocate memory for information extracted from band members.
+ */
+static __isl_give isl_ast_build *alloc_member_data(
+	__isl_take isl_ast_build *build, int n)
+{
+	isl_ctx *ctx;
+
+	if (!build)
+		return NULL;
+	ctx = isl_ast_build_get_ctx(build);
+	build->n = n;
+	build->loop_type = isl_alloc_array(ctx, enum isl_ast_loop_type, n);
+	build->coincident = isl_alloc_array(ctx, isl_bool, n);
+	if (n && (!build->loop_type || !build->coincident))
+		return isl_ast_build_free(build);
+	return build;
+}
+
 __isl_give isl_ast_build *isl_ast_build_dup(__isl_keep isl_ast_build *build)
 {
 	isl_ctx *ctx;
@@ -220,13 +238,13 @@ __isl_give isl_ast_build *isl_ast_build_dup(__isl_keep isl_ast_build *build)
 	if (build->loop_type) {
 		int i;
 
-		dup->n = build->n;
-		dup->loop_type = isl_alloc_array(ctx,
-						enum isl_ast_loop_type, dup->n);
-		if (dup->n && !dup->loop_type)
-			return isl_ast_build_free(dup);
-		for (i = 0; i < dup->n; ++i)
+		dup = alloc_member_data(dup, build->n);
+		if (!dup)
+			return NULL;
+		for (i = 0; i < dup->n; ++i) {
 			dup->loop_type[i] = build->loop_type[i];
+			dup->coincident[i] = build->coincident[i];
+		}
 	}
 
 	if (!dup->iterators || !dup->domain || !dup->generated ||
@@ -317,6 +335,7 @@ __isl_null isl_ast_build *isl_ast_build_free(
 	isl_union_map_free(build->options);
 	isl_schedule_node_free(build->node);
 	free(build->loop_type);
+	free(build->coincident);
 	isl_set_free(build->isolated);
 
 	free(build);
@@ -1024,10 +1043,10 @@ error:
 /* Does "build" point to a band node?
  * That is, are we currently handling a band node inside a schedule tree?
  */
-int isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build)
+isl_bool isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build)
 {
 	if (!build)
-		return -1;
+		return isl_bool_error;
 	return build->node != NULL;
 }
 
@@ -1041,13 +1060,15 @@ __isl_give isl_schedule_node *isl_ast_build_get_schedule_node(
 	return isl_schedule_node_copy(build->node);
 }
 
-/* Extract the loop AST generation types for the members of build->node
- * and store them in build->loop_type.
+/* Extract information attached to the members of build->node.
+ * In particular, extract the loop AST generation types,
+ * storing them in build->loop_type, and extract coincidence information,
+ * storing it in build->coincident.
  */
-static __isl_give isl_ast_build *extract_loop_types(
+static __isl_give isl_ast_build *extract_member_data(
 	__isl_take isl_ast_build *build)
 {
-	int i;
+	int i, n;
 	isl_ctx *ctx;
 	isl_schedule_node *node;
 
@@ -1059,15 +1080,17 @@ static __isl_give isl_ast_build *extract_loop_types(
 			return isl_ast_build_free(build));
 
 	free(build->loop_type);
-	build->n = isl_schedule_node_band_n_member(build->node);
-	build->loop_type = isl_alloc_array(ctx,
-					    enum isl_ast_loop_type, build->n);
-	if (build->n && !build->loop_type)
-		return isl_ast_build_free(build);
+	n = isl_schedule_node_band_n_member(build->node);
+	build = alloc_member_data(build, n);
+	if (!build)
+		return NULL;
 	node = build->node;
-	for (i = 0; i < build->n; ++i)
+	for (i = 0; i < build->n; ++i) {
 		build->loop_type[i] =
 		    isl_schedule_node_band_member_get_ast_loop_type(node, i);
+		build->coincident[i] =
+		    isl_schedule_node_band_member_get_coincident(node, i);
+	}
 
 	return build;
 }
@@ -1086,7 +1109,7 @@ __isl_give isl_ast_build *isl_ast_build_set_schedule_node(
 	isl_schedule_node_free(build->node);
 	build->node = node;
 
-	build = extract_loop_types(build);
+	build = extract_member_data(build);
 
 	return build;
 error:
@@ -1567,7 +1590,8 @@ static __isl_give isl_union_map *options_insert_dim(
 }
 
 /* If we are generating an AST from a schedule tree (build->node is set),
- * then update the loop AST generation types
+ * then update the band member data (loop AST generation types and
+ * coincidence)
  * to reflect the insertion of a dimension at (global) position "pos"
  * in the schedule domain space.
  * We do not need to adjust any isolate option since we would not be inserting
@@ -1579,6 +1603,7 @@ static __isl_give isl_ast_build *node_insert_dim(
 	int i;
 	int local_pos;
 	enum isl_ast_loop_type *loop_type;
+	isl_bool *coincident;
 	isl_ctx *ctx;
 
 	build = isl_ast_build_cow(build);
@@ -1594,9 +1619,17 @@ static __isl_give isl_ast_build *node_insert_dim(
 	if (!loop_type)
 		return isl_ast_build_free(build);
 	build->loop_type = loop_type;
-	for (i = build->n - 1; i >= local_pos; --i)
+	coincident = isl_realloc_array(ctx, build->coincident,
+					isl_bool, build->n + 1);
+	if (!coincident)
+		return isl_ast_build_free(build);
+	build->coincident = coincident;
+	for (i = build->n - 1; i >= local_pos; --i) {
 		loop_type[i + 1] = loop_type[i];
+		coincident[i + 1] = coincident[i];
+	}
 	loop_type[local_pos] = isl_ast_loop_default;
+	coincident[local_pos] = isl_bool_false;
 	build->n++;
 
 	return build;
@@ -2209,7 +2242,7 @@ __isl_give isl_set *isl_ast_build_get_option_domain(
 
 /* How does the user want the current schedule dimension to be generated?
  * These choices have been extracted from the schedule node
- * in extract_loop_types and stored in build->loop_type.
+ * in extract_member_data and stored in build->loop_type.
  * They have been updated to reflect any dimension insertion in
  * node_insert_dim.
  * Return isl_ast_domain_error on error.
@@ -2237,6 +2270,21 @@ enum isl_ast_loop_type isl_ast_build_get_loop_type(
 		return build->loop_type[local_pos];
 	return isl_schedule_node_band_member_get_isolate_ast_loop_type(
 							build->node, local_pos);
+}
+
+/* Is the band member corresponding to the current depth marked
+ * as being coincident?
+ */
+isl_bool isl_ast_build_is_coincident(__isl_keep isl_ast_build *build)
+{
+	int local_pos;
+
+	if (!build)
+		return isl_bool_error;
+	if (!build->node)
+		return isl_bool_false;
+	local_pos = build->depth - build->outer_pos;
+	return build->coincident[local_pos];
 }
 
 /* Extract the isolated set from the isolate option, if any,

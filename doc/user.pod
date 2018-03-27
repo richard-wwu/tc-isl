@@ -9912,9 +9912,13 @@ Each type of node has its own additional properties.
 		__isl_keep isl_ast_node *node);
 	isl_bool isl_ast_node_for_is_degenerate(
 		__isl_keep isl_ast_node *node);
+	isl_bool isl_ast_node_for_is_coincident(
+		__isl_keep isl_ast_node *node);
 
 An C<isl_ast_for> is considered degenerate if it is known to execute
 exactly once.
+An C<isl_ast_for> is considered coincident if it corresponds
+to a coincident schedule tree band member.
 
 	#include <isl/ast.h>
 	__isl_give isl_ast_expr *isl_ast_node_if_get_cond(

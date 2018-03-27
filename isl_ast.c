@@ -1067,6 +1067,29 @@ __isl_null isl_ast_node *isl_ast_node_free(__isl_take isl_ast_node *node)
 	return NULL;
 }
 
+/* Error message to be printed when node is not of expected type.
+ */
+static const char *isl_ast_node_type_error[] = {
+	[isl_ast_node_block] = "not a block node",
+	[isl_ast_node_if] = "not an if node",
+	[isl_ast_node_for] = "not a for node",
+	[isl_ast_node_mark] = "not a mark node",
+	[isl_ast_node_user] = "not a user node",
+};
+
+/* Check that "node" is of the given type.
+ */
+static isl_stat isl_ast_node_check_type(__isl_keep isl_ast_node *node,
+	enum isl_ast_node_type type)
+{
+	if (!node)
+		return isl_stat_error;
+	if (node->type != type)
+		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
+			isl_ast_node_type_error[type], return isl_stat_error);
+	return isl_stat_ok;
+}
+
 /* Replace the body of the for node "node" by "body".
  */
 __isl_give isl_ast_node *isl_ast_node_for_set_body(
@@ -1075,9 +1098,8 @@ __isl_give isl_ast_node *isl_ast_node_for_set_body(
 	node = isl_ast_node_cow(node);
 	if (!node || !body)
 		goto error;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", goto error);
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
+		goto error;
 
 	isl_ast_node_free(node->u.f.body);
 	node->u.f.body = body;
@@ -1092,11 +1114,8 @@ error:
 __isl_give isl_ast_node *isl_ast_node_for_get_body(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", return NULL);
 	return isl_ast_node_copy(node->u.f.body);
 }
 
@@ -1114,33 +1133,45 @@ __isl_give isl_ast_node *isl_ast_node_for_mark_degenerate(
 
 isl_bool isl_ast_node_for_is_degenerate(__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
 		return isl_bool_error;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", return isl_bool_error);
 	return node->u.f.degenerate;
+}
+
+/* Mark the given for node as being coincident.
+ */
+__isl_give isl_ast_node *isl_ast_node_for_mark_coincident(
+	__isl_take isl_ast_node *node)
+{
+	node = isl_ast_node_cow(node);
+	if (!node)
+		return NULL;
+	node->u.f.coincident = 1;
+	return node;
+}
+
+/* Is "node" marked coincident?
+ */
+isl_bool isl_ast_node_for_is_coincident(__isl_keep isl_ast_node *node)
+{
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
+		return isl_bool_error;
+	return node->u.f.coincident;
 }
 
 __isl_give isl_ast_expr *isl_ast_node_for_get_iterator(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", return NULL);
 	return isl_ast_expr_copy(node->u.f.iterator);
 }
 
 __isl_give isl_ast_expr *isl_ast_node_for_get_init(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", return NULL);
 	return isl_ast_expr_copy(node->u.f.init);
 }
 
@@ -1154,11 +1185,8 @@ __isl_give isl_ast_expr *isl_ast_node_for_get_init(
 __isl_give isl_ast_expr *isl_ast_node_for_get_cond(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", return NULL);
 	if (!node->u.f.degenerate)
 		return isl_ast_expr_copy(node->u.f.cond);
 
@@ -1175,11 +1203,8 @@ __isl_give isl_ast_expr *isl_ast_node_for_get_cond(
 __isl_give isl_ast_expr *isl_ast_node_for_get_inc(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", return NULL);
 	if (!node->u.f.degenerate)
 		return isl_ast_expr_copy(node->u.f.inc);
 	return isl_ast_expr_alloc_int_si(isl_ast_node_get_ctx(node), 1);
@@ -1193,9 +1218,8 @@ __isl_give isl_ast_node *isl_ast_node_if_set_then(
 	node = isl_ast_node_cow(node);
 	if (!node || !child)
 		goto error;
-	if (node->type != isl_ast_node_if)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not an if node", goto error);
+	if (isl_ast_node_check_type(node, isl_ast_node_if) < 0)
+		goto error;
 
 	isl_ast_node_free(node->u.i.then);
 	node->u.i.then = child;
@@ -1210,66 +1234,48 @@ error:
 __isl_give isl_ast_node *isl_ast_node_if_get_then(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_if) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_if)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not an if node", return NULL);
 	return isl_ast_node_copy(node->u.i.then);
 }
 
 isl_bool isl_ast_node_if_has_else(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_if) < 0)
 		return isl_bool_error;
-	if (node->type != isl_ast_node_if)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not an if node", return isl_bool_error);
 	return node->u.i.else_node != NULL;
 }
 
 __isl_give isl_ast_node *isl_ast_node_if_get_else(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_if) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_if)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not an if node", return NULL);
 	return isl_ast_node_copy(node->u.i.else_node);
 }
 
 __isl_give isl_ast_expr *isl_ast_node_if_get_cond(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_if) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_if)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a guard node", return NULL);
 	return isl_ast_expr_copy(node->u.i.guard);
 }
 
 __isl_give isl_ast_node_list *isl_ast_node_block_get_children(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_block) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_block)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a block node", return NULL);
 	return isl_ast_node_list_copy(node->u.b.children);
 }
 
 __isl_give isl_ast_expr *isl_ast_node_user_get_expr(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_user) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_user)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a user node", return NULL);
 
 	return isl_ast_expr_copy(node->u.e.expr);
 }
@@ -1278,11 +1284,8 @@ __isl_give isl_ast_expr *isl_ast_node_user_get_expr(
  */
 __isl_give isl_id *isl_ast_node_mark_get_id(__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_mark) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_mark)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a mark node", return NULL);
 
 	return isl_id_copy(node->u.m.mark);
 }
@@ -1292,11 +1295,8 @@ __isl_give isl_id *isl_ast_node_mark_get_id(__isl_keep isl_ast_node *node)
 __isl_give isl_ast_node *isl_ast_node_mark_get_node(
 	__isl_keep isl_ast_node *node)
 {
-	if (!node)
+	if (isl_ast_node_check_type(node, isl_ast_node_mark) < 0)
 		return NULL;
-	if (node->type != isl_ast_node_mark)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a mark node", return NULL);
 
 	return isl_ast_node_copy(node->u.m.node);
 }
@@ -2165,14 +2165,35 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
 	__isl_keep isl_ast_print_options *options, int new_line,
 	int force_block);
 
+/* If "node" is a coincident for node, then print " // coincident" to "p".
+ */
+static __isl_give isl_printer *print_coincident(__isl_take isl_printer *p,
+	__isl_keep isl_ast_node *node)
+{
+	isl_bool coincident;
+
+	if (node->type != isl_ast_node_for)
+		return p;
+	coincident = isl_ast_node_for_is_coincident(node);
+	if (coincident < 0)
+		return isl_printer_free(p);
+	if (coincident)
+		p = isl_printer_print_str(p, " // coincident");
+	return p;
+}
+
 /* Print the body "node" of a for or if node.
  * If "else_node" is set, then it is printed as well.
+ * "parent" is the parent of "node" (and "else_node if it is set).
  * If "force_block" is set, then print out the body as a block.
  *
  * We first check if we need to print out a block.
  * We always print out a block if there is an else node to make
  * sure that the else node is matched to the correct if node.
  * For consistency, the corresponding else node is also printed as a block.
+ *
+ * If "node" is a coincident for node, then print " // coincident"
+ * at the end of the line.
  *
  * If the else node is itself an if, then we print it as
  *
@@ -2186,6 +2207,7 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
  *	}
  */
 static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
+	__isl_keep isl_ast_node *parent,
 	__isl_keep isl_ast_node *node, __isl_keep isl_ast_node *else_node,
 	__isl_keep isl_ast_print_options *options, int force_block)
 {
@@ -2193,6 +2215,7 @@ static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
 		return isl_printer_free(p);
 
 	if (!force_block && !else_node && !need_block(node)) {
+		p = print_coincident(p, parent);
 		p = isl_printer_end_line(p);
 		p = isl_printer_indent(p, 2);
 		p = isl_ast_node_print(node, p,
@@ -2202,6 +2225,7 @@ static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
 	}
 
 	p = isl_printer_print_str(p, " {");
+	p = print_coincident(p, parent);
 	p = isl_printer_end_line(p);
 	p = isl_printer_indent(p, 2);
 	p = print_ast_node_c(p, node, options, 1, 0);
@@ -2214,7 +2238,8 @@ static __isl_give isl_printer *print_body_c(__isl_take isl_printer *p,
 			p = print_if_c(p, else_node, options, 0, 1);
 		} else {
 			p = isl_printer_print_str(p, " else");
-			p = print_body_c(p, else_node, NULL, options, 1);
+			p = print_body_c(p, parent, else_node, NULL,
+					options, 1);
 		}
 	} else
 		p = isl_printer_end_line(p);
@@ -2292,7 +2317,7 @@ static __isl_give isl_printer *print_for_c(__isl_take isl_printer *p,
 		p = isl_printer_print_str(p, " += ");
 		p = isl_printer_print_ast_expr(p, node->u.f.inc);
 		p = isl_printer_print_str(p, ")");
-		p = print_body_c(p, node->u.f.body, NULL, options, 0);
+		p = print_body_c(p, node, node->u.f.body, NULL, options, 0);
 	} else {
 		id = isl_ast_expr_get_id(node->u.f.iterator);
 		name = isl_id_get_name(id);
@@ -2329,7 +2354,7 @@ static __isl_give isl_printer *print_if_c(__isl_take isl_printer *p,
 	p = isl_printer_print_str(p, "if (");
 	p = isl_printer_print_ast_expr(p, node->u.i.guard);
 	p = isl_printer_print_str(p, ")");
-	p = print_body_c(p, node->u.i.then, node->u.i.else_node, options,
+	p = print_body_c(p, node, node->u.i.then, node->u.i.else_node, options,
 			force_block);
 
 	return p;
@@ -2396,9 +2421,8 @@ __isl_give isl_printer *isl_ast_node_for_print(__isl_keep isl_ast_node *node,
 {
 	if (!node || !options)
 		goto error;
-	if (node->type != isl_ast_node_for)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not a for node", goto error);
+	if (isl_ast_node_check_type(node, isl_ast_node_for) < 0)
+		goto error;
 	p = print_for_c(p, node, options, 0, 0);
 	isl_ast_print_options_free(options);
 	return p;
@@ -2415,9 +2439,8 @@ __isl_give isl_printer *isl_ast_node_if_print(__isl_keep isl_ast_node *node,
 {
 	if (!node || !options)
 		goto error;
-	if (node->type != isl_ast_node_if)
-		isl_die(isl_ast_node_get_ctx(node), isl_error_invalid,
-			"not an if node", goto error);
+	if (isl_ast_node_check_type(node, isl_ast_node_if) < 0)
+		goto error;
 	p = print_if_c(p, node, options, 1, 0);
 	isl_ast_print_options_free(options);
 	return p;

@@ -50,7 +50,7 @@
  *
  * "strides" contains the stride of each loop.  The number of elements
  * is equal to the number of dimensions in "domain".
- * "offsets" constains the offsets of strided loops.  If s is the stride
+ * "offsets" contains the offsets of strided loops.  If s is the stride
  * for a given dimension and f is the corresponding offset, then the
  * dimension takes on values
  *
@@ -133,10 +133,13 @@
  * an AST from a schedule tree.  It may be NULL if we are not generating
  * an AST from a schedule tree or if we are not inside a band node.
  *
- * "loop_type" originally constains loop AST generation types for
- * the "n" members of "node" and it is updated (along with "n") when
+ * "loop_type" originally contains loop AST generation types for
+ * the "n" members of "node", while
+ * "coincident" originally contains the coincidence information
+ * of the same members.
+ * Both fields are updated (along with "n") when
  * a schedule dimension is inserted.
- * It is NULL if "node" is NULL.
+ * They are NULL if "node" is NULL.
  *
  * "isolated" is the piece of the schedule domain isolated by the isolate
  * option on the current band.  This set may be NULL if we have not checked
@@ -196,6 +199,7 @@ struct isl_ast_build {
 	isl_schedule_node *node;
 	int n;
 	enum isl_ast_loop_type *loop_type;
+	isl_bool *coincident;
 	isl_set *isolated;
 };
 
@@ -256,7 +260,7 @@ int isl_ast_build_has_value(__isl_keep isl_ast_build *build);
 __isl_give isl_id *isl_ast_build_get_iterator_id(
 	__isl_keep isl_ast_build *build, int pos);
 
-int isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build);
+isl_bool isl_ast_build_has_schedule_node(__isl_keep isl_ast_build *build);
 __isl_give isl_schedule_node *isl_ast_build_get_schedule_node(
 	__isl_keep isl_ast_build *build);
 __isl_give isl_ast_build *isl_ast_build_set_schedule_node(
@@ -319,6 +323,7 @@ __isl_give isl_set *isl_ast_build_eliminate_divs(
 
 enum isl_ast_loop_type isl_ast_build_get_loop_type(
 	__isl_keep isl_ast_build *build, int isolated);
+isl_bool isl_ast_build_is_coincident(__isl_keep isl_ast_build *build);
 
 __isl_give isl_map *isl_ast_build_map_to_iterator(
 	__isl_keep isl_ast_build *build, __isl_take isl_set *set);

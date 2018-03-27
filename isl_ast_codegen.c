@@ -1320,11 +1320,14 @@ static __isl_give isl_ast_graft *refine_generic(
 /* Create a for node for the current level.
  *
  * Mark the for node degenerate if "degenerate" is set.
+ * Mark the for node coincident if the corresponding band member
+ * was marked coincident.
  */
 static __isl_give isl_ast_node *create_for(__isl_keep isl_ast_build *build,
 	int degenerate)
 {
 	int depth;
+	isl_bool coincident;
 	isl_id *id;
 	isl_ast_node *node;
 
@@ -1336,6 +1339,11 @@ static __isl_give isl_ast_node *create_for(__isl_keep isl_ast_build *build,
 	node = isl_ast_node_alloc_for(id);
 	if (degenerate)
 		node = isl_ast_node_for_mark_degenerate(node);
+	coincident = isl_ast_build_is_coincident(build);
+	if (coincident < 0)
+		return isl_ast_node_free(node);
+	if (coincident)
+		node = isl_ast_node_for_mark_coincident(node);
 
 	return node;
 }
@@ -2651,7 +2659,7 @@ static int foreach_iteration(__isl_take isl_set *domain,
  * "executed" and "build" are inputs to compute_domains.
  * "schedule_domain" is the domain of "executed".
  *
- * "option" constains the domains at the current depth that should by
+ * "option" contains the domains at the current depth that should by
  * atomic, separated or unrolled.  These domains are as specified by
  * the user, except that inner dimensions have been eliminated and
  * that they have been made pair-wise disjoint.
@@ -3880,7 +3888,7 @@ static int first_offset(struct isl_set_map_pair *domain, int *order, int n,
  * with "<<" the lexicographic order, proving that the order is preserved
  * in all cases.
  */
-static __isl_give isl_union_map *contruct_shifted_executed(
+static __isl_give isl_union_map *construct_shifted_executed(
 	struct isl_set_map_pair *domain, int *order, int n,
 	__isl_keep isl_val *stride, __isl_keep isl_multi_val *offset,
 	__isl_take isl_ast_build *build)
@@ -3951,13 +3959,19 @@ static __isl_give isl_union_map *contruct_shifted_executed(
  * domain is equal to zero.  The other offsets are reduced modulo stride.
  *
  * Based on this information, we construct a new inverse schedule in
- * contruct_shifted_executed that exposes the stride.
+ * construct_shifted_executed that exposes the stride.
  * Since this involves the introduction of a new schedule dimension,
- * the build needs to be changed accodingly.
+ * the build needs to be changed accordingly.
  * After computing the AST, the newly introduced dimension needs
  * to be removed again from the list of grafts.  We do this by plugging
  * in a mapping that represents the new schedule domain in terms of the
  * old schedule domain.
+ *
+ * Note that this transformation does not affect the coincidence
+ * of the for loop, in the sense that if it was coincident before
+ * the transformation, then it is also coincident after the transformation
+ * because the transformation only imposes extra ordering
+ * in the extra dimension.
  */
 static __isl_give isl_ast_graft_list *generate_shift_component(
 	struct isl_set_map_pair *domain, int *order, int n,
@@ -3985,7 +3999,7 @@ static __isl_give isl_ast_graft_list *generate_shift_component(
 	mv = isl_multi_val_add_val(mv, val);
 	mv = isl_multi_val_mod_val(mv, isl_val_copy(stride));
 
-	executed = contruct_shifted_executed(domain, order, n, stride, mv,
+	executed = construct_shifted_executed(domain, order, n, stride, mv,
 						build);
 	space = isl_ast_build_get_space(build, 1);
 	space = isl_space_map_from_set(space);
