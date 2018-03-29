@@ -209,15 +209,6 @@ enum class ast_op_type {
 	address_of = isl_ast_op_address_of
 };
 
-enum class ast_node_type {
-	error = isl_ast_node_error,
-	_for = isl_ast_node_for,
-	_if = isl_ast_node_if,
-	block = isl_ast_node_block,
-	mark = isl_ast_node_mark,
-	user = isl_ast_node_user
-};
-
 enum class ast_loop_type {
 	error = isl_ast_loop_error,
 	_default = isl_ast_loop_default,
