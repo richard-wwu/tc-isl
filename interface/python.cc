@@ -581,7 +581,8 @@ void python_generator::print_upcast_constructors(const isl_class &clazz)
 
 	for (i = clazz.type_subclasses.begin();
 	     i != clazz.type_subclasses.end(); ++i) {
-		printf("        if len(args) == 1 and type(args[0]) == %s:\n",
+		printf("        if len(args) == 1 and "
+						"isinstance(args[0], %s):\n",
 			 type2python(i->second).c_str());
 		printf("            self.ctx = args[0].ctx\n");
 		printf("            self.ptr = isl.%s_copy(args[0].ptr)\n",
