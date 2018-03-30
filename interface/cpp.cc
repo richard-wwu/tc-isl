@@ -182,20 +182,22 @@ void cpp_generator::print_implementations(ostream &os)
 /* If "clazz" is a subclass that is based on a type function,
  * then introduce a "type" field that holds the value of the type
  * corresponding to the subclass and make the fields of the class
- * accessible to the "isa" and "as" methods of the superclass.
+ * accessible to the "isa" and "as" methods of the (immediate) superclass.
  * In particular, "isa" needs access to the type field itself,
  * while "as" needs access to the private constructor.
  */
 void cpp_generator::print_subclass_type(ostream &os, const isl_class &clazz)
 {
 	std::string cppstring = type2cpp(clazz);
-	std::string super = type2cpp(clazz.name);
+	std::string super;
 	const char *cppname = cppstring.c_str();
-	const char *supername = super.c_str();
+	const char *supername;
 
 	if (!clazz.is_type_subclass())
 		return;
 
+	super = type2cpp(clazz.superclass_name);
+	supername = super.c_str();
 	osprintf(os, "  friend %s %s::isa<%s>();\n",
 		isl_bool2cpp().c_str(), supername, cppname);
 	osprintf(os, "  friend %s %s::as<%s>();\n",
@@ -207,7 +209,7 @@ void cpp_generator::print_subclass_type(ostream &os, const isl_class &clazz)
 /* Print declarations for class "clazz" to "os".
  *
  * If "clazz" is a subclass based on a type function,
- * then it is made to inherit from the superclass and
+ * then it is made to inherit from the (immediate) superclass and
  * a "type" attribute is added for use in the "as" and "isa"
  * methods of the superclass.
  *
@@ -229,7 +231,8 @@ void cpp_generator::print_class(ostream &os, const isl_class &clazz)
 	osprintf(os, "\n");
 	osprintf(os, "class %s ", cppname);
 	if (clazz.is_type_subclass())
-		osprintf(os, ": public %s ", type2cpp(clazz.name).c_str());
+		osprintf(os, ": public %s ",
+			type2cpp(clazz.superclass_name).c_str());
 	osprintf(os, "{\n");
 	print_subclass_type(os, clazz);
 	print_class_factory_decl(os, clazz, "  friend ");
@@ -786,20 +789,20 @@ void cpp_generator::print_class_factory_impl(ostream &os,
 /* Print implementations of protected constructors for class "clazz" to "os".
  *
  * The pointer to the isl object is either initialized directly or
- * through the superclass.
+ * through the (immediate) superclass.
  */
 void cpp_generator::print_protected_constructors_impl(ostream &os,
 	const isl_class &clazz)
 {
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
-	std::string super = type2cpp(clazz.name);
 	const char *cppname = cppstring.c_str();
 	bool subclass = clazz.is_type_subclass();
 
 	osprintf(os, "%s::%s(__isl_take %s *ptr)\n", cppname, cppname, name);
 	if (subclass)
-		osprintf(os, "    : %s(ptr) {}\n", super.c_str());
+		osprintf(os, "    : %s(ptr) {}\n",
+			type2cpp(clazz.superclass_name).c_str());
 	else
 		osprintf(os, "    : ptr(ptr) {}\n");
 }
@@ -807,7 +810,7 @@ void cpp_generator::print_protected_constructors_impl(ostream &os,
 /* Print implementations of public constructors for class "clazz" to "os".
  *
  * The pointer to the isl object is either initialized directly or
- * through the superclass.
+ * through the (immediate) superclass.
  *
  * If the class has any persistent callbacks, then copy them
  * from the original object in the copy constructor.
@@ -822,10 +825,12 @@ void cpp_generator::print_public_constructors_impl(ostream &os,
 {
 	const char *name = clazz.name.c_str();
 	std::string cppstring = type2cpp(clazz);
-	std::string super = type2cpp(clazz.name);
+	std::string super;
 	const char *cppname = cppstring.c_str();
 	bool subclass = clazz.is_type_subclass();
 
+	if (subclass)
+		super = type2cpp(clazz.superclass_name);
 	osprintf(os, "%s::%s()\n", cppname, cppname);
 	if (subclass)
 		osprintf(os, "    : %s() {}\n\n", super.c_str());

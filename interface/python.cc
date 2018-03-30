@@ -594,7 +594,7 @@ void python_generator::print_upcast_constructors(const isl_class &clazz)
  * The order of the superclasses is the opposite of the order
  * in which the corresponding annotations appear in the source code.
  * If "clazz" is a subclass derived from a type function,
- * then the superclass is recorded in "clazz" itself.
+ * then the immediate superclass is recorded in "clazz" itself.
  */
 void python_generator::print_class_header(const isl_class &clazz,
 	const string &name, const vector<string> &super)
@@ -609,7 +609,7 @@ void python_generator::print_class_header(const isl_class &clazz,
 		}
 		printf(")");
 	} else if (clazz.is_type_subclass()) {
-		printf("(%s)", type2python(clazz.name).c_str());
+		printf("(%s)", type2python(clazz.superclass_name).c_str());
 	} else {
 		printf("(object)");
 	}

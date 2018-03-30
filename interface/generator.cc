@@ -114,12 +114,16 @@ FunctionDecl *generator::find_by_name(const string &name, bool required)
  * keeping track of the _to_str, _copy and _free functions, if any, separately.
  * "sub_name" is either the name of the class itself or
  * the name of a type based subclass.
+ * If the class is a proper subclass, then "super_name" is the name
+ * of its immediate superclass.
  */
-void generator::add_subclass(RecordDecl *decl, const string &sub_name)
+void generator::add_subclass(RecordDecl *decl, const string &super_name,
+	const string &sub_name)
 {
 	string name = decl->getName();
 
 	classes[sub_name].name = name;
+	classes[sub_name].superclass_name = super_name;
 	classes[sub_name].subclass_name = sub_name;
 	classes[sub_name].type = decl;
 	classes[sub_name].fn_to_str = find_by_name(name + "_to_str", false);
@@ -133,7 +137,7 @@ void generator::add_subclass(RecordDecl *decl, const string &sub_name)
  */
 void generator::add_class(RecordDecl *decl)
 {
-	return add_subclass(decl, decl->getName());
+	return add_subclass(decl, "", decl->getName());
 }
 
 /* Given a function "fn_type" that returns the subclass type
@@ -160,7 +164,7 @@ void generator::add_type_subclasses(FunctionDecl *fn_type)
 		if (val < 0)
 			continue;
 		c->type_subclasses[val] = name;
-		add_subclass(c->type, name);
+		add_subclass(c->type, c->subclass_name, name);
 	}
 }
 

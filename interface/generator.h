@@ -13,8 +13,9 @@ using namespace clang;
 /* isl_class collects all constructors and methods for an isl "class".
  * "name" is the name of the class.
  * If this object describes a subclass of a C type, then
- * "subclass_name" is the name of that subclass.  Otherwise,
- * it is equal to "name".
+ * "subclass_name" is the name of that subclass and "superclass_name"
+ * is the name of the immediate superclass of that subclass.  Otherwise,
+ * "subclass_name" is equal to "name" and "superclass_name" is undefined.
  * "type" is the declaration that introduces the type.
  * "persistent_callbacks" contains the set of functions that
  * set a persistent callback.
@@ -28,6 +29,7 @@ using namespace clang;
  */
 struct isl_class {
 	string name;
+	string superclass_name;
 	string subclass_name;
 	RecordDecl *type;
 	set<FunctionDecl *> constructors;
@@ -81,7 +83,8 @@ public:
 	virtual ~generator() {};
 
 protected:
-	void add_subclass(RecordDecl *decl, const string &sub_name);
+	void add_subclass(RecordDecl *decl, const string &name,
+		const string &sub_name);
 	void add_class(RecordDecl *decl);
 	void add_type_subclasses(FunctionDecl *method);
 	isl_class *method2class(FunctionDecl *fd);
