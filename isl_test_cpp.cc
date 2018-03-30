@@ -266,6 +266,7 @@ static void test_ast_build(isl::ctx ctx)
  *  - Exceptions
  *  - Schedule trees
  *  - AST generation
+ *  - AST expression generation
  */
 int main()
 {
@@ -281,6 +282,7 @@ int main()
 	test_exception(ctx);
 	test_schedule_tree(ctx);
 	test_ast_build(ctx);
+	test_ast_build_expr(ctx);
 
 	isl_ctx_free(ctx);
 }

@@ -62,7 +62,9 @@ __isl_give isl_ast_expr *isl_ast_expr_copy(__isl_keep isl_ast_expr *expr);
 __isl_null isl_ast_expr *isl_ast_expr_free(__isl_take isl_ast_expr *expr);
 
 isl_ctx *isl_ast_expr_get_ctx(__isl_keep isl_ast_expr *expr);
+__isl_subclass(isl_ast_expr)
 enum isl_ast_expr_type isl_ast_expr_get_type(__isl_keep isl_ast_expr *expr);
+__isl_export
 __isl_give isl_val *isl_ast_expr_int_get_val(__isl_keep isl_ast_expr *expr);
 __isl_give isl_val *isl_ast_expr_get_val(__isl_keep isl_ast_expr *expr);
 __isl_export
