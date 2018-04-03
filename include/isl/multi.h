@@ -84,6 +84,8 @@ __isl_give isl_multi_##BASE *isl_multi_##BASE##_drop_dims(		\
 __isl_export                                                            \
 __isl_give isl_##BASE *isl_multi_##BASE##_get_##BASE(			\
 	__isl_keep isl_multi_##BASE *multi, int pos);			\
+__isl_give isl_##BASE##_list *isl_multi_##BASE##_get_##BASE##_list(	\
+	__isl_keep isl_multi_##BASE *multi);				\
 __isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_##BASE(		\
 	__isl_take isl_multi_##BASE *multi, int pos,			\

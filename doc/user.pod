@@ -2973,6 +2973,23 @@ It can be replaced using the following functions.
 		__isl_take isl_multi_union_pw_aff *mupa, int pos,
 		__isl_take isl_union_pw_aff *upa);
 
+A list of all base expressions of a multiple
+expression can be extracted using the following functions.
+
+	#include <isl/val.h>
+	__isl_give isl_val_list *isl_multi_val_get_val_list(
+		__isl_keep isl_multi_val *mv);
+
+	#include <isl/aff.h>
+	__isl_give isl_aff_list *isl_multi_aff_get_aff_list(
+		__isl_keep isl_multi_aff *multi);
+	__isl_give isl_pw_aff_list *
+	isl_multi_pw_aff_get_pw_aff_list(
+		__isl_keep isl_multi_pw_aff *mpa);
+	__isl_give isl_union_pw_aff_list *
+	isl_multi_union_pw_aff_get_union_pw_aff_list(
+		__isl_keep isl_multi_union_pw_aff *mupa);
+
 As a convenience, a sequence of base expressions that have
 their domains in a given space can be extracted from a sequence
 of union expressions using the following function.
