@@ -60,6 +60,19 @@ int FN(UNION,find_dim_by_name)(__isl_keep UNION *u, enum isl_dim_type type,
 	return isl_space_find_dim_by_name(u->space, type, name);
 }
 
+/* Return the position of the parameter with the given identifier
+ * in "u".
+ * Return -1 if no such parameter can be found.
+ */
+static int FN(UNION,find_param_by_id)(__isl_keep UNION *u,
+	__isl_keep isl_id *id)
+{
+	isl_space *space;
+
+	space = FN(UNION,peek_space)(u);
+	return isl_space_find_dim_by_id(space, isl_dim_param, id);
+}
+
 #ifdef HAS_TYPE
 static __isl_give UNION *FN(UNION,alloc)(__isl_take isl_space *dim,
 	enum isl_fold type, int size)
@@ -1105,6 +1118,37 @@ isl_bool FN(UNION,involves_nan)(__isl_keep UNION *u)
 	isl_bool free;
 
 	free = FN(FN(UNION,every),PARTS)(u, &FN(PART,no_nan), NULL);
+	return isl_bool_not(free);
+}
+
+/* Does the piecewise expression "part" not depend in any way
+ * on the parameter with identifier "id"?
+ */
+static isl_bool FN(PART,no_param_id)(__isl_keep PART *part, void *user)
+{
+	isl_id *id = user;
+
+	return isl_bool_not(FN(PW,involves_param_id)(part, id));
+}
+
+/* Does the union expression "u" depend in any way
+ * on the parameter with identifier "id"?
+ *
+ * That is, is it not the case that every base expression in "u"
+ * is independent of this parameter?
+ */
+isl_bool FN(UNION,involves_param_id)(__isl_keep UNION *u, __isl_keep isl_id *id)
+{
+	isl_bool free;
+	int pos;
+
+	if (!u || !id)
+		return isl_bool_error;
+
+	pos = FN(UNION,find_param_by_id)(u, id);
+	if (pos < 0)
+		return isl_bool_false;
+	free = FN(FN(UNION,every),PARTS)(u, FN(PART,no_param_id), id);
 	return isl_bool_not(free);
 }
 

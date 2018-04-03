@@ -764,6 +764,8 @@ __isl_give isl_space *isl_union_pw_multi_aff_get_space(
 __isl_export
 unsigned isl_union_pw_multi_aff_dim(__isl_keep isl_union_pw_multi_aff *upma,
 	enum isl_dim_type type);
+isl_bool isl_union_pw_multi_aff_involves_param_id(
+	__isl_keep isl_union_pw_multi_aff *upma, __isl_keep isl_id *id);
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_set_dim_name(
 	__isl_take isl_union_pw_multi_aff *upma,
 	enum isl_dim_type type, unsigned pos, const char *s);
@@ -958,6 +960,8 @@ __isl_give isl_space *isl_union_pw_aff_get_space(
 __isl_export
 unsigned isl_union_pw_aff_dim(__isl_keep isl_union_pw_aff *upa,
 	enum isl_dim_type type);
+isl_bool isl_union_pw_aff_involves_param_id(__isl_keep isl_union_pw_aff *upa,
+	__isl_keep isl_id *id);
 __isl_give isl_union_pw_aff *isl_union_pw_aff_set_dim_name(
 	__isl_take isl_union_pw_aff *upa, enum isl_dim_type type,
 	unsigned pos, const char *s);
