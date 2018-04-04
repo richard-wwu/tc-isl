@@ -65,6 +65,11 @@ struct isl_pw_qpolynomial {
 	struct isl_pw_qpolynomial_piece p[1];
 };
 
+#undef EL
+#define EL isl_pw_qpolynomial
+
+#include <isl_list_templ.h>
+
 /* dim represents the domain space.
  */
 struct isl_qpolynomial_fold {
