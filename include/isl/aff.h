@@ -994,6 +994,8 @@ isl_stat isl_union_pw_aff_foreach_pw_aff(__isl_keep isl_union_pw_aff *upa,
 __isl_export
 __isl_give isl_pw_aff *isl_union_pw_aff_extract_pw_aff(
 	__isl_keep isl_union_pw_aff *upa, __isl_take isl_space *space);
+__isl_give isl_pw_aff *isl_union_pw_aff_extract_on_domain_space(
+	__isl_keep isl_union_pw_aff *upa, __isl_take isl_space *space);
 
 isl_bool isl_union_pw_aff_involves_nan(__isl_keep isl_union_pw_aff *upa);
 __isl_export

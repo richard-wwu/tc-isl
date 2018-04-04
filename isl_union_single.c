@@ -195,3 +195,20 @@ static isl_stat FN(UNION,free_u_entry)(void **entry, void *user)
 }
 
 #include <isl_union_templ.c>
+
+/* Extract the single base expression with domain in "space".
+ *
+ * Return the ZERO base expression if "u" does not contain
+ * any base expression with a domain in that space.
+ *
+ * In the case where there can be at most one base expression
+ * for a given domain space, this base expression has
+ * an anonymous one-dimensional range space.
+ */
+__isl_give PART *FN(UNION,extract_on_domain_space)(__isl_keep UNION *u,
+	__isl_take isl_space *space)
+{
+	space = isl_space_from_domain(space);
+	space = isl_space_add_dims(space, isl_dim_out, 1);
+	return FN(FN(UNION,extract),PARTS)(u, space);
+}
