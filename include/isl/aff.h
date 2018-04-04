@@ -753,6 +753,8 @@ isl_ctx *isl_union_pw_multi_aff_get_ctx(
 __isl_export
 __isl_give isl_space *isl_union_pw_multi_aff_get_space(
 	__isl_keep isl_union_pw_multi_aff *upma);
+__isl_give isl_pw_multi_aff_list *isl_union_pw_multi_aff_get_pw_multi_aff_list(
+	__isl_keep isl_union_pw_multi_aff *upma);
 
 __isl_export
 unsigned isl_union_pw_multi_aff_dim(__isl_keep isl_union_pw_multi_aff *upma,
@@ -946,6 +948,8 @@ __isl_null isl_union_pw_aff *isl_union_pw_aff_free(
 isl_ctx *isl_union_pw_aff_get_ctx(__isl_keep isl_union_pw_aff *upa);
 __isl_export
 __isl_give isl_space *isl_union_pw_aff_get_space(
+	__isl_keep isl_union_pw_aff *upa);
+__isl_give isl_pw_aff_list *isl_union_pw_aff_get_pw_aff_list(
 	__isl_keep isl_union_pw_aff *upa);
 
 __isl_export
