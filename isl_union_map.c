@@ -4196,6 +4196,44 @@ __isl_give isl_basic_set_list *isl_union_set_get_basic_set_list(
 	return list;
 }
 
+/* Add "set" to "list".
+ */
+static isl_stat add_list_set(__isl_take isl_set *set, void *user)
+{
+	isl_set_list **list = user;
+
+	*list = isl_set_list_add(*list, set);
+
+	if (!*list)
+		return isl_stat_error;
+	return isl_stat_ok;
+}
+
+/* Return a list containing all the sets in "uset".
+ *
+ * First construct a list of the appropriate size and
+ * then add all the elements.
+ */
+__isl_give isl_set_list *isl_union_set_get_set_list(
+	__isl_keep isl_union_set *uset)
+{
+	int n;
+	isl_ctx *ctx;
+	isl_set_list *list;
+
+	if (!uset)
+		return NULL;
+	ctx = isl_union_set_get_ctx(uset);
+	n = isl_union_set_n_set(uset);
+	if (n < 0)
+		return NULL;
+	list = isl_set_list_alloc(ctx, n);
+	if (isl_union_set_foreach_set(uset, &add_list_set, &list) < 0)
+		list = isl_set_list_free(list);
+
+	return list;
+}
+
 /* Internal data structure for isl_union_map_remove_map_if.
  * "fn" and "user" are the arguments to isl_union_map_remove_map_if.
  */
