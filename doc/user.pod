@@ -3443,6 +3443,26 @@ the following functions.
 		__isl_keep isl_union_pw_qpolynomial *upwqp,
 		__isl_take isl_space *space);
 
+For those types of union expressions that can have at most
+one base expression for a given domain space, the base expression
+can also be extracted based on this domains space.
+
+	#include <isl/aff.h>
+	__isl_give isl_pw_aff *
+	isl_union_pw_aff_extract_on_domain_space(
+		__isl_keep isl_union_pw_aff *upa,
+		__isl_take isl_space *space);
+
+	#include <isl/polynomial.h>
+	__isl_give isl_pw_qpolynomial *
+	isl_union_pw_qpolynomial_extract_on_domain_space(
+		__isl_keep isl_union_pw_qpolynomial *upwqp,
+		__isl_take isl_space *space);
+	__isl_give isl_pw_qpolynomial_fold *
+	isl_union_pw_qpolynomial_fold_extract_on_domain_space(
+		__isl_keep isl_union_pw_qpolynomial_fold *upwf,
+		__isl_take isl_space *space);
+
 =head2 Input and Output
 
 For set and relation,
