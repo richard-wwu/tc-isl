@@ -11,6 +11,8 @@ extern "C" {
 __isl_export
 unsigned isl_union_set_dim(__isl_keep isl_union_set *uset,
 	enum isl_dim_type type);
+isl_bool isl_union_set_involves_param_id(__isl_keep isl_union_set *uset,
+	__isl_keep isl_id *id);
 
 __isl_constructor
 __isl_give isl_union_set *isl_union_set_from_basic_set(
