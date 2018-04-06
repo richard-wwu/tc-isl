@@ -2831,6 +2831,36 @@ isl_bool isl_set_involves_dims(__isl_keep isl_set *set,
 	return isl_map_involves_dims(set, type, first, n);
 }
 
+/* Does the description of "map" depend in any way
+ * on the parameter with identifier "id"?
+ */
+isl_bool isl_map_involves_param_id(__isl_keep isl_map *map,
+	__isl_keep isl_id *id)
+{
+	int pos;
+	isl_bool empty;
+
+	if (!map || !id)
+		return isl_bool_error;
+	empty = isl_map_plain_is_empty(map);
+	if (empty < 0 || empty)
+		return isl_bool_not(empty);
+
+	pos = isl_map_find_dim_by_id(map, isl_dim_param, id);
+	if (pos < 0)
+		return isl_bool_false;
+	return isl_map_involves_dims(map, isl_dim_param, pos, 1);
+}
+
+/* Does the description of "set" depend in any way
+ * on the parameter with identifier "id"?
+ */
+isl_bool isl_set_involves_param_id(__isl_keep isl_set *set,
+	__isl_keep isl_id *id)
+{
+	return isl_map_involves_param_id(set_to_map(set), id);
+}
+
 /* Drop all constraints in bmap that involve any of the dimensions
  * first to first+n-1.
  */

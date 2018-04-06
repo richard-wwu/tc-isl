@@ -649,6 +649,8 @@ __isl_give isl_map *isl_map_drop_constraints_not_involving_dims(
 
 isl_bool isl_basic_map_involves_dims(__isl_keep isl_basic_map *bmap,
 	enum isl_dim_type type, unsigned first, unsigned n);
+isl_bool isl_map_involves_param_id(__isl_keep isl_map *map,
+	__isl_keep isl_id *id);
 isl_bool isl_map_involves_dims(__isl_keep isl_map *map,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
