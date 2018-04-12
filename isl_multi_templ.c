@@ -228,6 +228,13 @@ __isl_give isl_id *FN(MULTI(BASE),get_tuple_id)(__isl_keep MULTI(BASE) *multi,
 	return multi ? isl_space_get_tuple_id(multi->space, type) : NULL;
 }
 
+/* Return the number of base expressions in "multi".
+ */
+int FN(MULTI(BASE),size)(__isl_keep MULTI(BASE) *multi)
+{
+	return multi ? multi->n : -1;
+}
+
 __isl_give EL *FN(FN(MULTI(BASE),get),BASE)(__isl_keep MULTI(BASE) *multi,
 	int pos)
 {
