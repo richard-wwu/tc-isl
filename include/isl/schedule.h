@@ -1,6 +1,7 @@
 #ifndef ISL_SCHEDULE_H
 #define ISL_SCHEDULE_H
 
+#include <isl/id.h>
 #include <isl/union_set_type.h>
 #include <isl/union_map_type.h>
 #include <isl/schedule_type.h>
