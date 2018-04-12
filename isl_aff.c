@@ -3900,6 +3900,7 @@ error:
 #include <isl_multi_dims.c>
 #include <isl_multi_floor.c>
 #include <isl_multi_gist.c>
+#include <isl_multi_nan_templ.c>
 
 #undef NO_DOMAIN
 
@@ -6419,6 +6420,7 @@ error:
 #include <isl_multi_hash.c>
 #include <isl_multi_align_set.c>
 #include <isl_multi_intersect.c>
+#include <isl_multi_nan_templ.c>
 
 /* Does "mpa" have a non-trivial explicit domain?
  *
@@ -8293,6 +8295,7 @@ error:
 #include <isl_multi_align_set.c>
 #include <isl_multi_align_union_set.c>
 #include <isl_multi_intersect.c>
+#include <isl_multi_nan_templ.c>
 #include <isl_multi_param_templ.c>
 
 /* Does "mupa" have a non-trivial explicit domain?
