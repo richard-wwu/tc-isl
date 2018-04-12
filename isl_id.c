@@ -252,3 +252,23 @@ error:
 	isl_printer_free(p);
 	return NULL;
 }
+
+/* Is "id1" (obviously) equal to "id2"?
+ *
+ * isl_id objects can be compared by pointer value, but
+ * isl_multi_*_plain_is_equal needs an isl_*_plain_is_equal.
+ */
+static isl_bool isl_id_plain_is_equal(__isl_keep isl_id *id1,
+	__isl_keep isl_id *id2)
+{
+	if (!id1 || !id2)
+		return isl_bool_error;
+	return id1 == id2;
+}
+
+#undef BASE
+#define BASE id
+
+#include <isl_multi_no_domain_templ.c>
+#include <isl_multi_no_explicit_domain.c>
+#include <isl_multi_templ.c>

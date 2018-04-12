@@ -38,4 +38,9 @@ int isl_id_cmp(__isl_keep isl_id *id1, __isl_keep isl_id *id2);
 
 extern isl_id isl_id_none;
 
+#undef BASE
+#define BASE id
+
+#include <isl_multi_templ.h>
+
 #endif
