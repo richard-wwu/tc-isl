@@ -120,13 +120,13 @@ __isl_give isl_multi_##BASE *isl_multi_##BASE##_range_factor_domain(	\
 __isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_range_factor_range(	\
 	__isl_take isl_multi_##BASE *multi);				\
-__isl_export								\
+__isl_overload								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_scale_val(		\
 	__isl_take isl_multi_##BASE *multi, __isl_take isl_val *v);	\
-__isl_export								\
+__isl_overload								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_scale_down_val(		\
 	__isl_take isl_multi_##BASE *multi, __isl_take isl_val *v);	\
-__isl_export								\
+__isl_overload								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_scale_multi_val(	\
 	__isl_take isl_multi_##BASE *multi,				\
 	__isl_take isl_multi_val *mv);					\
@@ -134,7 +134,7 @@ __isl_overload								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_scale_down_multi_val(	\
 	__isl_take isl_multi_##BASE *multi,				\
 	__isl_take isl_multi_val *mv);					\
-__isl_export								\
+__isl_overload								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_mod_multi_val(		\
 	__isl_take isl_multi_##BASE *multi,				\
 	__isl_take isl_multi_val *mv);					\
