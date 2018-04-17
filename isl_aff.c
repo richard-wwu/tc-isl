@@ -4250,7 +4250,6 @@ __isl_give isl_set *isl_multi_aff_lex_gt_set(__isl_take isl_multi_aff *ma1,
 #define NO_SUB
 #define NO_EVAL
 #define NO_OPT
-#define NO_INVOLVES_DIMS
 #define NO_INSERT_DIMS
 #define NO_LIFT
 #define NO_MORPH
@@ -8246,6 +8245,7 @@ error:
 #include <isl_multi_align_set.c>
 #include <isl_multi_align_union_set.c>
 #include <isl_multi_intersect.c>
+#include <isl_multi_param_templ.c>
 
 /* Does "mupa" have a non-trivial explicit domain?
  *

@@ -17,11 +17,20 @@ isl_ctx *FN(UNION,get_ctx)(__isl_keep UNION *u)
 	return u ? u->space->ctx : NULL;
 }
 
-__isl_give isl_space *FN(UNION,get_space)(__isl_keep UNION *u)
+/* Return the space of "u".
+ */
+static __isl_keep isl_space *FN(UNION,peek_space)(__isl_keep UNION *u)
 {
 	if (!u)
 		return NULL;
-	return isl_space_copy(u->space);
+	return u->space;
+}
+
+/* Return a copy of the space of "u".
+ */
+__isl_give isl_space *FN(UNION,get_space)(__isl_keep UNION *u)
+{
+	return isl_space_copy(FN(UNION,peek_space)(u));
 }
 
 /* Return the number of parameters of "u", where "type"
@@ -49,6 +58,19 @@ int FN(UNION,find_dim_by_name)(__isl_keep UNION *u, enum isl_dim_type type,
 	if (!u)
 		return -1;
 	return isl_space_find_dim_by_name(u->space, type, name);
+}
+
+/* Return the position of the parameter with the given identifier
+ * in "u".
+ * Return -1 if no such parameter can be found.
+ */
+static int FN(UNION,find_param_by_id)(__isl_keep UNION *u,
+	__isl_keep isl_id *id)
+{
+	isl_space *space;
+
+	space = FN(UNION,peek_space)(u);
+	return isl_space_find_dim_by_id(space, isl_dim_param, id);
 }
 
 #ifdef HAS_TYPE
@@ -1031,37 +1053,103 @@ error:
 	return isl_bool_error;
 }
 
-/* Check whether the element that "entry" points to involves any NaNs and
- * store the result in *nan.
- * Abort as soon as one such element has been found.
+/* Internal data structure for isl_union_*_every_*.
+ *
+ * "test" is the user-specified callback function.
+ * "user" is the user-specified callback function argument.
+ *
+ * "failed" is initialized to 0 and set to 1 if "test" fails
+ * on any base expression.
  */
-static isl_stat FN(UNION,involves_nan_entry)(void **entry, void *user)
+S(UNION,every_data) {
+	isl_bool (*test)(__isl_keep PART *part, void *user);
+	void *user;
+	int failed;
+};
+
+/* Call data->test on "pw".
+ * If this fails, then set data->failed and abort.
+ */
+static isl_stat FN(UNION,call_every)(void **entry, void *user)
 {
-	isl_bool *nan = user;
+	S(UNION,every_data) *data = user;
 	PW *pw = *entry;
+	isl_bool r;
 
-	*nan = FN(PW,involves_nan)(pw);
-	if (*nan < 0 || !nan)
+	r = data->test(pw, data->user);
+	if (r < 0)
 		return isl_stat_error;
+	if (r)
+		return isl_stat_ok;
+	data->failed = 1;
+	return isl_stat_error;
+}
 
-	return isl_stat_ok;
+/* Does "test" succeed on every base expression in "u"?
+ */
+isl_bool FN(FN(UNION,every),PARTS)(__isl_keep UNION *u,
+	isl_bool (*test)(__isl_keep PART *part, void *user), void *user)
+{
+	S(UNION,every_data) data = { test, user, 0 };
+	isl_stat r;
+
+	r = FN(UNION,foreach_inplace)(u, &FN(UNION,call_every), &data);
+	if (r >= 0)
+		return isl_bool_true;
+	if (data.failed)
+		return isl_bool_false;
+	return isl_bool_error;
+}
+
+/* Does "part" not involve any NaNs?
+ */
+static isl_bool FN(PART,no_nan)(__isl_keep PART *part, void *user)
+{
+	return isl_bool_not(FN(PW,involves_nan)(part));
 }
 
 /* Does "u" involve any NaNs?
+ *
+ * That is, is it not the case that every base expression in "u"
+ * is free from NaNs?
  */
 isl_bool FN(UNION,involves_nan)(__isl_keep UNION *u)
 {
-	isl_bool nan = isl_bool_false;
+	isl_bool free;
 
-	if (!u)
+	free = FN(FN(UNION,every),PARTS)(u, &FN(PART,no_nan), NULL);
+	return isl_bool_not(free);
+}
+
+/* Does the piecewise expression "part" not depend in any way
+ * on the parameter with identifier "id"?
+ */
+static isl_bool FN(PART,no_param_id)(__isl_keep PART *part, void *user)
+{
+	isl_id *id = user;
+
+	return isl_bool_not(FN(PW,involves_param_id)(part, id));
+}
+
+/* Does the union expression "u" depend in any way
+ * on the parameter with identifier "id"?
+ *
+ * That is, is it not the case that every base expression in "u"
+ * is independent of this parameter?
+ */
+isl_bool FN(UNION,involves_param_id)(__isl_keep UNION *u, __isl_keep isl_id *id)
+{
+	isl_bool free;
+	int pos;
+
+	if (!u || !id)
 		return isl_bool_error;
 
-	if (FN(UNION,foreach_inplace)(u,
-				    &FN(UNION,involves_nan_entry), &nan) < 0 &&
-	    !nan)
-		return isl_bool_error;
-
-	return nan;
+	pos = FN(UNION,find_param_by_id)(u, id);
+	if (pos < 0)
+		return isl_bool_false;
+	free = FN(FN(UNION,every),PARTS)(u, FN(PART,no_param_id), id);
+	return isl_bool_not(free);
 }
 
 /* Internal data structure for isl_union_*_drop_dims.

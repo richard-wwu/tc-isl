@@ -165,6 +165,19 @@ int isl_union_map_find_dim_by_name(__isl_keep isl_union_map *umap,
 	return isl_space_find_dim_by_name(umap->dim, type, name);
 }
 
+/* Return the position of the parameter with the given identifier
+ * in "umap".
+ * Return -1 if no such parameter can be found.
+ */
+static int isl_union_map_find_param_by_id(__isl_keep isl_union_map *umap,
+	__isl_keep isl_id *id)
+{
+	isl_space *space;
+
+	space = isl_union_map_peek_space(umap);
+	return isl_space_find_dim_by_id(space, isl_dim_param, id);
+}
+
 __isl_give isl_space *isl_union_set_get_space(__isl_keep isl_union_set *uset)
 {
 	return isl_union_map_get_space(uset);
@@ -3804,6 +3817,36 @@ isl_bool isl_union_map_involves_dims(__isl_keep isl_union_map *umap,
 		return isl_bool_error;
 
 	return !excludes;
+}
+
+/* Does the description of "umap" depend in any way
+ * on the parameter with identifier "id"?
+ */
+isl_bool isl_union_map_involves_param_id(__isl_keep isl_union_map *umap,
+	__isl_keep isl_id *id)
+{
+	int pos;
+	isl_bool empty;
+
+	if (!umap || !id)
+		return isl_bool_error;
+	empty = isl_union_map_plain_is_empty(umap);
+	if (empty < 0 || empty)
+		return isl_bool_not(empty);
+
+	pos = isl_union_map_find_param_by_id(umap, id);
+	if (pos < 0)
+		return isl_bool_false;
+	return isl_union_map_involves_dims(umap, isl_dim_param, pos, 1);
+}
+
+/* Does the description of "uset" depend in any way
+ * on the parameter with identifier "id"?
+ */
+isl_bool isl_union_set_involves_param_id(__isl_keep isl_union_set *uset,
+	__isl_keep isl_id *id)
+{
+	return isl_union_map_involves_param_id(uset_to_umap(uset), id);
 }
 
 /* Internal data structure for isl_union_map_reset_range_space.

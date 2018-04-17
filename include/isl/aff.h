@@ -272,6 +272,8 @@ __isl_null isl_pw_aff *isl_pw_aff_free(__isl_take isl_pw_aff *pwaff);
 
 __isl_export
 unsigned isl_pw_aff_dim(__isl_keep isl_pw_aff *pwaff, enum isl_dim_type type);
+isl_bool isl_pw_aff_involves_param_id(__isl_keep isl_pw_aff *pa,
+	__isl_keep isl_id *id);
 __isl_export
 isl_bool isl_pw_aff_involves_dims(__isl_keep isl_pw_aff *pwaff,
 	enum isl_dim_type type, unsigned first, unsigned n);
@@ -542,6 +544,11 @@ __isl_null isl_pw_multi_aff *isl_pw_multi_aff_free(
 __isl_export
 unsigned isl_pw_multi_aff_dim(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
+isl_bool isl_pw_multi_aff_involves_param_id(__isl_keep isl_pw_multi_aff *pma,
+	__isl_keep isl_id *id);
+isl_bool isl_pw_multi_aff_involves_dims(__isl_keep isl_pw_multi_aff *pma,
+	enum isl_dim_type type, unsigned first, unsigned n);
+
 __isl_export
 __isl_give isl_pw_aff *isl_pw_multi_aff_get_pw_aff(
 	__isl_keep isl_pw_multi_aff *pma, int pos);
@@ -759,6 +766,8 @@ __isl_give isl_pw_multi_aff_list *isl_union_pw_multi_aff_get_pw_multi_aff_list(
 __isl_export
 unsigned isl_union_pw_multi_aff_dim(__isl_keep isl_union_pw_multi_aff *upma,
 	enum isl_dim_type type);
+isl_bool isl_union_pw_multi_aff_involves_param_id(
+	__isl_keep isl_union_pw_multi_aff *upma, __isl_keep isl_id *id);
 __isl_give isl_union_pw_multi_aff *isl_union_pw_multi_aff_set_dim_name(
 	__isl_take isl_union_pw_multi_aff *upma,
 	enum isl_dim_type type, unsigned pos, const char *s);
@@ -956,6 +965,8 @@ __isl_give isl_pw_aff_list *isl_union_pw_aff_get_pw_aff_list(
 __isl_export
 unsigned isl_union_pw_aff_dim(__isl_keep isl_union_pw_aff *upa,
 	enum isl_dim_type type);
+isl_bool isl_union_pw_aff_involves_param_id(__isl_keep isl_union_pw_aff *upa,
+	__isl_keep isl_id *id);
 __isl_give isl_union_pw_aff *isl_union_pw_aff_set_dim_name(
 	__isl_take isl_union_pw_aff *upa, enum isl_dim_type type,
 	unsigned pos, const char *s);
@@ -1082,6 +1093,7 @@ void isl_union_pw_aff_dump(__isl_keep isl_union_pw_aff *upa);
 
 ISL_DECLARE_MULTI(union_pw_aff)
 ISL_DECLARE_MULTI_NEG(union_pw_aff)
+ISL_DECLARE_MULTI_PARAM(union_pw_aff)
 
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_from_multi_aff(
 	__isl_take isl_multi_aff *ma);
