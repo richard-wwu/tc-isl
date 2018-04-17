@@ -21,7 +21,6 @@ __isl_give isl_space *isl_multi_##BASE##_get_space(			\
 __isl_export								\
 __isl_give isl_space *isl_multi_##BASE##_get_domain_space(		\
 	__isl_keep isl_multi_##BASE *multi);				\
-__isl_export								\
 int isl_multi_##BASE##_find_dim_by_name(				\
 	__isl_keep isl_multi_##BASE *multi,				\
 	enum isl_dim_type type, const char *name);			\
@@ -39,7 +38,6 @@ isl_bool isl_multi_##BASE##_plain_is_equal(				\
 	__isl_keep isl_multi_##BASE *multi2);				\
 isl_bool isl_multi_##BASE##_involves_nan(				\
 	__isl_keep isl_multi_##BASE *multi);				\
-__isl_export                                                            \
 int isl_multi_##BASE##_find_dim_by_id(					\
 	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type,	\
 	__isl_keep isl_id *id);						\

@@ -62,7 +62,6 @@ __isl_export
 __isl_give isl_aff *isl_local_space_get_div(__isl_keep isl_local_space *ls,
 	int pos);
 
-__isl_export
 int isl_local_space_find_dim_by_name(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, const char *name);
 
