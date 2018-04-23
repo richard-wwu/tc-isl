@@ -271,3 +271,16 @@ static isl::schedule test_ast_build_generic(isl::ctx ctx)
 
 	return schedule;
 }
+
+/* Test basic AST expression generation from an affine expression.
+ */
+static void test_ast_build_expr(isl::ctx ctx)
+{
+	isl::pw_aff pa(ctx, "[n] -> { [n + 1] }");
+	isl::ast_build build = isl::ast_build::from_context(pa.domain());
+
+	auto expr = build.expr_from(pa);
+	auto op = expr.as<isl::ast_expr_op>();
+	assert(bool(op.as<isl::ast_op_add>()));
+	assert(op.get_n_arg() == 2);
+}

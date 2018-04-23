@@ -246,7 +246,7 @@ enum isl_ast_expr_type isl_ast_expr_get_type(__isl_keep isl_ast_expr *expr)
 
 /* Return the integer value represented by "expr".
  */
-__isl_give isl_val *isl_ast_expr_get_val(__isl_keep isl_ast_expr *expr)
+__isl_give isl_val *isl_ast_expr_int_get_val(__isl_keep isl_ast_expr *expr)
 {
 	if (!expr)
 		return NULL;
@@ -256,7 +256,14 @@ __isl_give isl_val *isl_ast_expr_get_val(__isl_keep isl_ast_expr *expr)
 	return isl_val_copy(expr->u.v);
 }
 
-__isl_give isl_id *isl_ast_expr_get_id(__isl_keep isl_ast_expr *expr)
+/* This is an alternative name for the function above.
+ */
+__isl_give isl_val *isl_ast_expr_get_val(__isl_keep isl_ast_expr *expr)
+{
+	return isl_ast_expr_int_get_val(expr);
+}
+
+__isl_give isl_id *isl_ast_expr_id_get_id(__isl_keep isl_ast_expr *expr)
 {
 	if (!expr)
 		return NULL;
@@ -267,7 +274,16 @@ __isl_give isl_id *isl_ast_expr_get_id(__isl_keep isl_ast_expr *expr)
 	return isl_id_copy(expr->u.id);
 }
 
-enum isl_ast_op_type isl_ast_expr_get_op_type(__isl_keep isl_ast_expr *expr)
+/* This is an alternative name for the function above.
+ */
+__isl_give isl_id *isl_ast_expr_get_id(__isl_keep isl_ast_expr *expr)
+{
+	return isl_ast_expr_id_get_id(expr);
+}
+
+/* Return the type of operation represented by "expr".
+ */
+enum isl_ast_op_type isl_ast_expr_op_get_type(__isl_keep isl_ast_expr *expr)
 {
 	if (!expr)
 		return isl_ast_op_error;
@@ -277,7 +293,16 @@ enum isl_ast_op_type isl_ast_expr_get_op_type(__isl_keep isl_ast_expr *expr)
 	return expr->u.op.op;
 }
 
-int isl_ast_expr_get_op_n_arg(__isl_keep isl_ast_expr *expr)
+/* This is an alternative name for the function above.
+ */
+enum isl_ast_op_type isl_ast_expr_get_op_type(__isl_keep isl_ast_expr *expr)
+{
+	return isl_ast_expr_op_get_type(expr);
+}
+
+/* Return the number of arguments of the operation represented by "expr".
+ */
+int isl_ast_expr_op_get_n_arg(__isl_keep isl_ast_expr *expr)
 {
 	if (!expr)
 		return -1;
@@ -287,7 +312,16 @@ int isl_ast_expr_get_op_n_arg(__isl_keep isl_ast_expr *expr)
 	return expr->u.op.n_arg;
 }
 
-__isl_give isl_ast_expr *isl_ast_expr_get_op_arg(__isl_keep isl_ast_expr *expr,
+/* This is an alternative name for the function above.
+ */
+int isl_ast_expr_get_op_n_arg(__isl_keep isl_ast_expr *expr)
+{
+	return isl_ast_expr_op_get_n_arg(expr);
+}
+
+/* Return the argument at position "pos" of the operation represented by "expr".
+ */
+__isl_give isl_ast_expr *isl_ast_expr_op_get_arg(__isl_keep isl_ast_expr *expr,
 	int pos)
 {
 	if (!expr)
@@ -300,6 +334,14 @@ __isl_give isl_ast_expr *isl_ast_expr_get_op_arg(__isl_keep isl_ast_expr *expr,
 			"index out of bounds", return NULL);
 
 	return isl_ast_expr_copy(expr->u.op.args[pos]);
+}
+
+/* This is an alternative name for the function above.
+ */
+__isl_give isl_ast_expr *isl_ast_expr_get_op_arg(__isl_keep isl_ast_expr *expr,
+	int pos)
+{
+	return isl_ast_expr_op_get_arg(expr, pos);
 }
 
 /* Replace the argument at position "pos" of "expr" by "arg".
