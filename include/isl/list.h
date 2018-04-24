@@ -49,6 +49,7 @@ __isl_give isl_##EL##_list *isl_##EL##_list_drop(			\
 __isl_give isl_##EL##_list *isl_##EL##_list_swap(			\
 	__isl_take isl_##EL##_list *list, unsigned pos1,		\
 	unsigned pos2);							\
+EXPORT									\
 __isl_give isl_##EL##_list *isl_##EL##_list_reverse(			\
 	__isl_take isl_##EL##_list *list);				\
 EXPORT									\
