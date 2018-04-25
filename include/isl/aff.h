@@ -965,6 +965,7 @@ __isl_give isl_pw_aff_list *isl_union_pw_aff_get_pw_aff_list(
 __isl_export
 unsigned isl_union_pw_aff_dim(__isl_keep isl_union_pw_aff *upa,
 	enum isl_dim_type type);
+__isl_overload
 isl_bool isl_union_pw_aff_involves_param_id(__isl_keep isl_union_pw_aff *upa,
 	__isl_keep isl_id *id);
 __isl_give isl_union_pw_aff *isl_union_pw_aff_set_dim_name(
