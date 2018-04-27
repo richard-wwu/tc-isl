@@ -118,10 +118,8 @@ __isl_give isl_map *isl_map_reset_user(__isl_take isl_map *map);
 
 int isl_basic_map_find_dim_by_name(__isl_keep isl_basic_map *bmap,
 	enum isl_dim_type type, const char *name);
-__isl_export
 int isl_map_find_dim_by_id(__isl_keep isl_map *map, enum isl_dim_type type,
 	__isl_keep isl_id *id);
-__isl_export
 int isl_map_find_dim_by_name(__isl_keep isl_map *map, enum isl_dim_type type,
 	const char *name);
 
