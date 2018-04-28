@@ -22,6 +22,7 @@
 #include <isl_map_private.h>
 #include <isl_aff_private.h>
 #include <isl_space_private.h>
+#include <isl/id.h>
 #include <isl/set.h>
 #include <isl/flow.h>
 #include <isl_constraint_private.h>
@@ -641,6 +642,36 @@ static int test_dim(isl_ctx *ctx)
 	return 0;
 }
 
+/* Check that "val" is equal to the value described by "str".
+ * If "str" is "NaN", then check for a NaN value explicitly.
+ */
+static isl_stat val_check_equal(__isl_keep isl_val *val, const char *str)
+{
+	isl_bool ok, is_nan;
+	isl_ctx *ctx;
+	isl_val *res;
+
+	if (!val)
+		return isl_stat_error;
+
+	ctx = isl_val_get_ctx(val);
+	res = isl_val_read_from_str(ctx, str);
+	is_nan = isl_val_is_nan(res);
+	if (is_nan < 0)
+		ok = isl_bool_error;
+	else if (is_nan)
+		ok = isl_val_is_nan(val);
+	else
+		ok = isl_val_eq(val, res);
+	isl_val_free(res);
+	if (ok < 0)
+		return isl_stat_error;
+	if (!ok)
+		isl_die(ctx, isl_error_unknown,
+			"unexpected result", return isl_stat_error);
+	return isl_stat_ok;
+}
+
 struct {
 	__isl_give isl_val *(*op)(__isl_take isl_val *v);
 	const char *arg;
@@ -700,29 +731,19 @@ struct {
 static int test_un_val(isl_ctx *ctx)
 {
 	int i;
-	isl_val *v, *res;
+	isl_val *v;
 	__isl_give isl_val *(*fn)(__isl_take isl_val *v);
-	isl_bool ok, is_nan;
 
 	for (i = 0; i < ARRAY_SIZE(val_un_tests); ++i) {
+		isl_stat r;
+
 		v = isl_val_read_from_str(ctx, val_un_tests[i].arg);
-		res = isl_val_read_from_str(ctx, val_un_tests[i].res);
 		fn = val_un_tests[i].op;
 		v = fn(v);
-		is_nan = isl_val_is_nan(res);
-		if (is_nan < 0)
-			ok = isl_bool_error;
-		else if (is_nan)
-			ok = isl_val_is_nan(v);
-		else
-			ok = isl_val_eq(v, res);
+		r = val_check_equal(v, val_un_tests[i].res);
 		isl_val_free(v);
-		isl_val_free(res);
-		if (ok < 0)
+		if (r < 0)
 			return -1;
-		if (!ok)
-			isl_die(ctx, isl_error_unknown,
-				"unexpected result", return -1);
 	}
 
 	return 0;
@@ -6139,6 +6160,8 @@ int test_aff(isl_ctx *ctx)
 	isl_aff *aff;
 	int zero, equal;
 
+	if (test_upa(ctx) < 0)
+		return -1;
 	if (test_bin_aff(ctx) < 0)
 		return -1;
 	if (test_bin_pw_aff(ctx) < 0)
@@ -6938,13 +6961,75 @@ static int test_eval_2(isl_ctx *ctx)
 	return 0;
 }
 
-/* Perform basic polynomial evaluation tests.
+/* Inputs for isl_pw_aff_eval test.
+ * "f" is the affine function.
+ * "p" is the point where the function should be evaluated.
+ * "res" is the expected result.
+ */
+struct {
+	const char *f;
+	const char *p;
+	const char *res;
+} aff_eval_tests[] = {
+	{ "{ [i] -> [2 * i] }", "{ [4] }", "8" },
+	{ "{ [i] -> [2 * i] }", "{ [x] : false }", "NaN" },
+	{ "{ [i] -> [i + floor(i/2) + floor(i/3)] }", "{ [0] }", "0" },
+	{ "{ [i] -> [i + floor(i/2) + floor(i/3)] }", "{ [1] }", "1" },
+	{ "{ [i] -> [i + floor(i/2) + floor(i/3)] }", "{ [2] }", "3" },
+	{ "{ [i] -> [i + floor(i/2) + floor(i/3)] }", "{ [3] }", "5" },
+	{ "{ [i] -> [i + floor(i/2) + floor(i/3)] }", "{ [4] }", "7" },
+	{ "{ [i] -> [floor((3 * floor(i/2))/5)] }", "{ [0] }", "0" },
+	{ "{ [i] -> [floor((3 * floor(i/2))/5)] }", "{ [1] }", "0" },
+	{ "{ [i] -> [floor((3 * floor(i/2))/5)] }", "{ [2] }", "0" },
+	{ "{ [i] -> [floor((3 * floor(i/2))/5)] }", "{ [3] }", "0" },
+	{ "{ [i] -> [floor((3 * floor(i/2))/5)] }", "{ [4] }", "1" },
+	{ "{ [i] -> [floor((3 * floor(i/2))/5)] }", "{ [6] }", "1" },
+	{ "{ [i] -> [floor((3 * floor(i/2))/5)] }", "{ [8] }", "2" },
+	{ "{ [i] -> [i] : i > 0; [i] -> [-i] : i < 0 }", "{ [4] }", "4" },
+	{ "{ [i] -> [i] : i > 0; [i] -> [-i] : i < 0 }", "{ [-2] }", "2" },
+	{ "{ [i] -> [i] : i > 0; [i] -> [-i] : i < 0 }", "{ [0] }", "NaN" },
+	{ "[N] -> { [2 * N] }", "[N] -> { : N = 4 }", "8" },
+	{ "{ [i, j] -> [(i + j)/2] }", "{ [1, 1] }", "1" },
+	{ "{ [i, j] -> [(i + j)/2] }", "{ [1, 2] }", "3/2" },
+	{ "{ [i] -> [i] : i mod 2 = 0 }", "{ [4] }", "4" },
+	{ "{ [i] -> [i] : i mod 2 = 0 }", "{ [3] }", "NaN" },
+	{ "{ [i] -> [i] : i mod 2 = 0 }", "{ [x] : false }", "NaN" },
+};
+
+/* Perform basic isl_pw_aff_eval tests.
+ */
+static int test_eval_aff(isl_ctx *ctx)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(aff_eval_tests); ++i) {
+		isl_stat r;
+		isl_pw_aff *pa;
+		isl_set *set;
+		isl_point *pnt;
+		isl_val *v;
+
+		pa = isl_pw_aff_read_from_str(ctx, aff_eval_tests[i].f);
+		set = isl_set_read_from_str(ctx, aff_eval_tests[i].p);
+		pnt = isl_set_sample_point(set);
+		v = isl_pw_aff_eval(pa, pnt);
+		r = val_check_equal(v, aff_eval_tests[i].res);
+		isl_val_free(v);
+		if (r < 0)
+			return -1;
+	}
+	return 0;
+}
+
+/* Perform basic evaluation tests.
  */
 static int test_eval(isl_ctx *ctx)
 {
 	if (test_eval_1(ctx) < 0)
 		return -1;
 	if (test_eval_2(ctx) < 0)
+		return -1;
+	if (test_eval_aff(ctx) < 0)
 		return -1;
 	return 0;
 }
@@ -7216,6 +7301,64 @@ int test_align_parameters(isl_ctx *ctx)
 
 	isl_multi_aff_free(ma1);
 	isl_multi_aff_free(ma2);
+
+	if (equal < 0)
+		return -1;
+	if (!equal)
+		isl_die(ctx, isl_error_unknown,
+			"result not as expected", return -1);
+
+	return 0;
+}
+
+/* Check that isl_*_drop_unused_params actually drops the unused parameters
+ * by comparing the result using isl_*_plain_is_equal.
+ * Note that this assumes that isl_*_plain_is_equal does not consider
+ * objects that only differ by unused parameters to be equal.
+ */
+int test_drop_unused_parameters(isl_ctx *ctx)
+{
+	const char *str_with, *str_without;
+	isl_basic_set *bset1, *bset2;
+	isl_set *set1, *set2;
+	isl_pw_aff *pwa1, *pwa2;
+	int equal;
+
+	str_with = "[n, m, o] -> { [m] }";
+	str_without = "[m] -> { [m] }";
+
+	bset1 = isl_basic_set_read_from_str(ctx, str_with);
+	bset2 = isl_basic_set_read_from_str(ctx, str_without);
+	bset1 = isl_basic_set_drop_unused_params(bset1);
+	equal = isl_basic_set_plain_is_equal(bset1, bset2);
+	isl_basic_set_free(bset1);
+	isl_basic_set_free(bset2);
+
+	if (equal < 0)
+		return -1;
+	if (!equal)
+		isl_die(ctx, isl_error_unknown,
+			"result not as expected", return -1);
+
+	set1 = isl_set_read_from_str(ctx, str_with);
+	set2 = isl_set_read_from_str(ctx, str_without);
+	set1 = isl_set_drop_unused_params(set1);
+	equal = isl_set_plain_is_equal(set1, set2);
+	isl_set_free(set1);
+	isl_set_free(set2);
+
+	if (equal < 0)
+		return -1;
+	if (!equal)
+		isl_die(ctx, isl_error_unknown,
+			"result not as expected", return -1);
+
+	pwa1 = isl_pw_aff_read_from_str(ctx, str_with);
+	pwa2 = isl_pw_aff_read_from_str(ctx, str_without);
+	pwa1 = isl_pw_aff_drop_unused_params(pwa1);
+	equal = isl_pw_aff_plain_is_equal(pwa1, pwa2);
+	isl_pw_aff_free(pwa1);
+	isl_pw_aff_free(pwa2);
 
 	if (equal < 0)
 		return -1;
@@ -8272,6 +8415,30 @@ static int test_multi_pw_aff_2(isl_ctx *ctx)
 	return 0;
 }
 
+/* Check that isl_multi_union_pw_aff_multi_val_on_domain
+ * sets the explicit domain of a zero-dimensional result,
+ * such that it can be converted to an isl_union_map.
+ */
+static isl_stat test_multi_pw_aff_3(isl_ctx *ctx)
+{
+	isl_space *space;
+	isl_union_set *dom;
+	isl_multi_val *mv;
+	isl_multi_union_pw_aff *mupa;
+	isl_union_map *umap;
+
+	dom = isl_union_set_read_from_str(ctx, "{ A[]; B[] }");
+	space = isl_union_set_get_space(dom);
+	mv = isl_multi_val_zero(isl_space_set_from_params(space));
+	mupa = isl_multi_union_pw_aff_multi_val_on_domain(dom, mv);
+	umap = isl_union_map_from_multi_union_pw_aff(mupa);
+	isl_union_map_free(umap);
+	if (!umap)
+		return isl_stat_error;
+
+	return isl_stat_ok;
+}
+
 /* Perform some tests on multi piecewise affine expressions.
  */
 static int test_multi_pw_aff(isl_ctx *ctx)
@@ -8279,6 +8446,8 @@ static int test_multi_pw_aff(isl_ctx *ctx)
 	if (test_multi_pw_aff_1(ctx) < 0)
 		return -1;
 	if (test_multi_pw_aff_2(ctx) < 0)
+		return -1;
+	if (test_multi_pw_aff_3(ctx) < 0)
 		return -1;
 	return 0;
 }
@@ -8391,6 +8560,35 @@ static int test_compute_divs(isl_ctx *ctx)
 	set = isl_basic_set_compute_divs(bset);
 	isl_set_free(set);
 	if (!set)
+		return -1;
+
+	return 0;
+}
+
+/* Check that isl_schedule_get_map is not confused by a schedule tree
+ * with divergent filter node parameters, as can result from a call
+ * to isl_schedule_intersect_domain.
+ */
+static int test_schedule_tree(isl_ctx *ctx)
+{
+	const char *str;
+	isl_union_set *uset;
+	isl_schedule *sched1, *sched2;
+	isl_union_map *umap;
+
+	uset = isl_union_set_read_from_str(ctx, "{ A[i] }");
+	sched1 = isl_schedule_from_domain(uset);
+	uset = isl_union_set_read_from_str(ctx, "{ B[] }");
+	sched2 = isl_schedule_from_domain(uset);
+
+	sched1 = isl_schedule_sequence(sched1, sched2);
+	str = "[n] -> { A[i] : 0 <= i < n; B[] }";
+	uset = isl_union_set_read_from_str(ctx, str);
+	sched1 = isl_schedule_intersect_domain(sched1, uset);
+	umap = isl_schedule_get_map(sched1);
+	isl_schedule_free(sched1);
+	isl_union_map_free(umap);
+	if (!umap)
 		return -1;
 
 	return 0;
@@ -8937,6 +9135,7 @@ struct {
 	{ "conversion", &test_conversion },
 	{ "list", &test_list },
 	{ "align parameters", &test_align_parameters },
+	{ "drop unused parameters", &test_drop_unused_parameters },
 	{ "preimage", &test_preimage },
 	{ "pullback", &test_pullback },
 	{ "AST", &test_ast },
@@ -8960,6 +9159,7 @@ struct {
 	{ "injective", &test_injective },
 	{ "schedule (whole component)", &test_schedule_whole },
 	{ "schedule (incremental)", &test_schedule_incremental },
+	{ "schedule tree", &test_schedule_tree },
 	{ "schedule tree prefix", &test_schedule_tree_prefix },
 	{ "schedule tree grouping", &test_schedule_tree_group },
 	{ "tile", &test_tile },

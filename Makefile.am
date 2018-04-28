@@ -351,6 +351,7 @@ pkginclude_HEADERS = \
 	include/isl/ctx.h \
 	include/isl/flow.h \
 	include/isl/id.h \
+	include/isl/id_type.h \
 	include/isl/id_to_ast_expr.h \
 	include/isl/id_to_id.h \
 	include/isl/id_to_pw_aff.h \
@@ -385,12 +386,15 @@ pkginclude_HEADERS = \
 	include/isl/set.h \
 	include/isl/set_type.h \
 	include/isl/space.h \
+	include/isl/space_type.h \
 	include/isl/stream.h \
+	include/isl/stride_info.h \
 	include/isl/union_map.h \
 	include/isl/union_map_type.h \
 	include/isl/union_set.h \
 	include/isl/union_set_type.h \
 	include/isl/val.h \
+	include/isl/val_type.h \
 	include/isl/vec.h \
 	include/isl/version.h \
 	include/isl/vertices.h
@@ -445,6 +449,8 @@ EXTRA_DIST = \
 	isl_power_templ.c \
 	isl_pw_macro.h \
 	isl_pw_templ.c \
+	isl_pw_templ.h \
+	isl_pw_eval.c \
 	isl_pw_hash.c \
 	isl_pw_union_opt.c \
 	read_in_string_templ.c \

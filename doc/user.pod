@@ -270,7 +270,7 @@ be used as an alternative.
 
 =back
 
-=head3 Changes since isl-0.18
+=head3 Changes since isl-0.19
 
 =over
 
@@ -744,9 +744,10 @@ For integer C<isl_val>s we additionally have the following binary property.
 		__isl_keep isl_val *v2);
 
 An C<isl_val> can also be compared to an integer using the following
-function.  The result is undefined for NaN.
+functions.  The result of C<isl_val_cmp_si> undefined for NaN.
 
 	#include <isl/val.h>
+	isl_bool isl_val_gt_si(__isl_keep isl_val *v, long i);
 	int isl_val_cmp_si(__isl_keep isl_val *v, long i);
 
 The following unary operations are available on C<isl_val>s.
@@ -4055,18 +4056,26 @@ can be found then assign C<1> to C<*modulo> and C<1> to C<*residue>.
 	__isl_give isl_val *isl_set_get_stride(
 		__isl_keep isl_set *set, int pos);
 
+	#include <isl/map.h>
+	__isl_give isl_stride_info *
+	isl_map_get_range_stride_info(
+		__isl_keep isl_map *map, int pos);
+
 Check if the values of the given set dimension are equal to
 some affine expression of the other dimensions (the offset)
+modulo some integer stride or
+check if the values of the given output dimensions are equal to
+some affine expression of the input dimensions (the offset)
 modulo some integer stride.
 If no more specific information can be found, then the stride
 is taken to be one and the offset is taken to be the zero expression.
-The function C<isl_set_get_stride_info> performs the same
-computation but only returns the stride.
-Otherwise,
+The function C<isl_set_get_stride> performs the same
+computation as C<isl_set_get_stride_info> but only returns the stride.
+For the other functions,
 the stride and offset can be extracted from the returned object
 using the following functions.
 
-	#include <isl/set.h>
+	#include <isl/stride_info.h>
 	__isl_give isl_val *isl_stride_info_get_stride(
 		__isl_keep isl_stride_info *si);
 	__isl_give isl_aff *isl_stride_info_get_offset(
@@ -4074,7 +4083,7 @@ using the following functions.
 
 The stride info object can be released using the following function.
 
-	#include <isl/set.h>
+	#include <isl/stride_info.h>
 	__isl_null isl_stride_info *isl_stride_info_free(
 		__isl_take isl_stride_info *si);
 
@@ -5800,6 +5809,40 @@ All parameters need to be named.
 		__isl_take isl_qpolynomial *qp,
 		__isl_take isl_space *model);
 
+=item * Drop unused parameters
+
+Drop parameters that are not referenced by the isl object.
+All parameters need to be named.
+
+	#include <isl/set.h>
+	__isl_give isl_basic_set *
+	isl_basic_set_drop_unused_params(
+		__isl_take isl_basic_set *bset);
+	__isl_give isl_set *isl_set_drop_unused_params(
+		__isl_take isl_set *set);
+
+	#include <isl/map.h>
+	__isl_give isl_basic_map *
+	isl_basic_map_drop_unused_params(
+		__isl_take isl_basic_map *bmap);
+	__isl_give isl_map *isl_map_drop_unused_params(
+		__isl_take isl_map *map);
+
+	#include <isl/aff.h>
+	__isl_give isl_pw_aff *isl_pw_aff_drop_unused_params(
+		__isl_take isl_pw_aff *pa);
+	__isl_give isl_pw_multi_aff *
+	isl_pw_multi_aff_drop_unused_params(
+		__isl_take isl_pw_multi_aff *pma);
+
+	#include <isl/polynomial.h>
+	__isl_give isl_pw_qpolynomial *
+	isl_pw_qpolynomial_drop_unused_params(
+		__isl_take isl_pw_qpolynomial *pwqp);
+	__isl_give isl_pw_qpolynomial_fold *
+	isl_pw_qpolynomial_fold_drop_unused_params(
+		__isl_take isl_pw_qpolynomial_fold *pwf);
+
 =item * Unary Arithmetic Operations
 
 	#include <isl/set.h>
@@ -5884,6 +5927,9 @@ The following functions evaluate a function in a point.
 	__isl_give isl_val *isl_aff_eval(
 		__isl_take isl_aff *aff,
 		__isl_take isl_point *pnt);
+	__isl_give isl_val *isl_pw_aff_eval(
+		__isl_take isl_pw_aff *pa,
+		__isl_take isl_point *pnt);
 
 	#include <isl/polynomial.h>
 	__isl_give isl_val *isl_pw_qpolynomial_eval(
@@ -5898,6 +5944,11 @@ The following functions evaluate a function in a point.
 	__isl_give isl_val *isl_union_pw_qpolynomial_fold_eval(
 		__isl_take isl_union_pw_qpolynomial_fold *upwf,
 		__isl_take isl_point *pnt);
+
+These functions return NaN when evaluated at a void point.
+Note that C<isl_pw_aff_eval> returns NaN when the function is evaluated outside
+its definition domain, while C<isl_pw_qpolynomial_eval> returns zero
+when the function is evaluated outside its explicit domain.
 
 =item * Dimension manipulation
 
@@ -10967,7 +11018,8 @@ range of the schedule.
 The range of the options can consist of elements in one or more spaces,
 the names of which determine the effect of the option.
 The values of the range typically also refer to the schedule dimension
-to which the option applies.  In case of nested AST generation
+to which the option applies, with value C<0> representing
+the outermost schedule dimension.  In case of nested AST generation
 (see L</"Nested AST Generation">), these values refer to the position
 of the schedule dimension within the innermost AST generation.
 The constraints on the domain elements of

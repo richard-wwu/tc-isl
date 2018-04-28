@@ -65,6 +65,11 @@ struct isl_pw_qpolynomial {
 	struct isl_pw_qpolynomial_piece p[1];
 };
 
+#undef PW
+#define PW isl_pw_qpolynomial
+
+#include <isl_pw_templ.h>
+
 #undef EL
 #define EL isl_pw_qpolynomial
 
@@ -100,6 +105,11 @@ struct isl_pw_qpolynomial_fold {
 	size_t size;
 	struct isl_pw_qpolynomial_fold_piece p[1];
 };
+
+#undef PW
+#define PW isl_pw_qpolynomial_fold
+
+#include <isl_pw_templ.h>
 
 #undef EL
 #define EL isl_pw_qpolynomial_fold
