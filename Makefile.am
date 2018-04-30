@@ -452,6 +452,7 @@ EXTRA_DIST = \
 	isl_multi_move_dims_templ.c \
 	isl_multi_nan_templ.c \
 	isl_multi_param_templ.c \
+	isl_multi_zero_templ.c \
 	print_templ.c \
 	print_templ_yaml.c \
 	isl_power_templ.c \

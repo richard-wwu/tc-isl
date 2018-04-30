@@ -3903,6 +3903,7 @@ error:
 #include <isl_multi_identity_templ.c>
 #include <isl_multi_move_dims_templ.c>
 #include <isl_multi_nan_templ.c>
+#include <isl_multi_zero_templ.c>
 
 /* Construct an isl_multi_aff living in "space" that corresponds
  * to the affine transformation matrix "mat".
@@ -6425,6 +6426,7 @@ error:
 #include <isl_multi_intersect.c>
 #include <isl_multi_move_dims_templ.c>
 #include <isl_multi_nan_templ.c>
+#include <isl_multi_zero_templ.c>
 
 /* Does "mpa" have a non-trivial explicit domain?
  *
@@ -8282,7 +8284,6 @@ error:
 
 #define NO_PRODUCT
 #define NO_SPLICE
-#define NO_ZERO
 
 #include <isl_multi_explicit_domain.c>
 #include <isl_multi_union_pw_aff_explicit_domain.c>
