@@ -9,7 +9,6 @@
  */
 
 #include <stdlib.h>
-#define ISL_DIM_H
 #include <isl_ctx_private.h>
 #include <isl_map_private.h>
 #include <isl_factorization.h>
@@ -2962,6 +2961,7 @@ __isl_give isl_pw_qpolynomial *isl_pw_qpolynomial_from_qpolynomial(
 #define NO_PULLBACK
 
 #include <isl_pw_templ.c>
+#include <isl_pw_eval.c>
 
 #undef UNION
 #define UNION isl_union_pw_qpolynomial

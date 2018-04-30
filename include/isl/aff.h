@@ -1,6 +1,7 @@
 #ifndef ISL_AFF_H
 #define ISL_AFF_H
 
+#include <isl/stdint.h>
 #include <isl/local_space.h>
 #include <isl/printer.h>
 #include <isl/set_type.h>
@@ -8,7 +9,7 @@
 #include <isl/list.h>
 #include <isl/multi.h>
 #include <isl/union_set_type.h>
-#include <isl/val.h>
+#include <isl/val_type.h>
 #include <isl/point.h>
 
 #if defined(__cplusplus)
@@ -287,6 +288,8 @@ __isl_give isl_pw_aff *isl_pw_aff_project_domain_on_params(
 
 __isl_give isl_pw_aff *isl_pw_aff_align_params(__isl_take isl_pw_aff *pwaff,
 	__isl_take isl_space *model);
+__isl_give isl_pw_aff *isl_pw_aff_drop_unused_params(
+	__isl_take isl_pw_aff *pa);
 
 __isl_export
 isl_bool isl_pw_aff_has_tuple_id(__isl_keep isl_pw_aff *pa,
@@ -376,6 +379,9 @@ __isl_give isl_pw_aff *isl_pw_aff_gist(__isl_take isl_pw_aff *pwaff,
 	__isl_take isl_set *context);
 __isl_give isl_pw_aff *isl_pw_aff_gist_params(__isl_take isl_pw_aff *pwaff,
 	__isl_take isl_set *context);
+
+__isl_give isl_val *isl_pw_aff_eval(__isl_take isl_pw_aff *pa,
+	__isl_take isl_point *pnt);
 
 __isl_overload
 __isl_give isl_pw_aff *isl_pw_aff_pullback_multi_aff(
@@ -549,6 +555,8 @@ isl_bool isl_pw_multi_aff_involves_param_id(__isl_keep isl_pw_multi_aff *pma,
 isl_bool isl_pw_multi_aff_involves_dims(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
+isl_bool isl_pw_multi_aff_involves_dims(__isl_keep isl_pw_multi_aff *pma,
+	enum isl_dim_type type, unsigned first, unsigned n);
 __isl_export
 __isl_give isl_pw_aff *isl_pw_multi_aff_get_pw_aff(
 	__isl_keep isl_pw_multi_aff *pma, int pos);
@@ -684,6 +692,8 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_project_domain_on_params(
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_align_params(
 	__isl_take isl_pw_multi_aff *pma, __isl_take isl_space *model);
+__isl_give isl_pw_multi_aff *isl_pw_multi_aff_drop_unused_params(
+	__isl_take isl_pw_multi_aff *pma);
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_coalesce(
 	__isl_take isl_pw_multi_aff *pma);
