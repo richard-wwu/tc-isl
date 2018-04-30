@@ -3899,6 +3899,7 @@ error:
 #include <isl_multi_dims.c>
 #include <isl_multi_floor.c>
 #include <isl_multi_gist.c>
+#include <isl_multi_identity_templ.c>
 #include <isl_multi_nan_templ.c>
 
 /* Construct an isl_multi_aff living in "space" that corresponds
@@ -6416,6 +6417,7 @@ error:
 #include <isl_multi_dims.c>
 #include <isl_multi_gist.c>
 #include <isl_multi_hash.c>
+#include <isl_multi_identity_templ.c>
 #include <isl_multi_align_set.c>
 #include <isl_multi_intersect.c>
 #include <isl_multi_nan_templ.c>
@@ -8278,7 +8280,6 @@ error:
 #define NO_PRODUCT
 #define NO_SPLICE
 #define NO_ZERO
-#define NO_IDENTITY
 
 #include <isl_multi_explicit_domain.c>
 #include <isl_multi_union_pw_aff_explicit_domain.c>
