@@ -35,9 +35,7 @@ __isl_null isl_aff *isl_aff_free(__isl_take isl_aff *aff);
 isl_ctx *isl_aff_get_ctx(__isl_keep isl_aff *aff);
 uint32_t isl_aff_get_hash(__isl_keep isl_aff *aff);
 
-__isl_export
 int isl_aff_dim(__isl_keep isl_aff *aff, enum isl_dim_type type);
-__isl_export
 isl_bool isl_aff_involves_dims(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
@@ -53,7 +51,6 @@ const char *isl_aff_get_dim_name(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, unsigned pos);
 __isl_export
 __isl_give isl_val *isl_aff_get_constant_val(__isl_keep isl_aff *aff);
-__isl_export
 __isl_give isl_val *isl_aff_get_coefficient_val(__isl_keep isl_aff *aff,
 	enum isl_dim_type type, int pos);
 int isl_aff_coefficient_sgn(__isl_keep isl_aff *aff,
@@ -65,10 +62,8 @@ __isl_give isl_aff *isl_aff_set_constant_si(__isl_take isl_aff *aff, int v);
 __isl_export
 __isl_give isl_aff *isl_aff_set_constant_val(__isl_take isl_aff *aff,
 	__isl_take isl_val *v);
-__isl_export
 __isl_give isl_aff *isl_aff_set_coefficient_si(__isl_take isl_aff *aff,
 	enum isl_dim_type type, int pos, int v);
-__isl_export
 __isl_give isl_aff *isl_aff_set_coefficient_val(__isl_take isl_aff *aff,
 	enum isl_dim_type type, int pos, __isl_take isl_val *v);
 __isl_export
@@ -84,13 +79,10 @@ __isl_give isl_aff *isl_aff_add_coefficient_val(__isl_take isl_aff *aff,
 
 isl_bool isl_aff_is_cst(__isl_keep isl_aff *aff);
 
-__isl_export                                                            \
 __isl_give isl_aff *isl_aff_set_tuple_id(__isl_take isl_aff *aff,
 	enum isl_dim_type type, __isl_take isl_id *id);
-__isl_export
 __isl_give isl_aff *isl_aff_set_dim_name(__isl_take isl_aff *aff,
 	enum isl_dim_type type, unsigned pos, const char *s);
-__isl_export
 __isl_give isl_aff *isl_aff_set_dim_id(__isl_take isl_aff *aff,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
 
@@ -236,13 +228,10 @@ __isl_give isl_pw_aff *isl_set_indicator_function(__isl_take isl_set *set);
 
 const char *isl_pw_aff_get_dim_name(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 isl_bool isl_pw_aff_has_dim_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 __isl_give isl_id *isl_pw_aff_get_dim_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 __isl_give isl_pw_aff *isl_pw_aff_set_dim_id(__isl_take isl_pw_aff *pma,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
 
@@ -271,7 +260,6 @@ __isl_give isl_pw_aff *isl_pw_aff_union_add(__isl_take isl_pw_aff *pwaff1,
 __isl_give isl_pw_aff *isl_pw_aff_copy(__isl_keep isl_pw_aff *pwaff);
 __isl_null isl_pw_aff *isl_pw_aff_free(__isl_take isl_pw_aff *pwaff);
 
-__isl_export
 unsigned isl_pw_aff_dim(__isl_keep isl_pw_aff *pwaff, enum isl_dim_type type);
 isl_bool isl_pw_aff_involves_param_id(__isl_keep isl_pw_aff *pa,
 	__isl_keep isl_id *id);
@@ -291,16 +279,12 @@ __isl_give isl_pw_aff *isl_pw_aff_align_params(__isl_take isl_pw_aff *pwaff,
 __isl_give isl_pw_aff *isl_pw_aff_drop_unused_params(
 	__isl_take isl_pw_aff *pa);
 
-__isl_export
 isl_bool isl_pw_aff_has_tuple_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type);
-__isl_export
 __isl_give isl_id *isl_pw_aff_get_tuple_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type);
-__isl_export
 __isl_give isl_pw_aff *isl_pw_aff_set_tuple_id(__isl_take isl_pw_aff *pwaff,
 	enum isl_dim_type type, __isl_take isl_id *id);
-__isl_export
 __isl_give isl_pw_aff *isl_pw_aff_reset_tuple_id(__isl_take isl_pw_aff *pa,
 	enum isl_dim_type type);
 __isl_give isl_pw_aff *isl_pw_aff_reset_user(__isl_take isl_pw_aff *pa);
@@ -474,7 +458,6 @@ __isl_export
 __isl_give isl_multi_aff *isl_multi_aff_domain_map(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_multi_aff *isl_multi_aff_range_map(__isl_take isl_space *space);
-__isl_export
 __isl_give isl_multi_aff *isl_multi_aff_project_out_map(
 	__isl_take isl_space *space, enum isl_dim_type type,
 	unsigned first, unsigned n);
@@ -530,7 +513,6 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_identity(
 	__isl_take isl_space *space);
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_range_map(
 	__isl_take isl_space *space);
-__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_project_out_map(
 	__isl_take isl_space *space, enum isl_dim_type type,
 	unsigned first, unsigned n);
@@ -547,7 +529,6 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_copy(
 __isl_null isl_pw_multi_aff *isl_pw_multi_aff_free(
 	__isl_take isl_pw_multi_aff *pma);
 
-__isl_export
 unsigned isl_pw_multi_aff_dim(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
 isl_bool isl_pw_multi_aff_involves_param_id(__isl_keep isl_pw_multi_aff *pma,
@@ -578,14 +559,11 @@ const char *isl_pw_multi_aff_get_tuple_name(__isl_keep isl_pw_multi_aff *pma,
 __isl_export
 __isl_give isl_id *isl_pw_multi_aff_get_tuple_id(
 	__isl_keep isl_pw_multi_aff *pma, enum isl_dim_type type);
-__isl_export
 isl_bool isl_pw_multi_aff_has_tuple_id(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
-__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_set_tuple_id(
 	__isl_take isl_pw_multi_aff *pma,
 	enum isl_dim_type type, __isl_take isl_id *id);
-__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_reset_tuple_id(
 	__isl_take isl_pw_multi_aff *pma, enum isl_dim_type type);
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_reset_user(
@@ -611,11 +589,9 @@ __isl_give isl_pw_multi_aff *isl_pw_multi_aff_multi_val_on_domain(
 
 const char *isl_pw_multi_aff_get_dim_name(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 __isl_give isl_id *isl_pw_multi_aff_get_dim_id(
 	__isl_keep isl_pw_multi_aff *pma, enum isl_dim_type type,
 	unsigned pos);
-__isl_export
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_set_dim_id(
 	__isl_take isl_pw_multi_aff *pma,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
@@ -773,7 +749,6 @@ __isl_give isl_space *isl_union_pw_multi_aff_get_space(
 __isl_give isl_pw_multi_aff_list *isl_union_pw_multi_aff_get_pw_multi_aff_list(
 	__isl_keep isl_union_pw_multi_aff *upma);
 
-__isl_export
 unsigned isl_union_pw_multi_aff_dim(__isl_keep isl_union_pw_multi_aff *upma,
 	enum isl_dim_type type);
 isl_bool isl_union_pw_multi_aff_involves_param_id(
@@ -972,7 +947,6 @@ __isl_export
 __isl_give isl_pw_aff_list *isl_union_pw_aff_get_pw_aff_list(
 	__isl_keep isl_union_pw_aff *upa);
 
-__isl_export
 unsigned isl_union_pw_aff_dim(__isl_keep isl_union_pw_aff *upa,
 	enum isl_dim_type type);
 __isl_overload

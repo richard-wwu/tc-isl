@@ -43,18 +43,15 @@ isl_bool isl_multi_##BASE##_involves_nan(				\
 int isl_multi_##BASE##_find_dim_by_id(					\
 	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type,	\
 	__isl_keep isl_id *id);						\
-__isl_export                                                            \
 __isl_give isl_id *isl_multi_##BASE##_get_dim_id(			\
 	__isl_keep isl_multi_##BASE *multi,				\
 	enum isl_dim_type type, unsigned pos);				\
-__isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_dim_name(		\
 	__isl_take isl_multi_##BASE *multi,				\
 	enum isl_dim_type type, unsigned pos, const char *s);		\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_dim_id(		\
 	__isl_take isl_multi_##BASE *multi,				\
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);	\
-__isl_export  								\
 const char *isl_multi_##BASE##_get_tuple_name(				\
 	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
 __isl_export								\
@@ -167,11 +164,9 @@ __isl_give isl_multi_##BASE *isl_multi_##BASE##_neg(		 	\
 isl_bool isl_multi_##BASE##_involves_dims(				\
 	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type,	\
 	unsigned first, unsigned n);					\
-__isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_insert_dims(		\
 	__isl_take isl_multi_##BASE *multi, enum isl_dim_type type,	\
 	unsigned first, unsigned n);					\
-__isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_add_dims(		\
 	__isl_take isl_multi_##BASE *multi, enum isl_dim_type type,	\
 	unsigned n);							\

@@ -28,31 +28,23 @@ isl_bool isl_local_space_is_params(__isl_keep isl_local_space *ls);
 __isl_export
 isl_bool isl_local_space_is_set(__isl_keep isl_local_space *ls);
 
-__isl_export
 __isl_give isl_local_space *isl_local_space_set_tuple_id(
 	__isl_take isl_local_space *ls,
 	enum isl_dim_type type, __isl_take isl_id *id);
 
-__isl_export
 int isl_local_space_dim(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type);
-__isl_export
 isl_bool isl_local_space_has_dim_name(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 const char *isl_local_space_get_dim_name(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 __isl_give isl_local_space *isl_local_space_set_dim_name(
 	__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos, const char *s);
-__isl_export
 isl_bool isl_local_space_has_dim_id(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 __isl_give isl_id *isl_local_space_get_dim_id(__isl_keep isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
-__isl_export
 __isl_give isl_local_space *isl_local_space_set_dim_id(
 	__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
@@ -74,14 +66,11 @@ __isl_give isl_local_space *isl_local_space_range(
 __isl_export
 __isl_give isl_local_space *isl_local_space_from_domain(
 	__isl_take isl_local_space *ls);
-__isl_export
 __isl_give isl_local_space *isl_local_space_add_dims(
 	__isl_take isl_local_space *ls, enum isl_dim_type type, unsigned n);
-__isl_export
 __isl_give isl_local_space *isl_local_space_drop_dims(
 	__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned first, unsigned n);
-__isl_export
 __isl_give isl_local_space *isl_local_space_insert_dims(
 	__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned first, unsigned n);
