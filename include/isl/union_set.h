@@ -8,7 +8,6 @@
 extern "C" {
 #endif
 
-__isl_export
 unsigned isl_union_set_dim(__isl_keep isl_union_set *uset,
 	enum isl_dim_type type);
 __isl_overload
@@ -99,7 +98,6 @@ __isl_give isl_union_set *isl_union_set_preimage_union_pw_multi_aff(
 	__isl_take isl_union_set *uset,
 	__isl_take isl_union_pw_multi_aff *upma);
 
-__isl_export
 __isl_give isl_union_set *isl_union_set_project_out(
 	__isl_take isl_union_set *uset,
 	enum isl_dim_type type, unsigned first, unsigned n);
