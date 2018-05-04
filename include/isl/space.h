@@ -155,8 +155,10 @@ __isl_export
 __isl_give isl_space *isl_space_range_map(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_space *isl_space_params(__isl_take isl_space *space);
+__isl_export
 __isl_give isl_space *isl_space_unnamed_set_from_params(
 	__isl_take isl_space *space, unsigned dim);
+__isl_export
 __isl_give isl_space *isl_space_named_set_from_params_id(
 	__isl_take isl_space *space, __isl_take isl_id *tuple_id, unsigned dim);
 __isl_export
