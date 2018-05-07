@@ -60,7 +60,6 @@ isl_bool isl_multi_##BASE##_has_tuple_id(				\
 __isl_export                                                            \
 __isl_give isl_id *isl_multi_##BASE##_get_tuple_id(			\
 	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
-__isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_tuple_name(		\
 	__isl_take isl_multi_##BASE *multi,				\
 	enum isl_dim_type type, const char *s);				\
