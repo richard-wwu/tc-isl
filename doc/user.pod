@@ -4795,6 +4795,18 @@ without removing the dimensions.
 
 =item * Constructing a set from a parameter domain
 
+A set space of a given dimension and with an optional name
+can be created from a parameter space using the following functions.
+
+	#include <isl/space.h>
+	__isl_give isl_space *
+	isl_space_unnamed_set_from_params(
+		__isl_take isl_space *space, unsigned dim);
+	__isl_give isl_space *
+	isl_space_named_set_from_params_id(
+		__isl_take isl_space *space,
+		__isl_take isl_id *tuple_id, unsigned dim);
+
 A zero-dimensional (local) space or (basic) set can be constructed
 on a given parameter domain using the following functions.
 

@@ -1915,6 +1915,28 @@ error:
 	return NULL;
 }
 
+/* Create an unnamed set space of dimension "dim" from the parameter space
+ * "space".
+ */
+__isl_give isl_space *isl_space_unnamed_set_from_params(
+	__isl_take isl_space *space, unsigned dim)
+{
+	space = isl_space_set_from_params(space);
+	space = isl_space_add_dims(space, isl_dim_set, dim);
+	return space;
+}
+
+/* Create a set space of dimension "dim" and with tuple identifier "tuple_id"
+ * from the parameter space "space".
+ */
+__isl_give isl_space *isl_space_named_set_from_params_id(
+	__isl_take isl_space *space, __isl_take isl_id *tuple_id, unsigned dim)
+{
+	space = isl_space_unnamed_set_from_params(space, dim);
+	space = isl_space_set_tuple_id(space, isl_dim_set, tuple_id);
+	return space;
+}
+
 __isl_give isl_space *isl_space_underlying(__isl_take isl_space *dim,
 	unsigned n_div)
 {
