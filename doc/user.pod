@@ -1211,6 +1211,14 @@ Additional parameters can be added to a space using the following function.
 If a parameter with the given identifier already appears in the space,
 then it is not added again.
 
+The presence of a parameter in a space can be checked using
+the following function.
+
+	#include <isl/space.h>
+	isl_bool isl_space_has_param_id(
+		__isl_keep isl_space *space,
+		__isl_keep isl_id *id);
+
 The identifiers or names of the individual dimensions of spaces
 may be set or read off using the following functions on spaces
 or objects that live in spaces.
