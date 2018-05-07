@@ -90,7 +90,6 @@ __isl_keep const char *isl_space_get_dim_name(__isl_keep isl_space *dim,
 ISL_DEPRECATED
 __isl_give isl_space *isl_space_extend(__isl_take isl_space *dim,
 			unsigned nparam, unsigned n_in, unsigned n_out);
-__isl_export
 __isl_give isl_space *isl_space_add_dims(__isl_take isl_space *space,
 	enum isl_dim_type type, unsigned n);
 __isl_give isl_space *isl_space_move_dims(__isl_take isl_space *space,
