@@ -182,7 +182,6 @@ __isl_export                                                            \
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_tuple_id(		\
 	__isl_take isl_multi_##BASE *multi,				\
 	enum isl_dim_type type, __isl_take isl_id *id);			\
-__isl_export                                                            \
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_reset_tuple_id(		\
 	__isl_take isl_multi_##BASE *multi, enum isl_dim_type type);
 
