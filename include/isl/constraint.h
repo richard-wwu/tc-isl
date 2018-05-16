@@ -101,7 +101,6 @@ __isl_export
 int isl_constraint_dim(__isl_keep isl_constraint *constraint,
 	enum isl_dim_type type);
 
-__isl_export
 isl_bool isl_constraint_involves_dims(__isl_keep isl_constraint *constraint,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
