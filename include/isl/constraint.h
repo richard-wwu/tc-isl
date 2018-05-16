@@ -136,7 +136,6 @@ isl_bool isl_constraint_is_equality(__isl_keep isl_constraint *constraint);
 __isl_export
 int isl_constraint_is_div_constraint(__isl_keep isl_constraint *constraint);
 
-__isl_export
 isl_bool isl_constraint_is_lower_bound(__isl_keep isl_constraint *constraint,
 	enum isl_dim_type type, unsigned pos);
 isl_bool isl_constraint_is_upper_bound(__isl_keep isl_constraint *constraint,
