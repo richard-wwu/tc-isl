@@ -262,11 +262,18 @@ int FN(FN(LIST(EL),n),BASE)(__isl_keep LIST(EL) *list)
 
 /* Return the element at position "index" in "list".
  */
-__isl_give EL *FN(LIST(EL),get)(__isl_keep LIST(EL) *list, int index)
+static __isl_keep EL *FN(LIST(EL),peek)(__isl_keep LIST(EL) *list, int index)
 {
 	if (FN(LIST(EL),check_index)(list, index) < 0)
 		return NULL;
-	return FN(EL,copy)(list->p[index]);
+	return list->p[index];
+}
+
+/* Return a copy of the element at position "index" in "list".
+ */
+__isl_give EL *FN(LIST(EL),get)(__isl_keep LIST(EL) *list, int index)
+{
+	return FN(EL,copy)(FN(LIST(EL),peek)(list, index));
 }
 
 /* This is an alternative name for the function above.
