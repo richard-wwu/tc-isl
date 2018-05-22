@@ -498,14 +498,16 @@ __isl_give isl_aff *isl_aff_reset_space_and_domain(__isl_take isl_aff *aff,
 static __isl_give isl_vec *vec_reorder(__isl_take isl_vec *vec,
 	__isl_take isl_reordering *r, int n_div)
 {
+	isl_space *space;
 	isl_vec *res;
 	int i;
 
 	if (!vec || !r)
 		goto error;
 
+	space = isl_reordering_peek_space(r);
 	res = isl_vec_alloc(vec->ctx,
-			    2 + isl_space_dim(r->dim, isl_dim_all) + n_div);
+			    2 + isl_space_dim(space, isl_dim_all) + n_div);
 	if (!res)
 		goto error;
 	isl_seq_cpy(res->el, vec->el, 2);
@@ -2004,7 +2006,7 @@ __isl_give isl_aff *isl_aff_set_tuple_id(__isl_take isl_aff *aff,
 	aff = isl_aff_cow(aff);
 	if (!aff)
 		goto error;
-	if (type != isl_dim_out)
+	if (type != isl_dim_in)
 		isl_die(aff->v->ctx, isl_error_invalid,
 			"cannot only set id of input tuple", goto error);
 	aff->ls = isl_local_space_set_tuple_id(aff->ls, isl_dim_set, id);
@@ -8272,7 +8274,6 @@ error:
 #define NO_SPLICE
 #define NO_ZERO
 #define NO_IDENTITY
-#define NO_GIST
 
 #include <isl_multi_explicit_domain.c>
 #include <isl_multi_union_pw_aff_explicit_domain.c>
