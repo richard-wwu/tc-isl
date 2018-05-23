@@ -367,7 +367,7 @@ macro (add_isl_executable _name)
   set(_sources ${ARGN})
   add_executable("${_name}" ${_sources})
   set_target_properties("${_name}" PROPERTIES FOLDER "Integer Set Library")
-  target_include_directories("${_name}" PRIVATE "${ISL_SOURCE_DIR}" "${ISL_BINARY_DIR}" ${GMP_INCLUDE_DIRS})
+  target_include_directories("${_name}" PRIVATE "${ISL_SOURCE_DIR}" "${ISL_BINARY_DIR}")
   target_link_libraries("${_name}" isl)
 endmacro ()
 
