@@ -1666,6 +1666,7 @@ isl_stat isl_val_check_match_domain_space(__isl_keep isl_val *v,
 #include <isl_multi_arith_templ.c>
 #include <isl_multi_dims.c>
 #include <isl_multi_nan_templ.c>
+#include <isl_multi_splice_templ.c>
 #include <isl_multi_zero_templ.c>
 
 /* Apply "fn" to each of the elements of "mv" with as second argument "v".
