@@ -3903,6 +3903,7 @@ error:
 #include <isl_multi_identity_templ.c>
 #include <isl_multi_move_dims_templ.c>
 #include <isl_multi_nan_templ.c>
+#include <isl_multi_product_templ.c>
 #include <isl_multi_splice_templ.c>
 #include <isl_multi_zero_templ.c>
 
@@ -6427,6 +6428,7 @@ error:
 #include <isl_multi_intersect.c>
 #include <isl_multi_move_dims_templ.c>
 #include <isl_multi_nan_templ.c>
+#include <isl_multi_product_templ.c>
 #include <isl_multi_splice_templ.c>
 #include <isl_multi_zero_templ.c>
 
@@ -8283,8 +8285,6 @@ error:
 #define BASE union_pw_aff
 #undef DOMBASE
 #define DOMBASE union_set
-
-#define NO_PRODUCT
 
 #include <isl_multi_explicit_domain.c>
 #include <isl_multi_union_pw_aff_explicit_domain.c>
