@@ -452,6 +452,7 @@ ISL_DECLARE_MULTI_CMP(aff)
 ISL_DECLARE_MULTI_ARITH(aff)
 ISL_DECLARE_MULTI_NAN(aff)
 ISL_DECLARE_MULTI_DIMS(aff)
+ISL_DECLARE_MULTI_DIM_ID(aff)
 ISL_DECLARE_MULTI_WITH_DOMAIN(aff)
 
 __isl_constructor
@@ -510,6 +511,7 @@ ISL_DECLARE_MULTI(pw_aff)
 ISL_DECLARE_MULTI_ARITH(pw_aff)
 ISL_DECLARE_MULTI_NAN(pw_aff)
 ISL_DECLARE_MULTI_DIMS(pw_aff)
+ISL_DECLARE_MULTI_DIM_ID(pw_aff)
 ISL_DECLARE_MULTI_WITH_DOMAIN(pw_aff)
 
 __isl_give isl_pw_multi_aff *isl_pw_multi_aff_zero(__isl_take isl_space *space);
@@ -1084,6 +1086,7 @@ void isl_union_pw_aff_dump(__isl_keep isl_union_pw_aff *upa);
 ISL_DECLARE_MULTI(union_pw_aff)
 ISL_DECLARE_MULTI_ARITH(union_pw_aff)
 ISL_DECLARE_MULTI_NAN(union_pw_aff)
+ISL_DECLARE_MULTI_DIM_ID(union_pw_aff)
 ISL_DECLARE_MULTI_PARAM(union_pw_aff)
 
 __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_from_multi_aff(
