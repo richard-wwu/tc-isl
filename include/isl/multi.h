@@ -35,24 +35,6 @@ __isl_null isl_multi_##BASE *isl_multi_##BASE##_free(			\
 isl_bool isl_multi_##BASE##_plain_is_equal(				\
 	__isl_keep isl_multi_##BASE *multi1,				\
 	__isl_keep isl_multi_##BASE *multi2);				\
-const char *isl_multi_##BASE##_get_tuple_name(				\
-	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
-__isl_export								\
-isl_bool isl_multi_##BASE##_has_tuple_id(				\
-	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
-__isl_export                                                            \
-__isl_give isl_id *isl_multi_##BASE##_get_tuple_id(			\
-	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
-__isl_give isl_multi_##BASE *isl_multi_##BASE##_set_tuple_name(		\
-	__isl_take isl_multi_##BASE *multi,				\
-	enum isl_dim_type type, const char *s);				\
-__isl_export                                                            \
-__isl_give isl_multi_##BASE *isl_multi_##BASE##_set_tuple_id(		\
-	__isl_take isl_multi_##BASE *multi,				\
-	enum isl_dim_type type, __isl_take isl_id *id);			\
-__isl_export                                                            \
-__isl_give isl_multi_##BASE *isl_multi_##BASE##_reset_tuple_id(		\
-	__isl_take isl_multi_##BASE *multi, enum isl_dim_type type);	\
 __isl_export								\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_reset_user(		\
 	__isl_take isl_multi_##BASE *multi);				\
@@ -178,6 +160,26 @@ __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_dim_name(		\
 __isl_give isl_multi_##BASE *isl_multi_##BASE##_set_dim_id(		\
 	__isl_take isl_multi_##BASE *multi,				\
 	enum isl_dim_type type, unsigned pos, __isl_take isl_id *id);
+
+#define ISL_DECLARE_MULTI_TUPLE_ID(BASE)				\
+const char *isl_multi_##BASE##_get_tuple_name(				\
+	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
+__isl_export								\
+isl_bool isl_multi_##BASE##_has_tuple_id(				\
+	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
+__isl_export                                                            \
+__isl_give isl_id *isl_multi_##BASE##_get_tuple_id(			\
+	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
+__isl_give isl_multi_##BASE *isl_multi_##BASE##_set_tuple_name(		\
+	__isl_take isl_multi_##BASE *multi,				\
+	enum isl_dim_type type, const char *s);				\
+__isl_export                                                            \
+__isl_give isl_multi_##BASE *isl_multi_##BASE##_set_tuple_id(		\
+	__isl_take isl_multi_##BASE *multi,				\
+	enum isl_dim_type type, __isl_take isl_id *id);			\
+__isl_export                                                            \
+__isl_give isl_multi_##BASE *isl_multi_##BASE##_reset_tuple_id(		\
+	__isl_take isl_multi_##BASE *multi, enum isl_dim_type type);
 
 #define ISL_DECLARE_MULTI_WITH_DOMAIN(BASE)				\
 __isl_export								\
