@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-struct isl_stride_info;
+struct __isl_export isl_stride_info;
 typedef struct isl_stride_info isl_stride_info;
 
 isl_ctx *isl_stride_info_get_ctx(__isl_keep isl_stride_info *si);
