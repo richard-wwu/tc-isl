@@ -658,6 +658,7 @@ __isl_give isl_map *isl_map_gist_params(__isl_take isl_map *map,
 __isl_give isl_map *isl_map_gist_basic_map(__isl_take isl_map *map,
 	__isl_take isl_basic_map *context);
 
+__isl_export
 __isl_give isl_stride_info *isl_map_get_range_stride_info(
 	__isl_keep isl_map *map, int pos);
 
