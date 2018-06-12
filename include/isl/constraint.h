@@ -101,7 +101,6 @@ __isl_export
 int isl_constraint_dim(__isl_keep isl_constraint *constraint,
 	enum isl_dim_type type);
 
-__isl_export
 isl_bool isl_constraint_involves_dims(__isl_keep isl_constraint *constraint,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
@@ -137,7 +136,6 @@ isl_bool isl_constraint_is_equality(__isl_keep isl_constraint *constraint);
 __isl_export
 int isl_constraint_is_div_constraint(__isl_keep isl_constraint *constraint);
 
-__isl_export
 isl_bool isl_constraint_is_lower_bound(__isl_keep isl_constraint *constraint,
 	enum isl_dim_type type, unsigned pos);
 isl_bool isl_constraint_is_upper_bound(__isl_keep isl_constraint *constraint,
@@ -148,7 +146,6 @@ __isl_give isl_basic_map *isl_basic_map_from_constraint(
 __isl_give isl_basic_set *isl_basic_set_from_constraint(
 	__isl_take isl_constraint *constraint);
 
-__isl_export
 __isl_give isl_aff *isl_constraint_get_bound(
 	__isl_keep isl_constraint *constraint, enum isl_dim_type type, int pos);
 __isl_export

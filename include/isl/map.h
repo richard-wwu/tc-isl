@@ -48,7 +48,6 @@ ISL_DEPRECATED
 unsigned isl_map_n_out(__isl_keep const isl_map *map);
 ISL_DEPRECATED
 unsigned isl_map_n_param(__isl_keep const isl_map *map);
-__isl_export
 unsigned isl_map_dim(__isl_keep isl_map *map, enum isl_dim_type type);
 
 isl_ctx *isl_basic_map_get_ctx(__isl_keep isl_basic_map *bmap);
@@ -450,7 +449,6 @@ __isl_give isl_map *isl_map_move_dims(__isl_take isl_map *map,
 __isl_give isl_basic_map *isl_basic_map_project_out(
 		__isl_take isl_basic_map *bmap,
 		enum isl_dim_type type, unsigned first, unsigned n);
-__isl_export
 __isl_give isl_map *isl_map_project_out(__isl_take isl_map *map,
 		enum isl_dim_type type, unsigned first, unsigned n);
 __isl_give isl_basic_map *isl_basic_map_remove_divs(
