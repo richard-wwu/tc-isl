@@ -421,6 +421,7 @@ EXTRA_DIST = \
 	bset_to_bmap.c \
 	bset_from_bmap.c \
 	extract_key.c \
+	isl_list_macro.h \
 	isl_list_templ.c \
 	isl_list_templ.h \
 	isl_map_lexopt_templ.c \
@@ -430,6 +431,7 @@ EXTRA_DIST = \
 	isl_multi_pw_aff_explicit_domain.c \
 	isl_multi_union_pw_aff_explicit_domain.c \
 	isl_multi_no_explicit_domain.c \
+	isl_multi_no_domain_templ.c \
 	isl_multi_templ.c \
 	isl_multi_templ.h \
 	isl_multi_align_templ.c \
@@ -438,14 +440,26 @@ EXTRA_DIST = \
 	isl_multi_apply_templ.c \
 	isl_multi_apply_set.c \
 	isl_multi_apply_union_set.c \
+	isl_multi_arith_templ.c \
 	isl_multi_cmp.c \
 	isl_multi_coalesce.c \
+	isl_multi_dim_id_templ.c \
 	isl_multi_dims.c \
+	isl_multi_domain_templ.c \
 	isl_multi_floor.c \
+	isl_multi_from_base_templ.c \
 	isl_multi_gist.c \
 	isl_multi_hash.c \
 	isl_multi_intersect.c \
+	isl_multi_identity_templ.c \
+	isl_multi_move_dims_templ.c \
+	isl_multi_nan_templ.c \
 	isl_multi_param_templ.c \
+	isl_multi_product_templ.c \
+	isl_multi_read_no_explicit_domain_templ.c \
+	isl_multi_splice_templ.c \
+	isl_multi_tuple_id_templ.c \
+	isl_multi_zero_templ.c \
 	print_templ.c \
 	print_templ_yaml.c \
 	isl_power_templ.c \

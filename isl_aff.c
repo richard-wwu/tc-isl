@@ -585,6 +585,33 @@ error:
 	return NULL;
 }
 
+/* Given an affine function "aff" defined over a parameter domain,
+ * convert it to a function defined over a domain corresponding
+ * to "domain".
+ * Any parameters with identifiers in "domain" are reinterpreted
+ * as the corresponding domain dimensions.
+ */
+__isl_give isl_aff *isl_aff_unbind_params_insert_domain(
+	__isl_take isl_aff *aff, __isl_take isl_multi_id *domain)
+{
+	isl_bool is_params;
+	isl_space *space;
+	isl_reordering *r;
+
+	space = isl_aff_peek_domain_space(aff);
+	is_params = isl_space_is_params(space);
+	if (is_params < 0)
+		domain = isl_multi_id_free(domain);
+	else if (!is_params)
+		isl_die(isl_aff_get_ctx(aff), isl_error_invalid,
+			"expecting function with parameter domain",
+			domain = isl_multi_id_free(domain));
+	r = isl_reordering_unbind_params_insert_domain(space, domain);
+	isl_multi_id_free(domain);
+
+	return isl_aff_realign_domain(aff, r);
+}
+
 /* Is "aff" obviously equal to zero?
  *
  * If the denominator is zero, then "aff" is not equal to zero.
@@ -3890,17 +3917,24 @@ error:
 #define BASE aff
 #undef DOMBASE
 #define DOMBASE set
-#define NO_DOMAIN
 
 #include <isl_multi_no_explicit_domain.c>
 #include <isl_multi_templ.c>
 #include <isl_multi_apply_set.c>
+#include <isl_multi_arith_templ.c>
 #include <isl_multi_cmp.c>
+#include <isl_multi_dim_id_templ.c>
 #include <isl_multi_dims.c>
 #include <isl_multi_floor.c>
+#include <isl_multi_from_base_templ.c>
 #include <isl_multi_gist.c>
-
-#undef NO_DOMAIN
+#include <isl_multi_identity_templ.c>
+#include <isl_multi_move_dims_templ.c>
+#include <isl_multi_nan_templ.c>
+#include <isl_multi_product_templ.c>
+#include <isl_multi_splice_templ.c>
+#include <isl_multi_tuple_id_templ.c>
+#include <isl_multi_zero_templ.c>
 
 /* Construct an isl_multi_aff living in "space" that corresponds
  * to the affine transformation matrix "mat".
@@ -6411,12 +6445,23 @@ error:
 #include <isl_multi_pw_aff_explicit_domain.c>
 #include <isl_multi_templ.c>
 #include <isl_multi_apply_set.c>
+#include <isl_multi_arith_templ.c>
 #include <isl_multi_coalesce.c>
+#include <isl_multi_domain_templ.c>
+#include <isl_multi_dim_id_templ.c>
 #include <isl_multi_dims.c>
+#include <isl_multi_from_base_templ.c>
 #include <isl_multi_gist.c>
 #include <isl_multi_hash.c>
+#include <isl_multi_identity_templ.c>
 #include <isl_multi_align_set.c>
 #include <isl_multi_intersect.c>
+#include <isl_multi_move_dims_templ.c>
+#include <isl_multi_nan_templ.c>
+#include <isl_multi_product_templ.c>
+#include <isl_multi_splice_templ.c>
+#include <isl_multi_tuple_id_templ.c>
+#include <isl_multi_zero_templ.c>
 
 /* Does "mpa" have a non-trivial explicit domain?
  *
@@ -8272,25 +8317,23 @@ error:
 #undef DOMBASE
 #define DOMBASE union_set
 
-#define NO_MOVE_DIMS
-#define NO_DOMAIN
-#define NO_PRODUCT
-#define NO_SPLICE
-#define NO_ZERO
-#define NO_IDENTITY
-
 #include <isl_multi_explicit_domain.c>
 #include <isl_multi_union_pw_aff_explicit_domain.c>
 #include <isl_multi_templ.c>
 #include <isl_multi_apply_set.c>
 #include <isl_multi_apply_union_set.c>
+#include <isl_multi_arith_templ.c>
 #include <isl_multi_coalesce.c>
+#include <isl_multi_dim_id_templ.c>
 #include <isl_multi_floor.c>
+#include <isl_multi_from_base_templ.c>
 #include <isl_multi_gist.c>
 #include <isl_multi_align_set.c>
 #include <isl_multi_align_union_set.c>
 #include <isl_multi_intersect.c>
+#include <isl_multi_nan_templ.c>
 #include <isl_multi_param_templ.c>
+#include <isl_multi_tuple_id_templ.c>
 
 /* Does "mupa" have a non-trivial explicit domain?
  *

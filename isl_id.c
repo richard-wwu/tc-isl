@@ -122,16 +122,6 @@ __isl_give isl_id *isl_id_alloc(isl_ctx *ctx, const char *name, void *user)
 	return entry->data;
 }
 
-/* Read an isl_id object from the string "str".
- * In particular, take "str" as the name of the identifier.
- */
-__isl_give isl_id *isl_id_read_from_str(isl_ctx *ctx, const char *str)
-{
-	if (!str)
-		return NULL;
-	return isl_id_alloc(ctx, str, NULL);
-}
-
 /* If the id has a negative refcount, then it is a static isl_id
  * which should not be changed.
  */
@@ -252,3 +242,63 @@ error:
 	isl_printer_free(p);
 	return NULL;
 }
+
+/* Read an isl_id from "s" based on its name.
+ */
+__isl_give isl_id *isl_stream_read_id(__isl_keep isl_stream *s)
+{
+	struct isl_token *tok;
+	char *str;
+	isl_ctx *ctx;
+	isl_id *id;
+
+	if (!s)
+		return NULL;
+	tok = isl_stream_next_token(s);
+	if (!tok) {
+		isl_stream_error(s, NULL, "unexpected EOF");
+		return NULL;
+	}
+	ctx = isl_stream_get_ctx(s);
+	str = isl_token_get_str(ctx, tok);
+	isl_token_free(tok);
+	if (!str)
+		return NULL;
+	id = isl_id_alloc(ctx, str, NULL);
+	free(str);
+
+	return id;
+}
+
+/* Read an isl_id object from the string "str".
+ */
+__isl_give isl_id *isl_id_read_from_str(isl_ctx *ctx, const char *str)
+{
+	isl_id *id;
+	isl_stream *s = isl_stream_new_str(ctx, str);
+	if (!s)
+		return NULL;
+	id = isl_stream_read_id(s);
+	isl_stream_free(s);
+	return id;
+}
+
+/* Is "id1" (obviously) equal to "id2"?
+ *
+ * isl_id objects can be compared by pointer value, but
+ * isl_multi_*_plain_is_equal needs an isl_*_plain_is_equal.
+ */
+static isl_bool isl_id_plain_is_equal(__isl_keep isl_id *id1,
+	__isl_keep isl_id *id2)
+{
+	if (!id1 || !id2)
+		return isl_bool_error;
+	return id1 == id2;
+}
+
+#undef BASE
+#define BASE id
+
+#include <isl_multi_no_domain_templ.c>
+#include <isl_multi_no_explicit_domain.c>
+#include <isl_multi_templ.c>
