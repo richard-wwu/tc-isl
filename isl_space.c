@@ -976,6 +976,17 @@ error:
 	return NULL;
 }
 
+/* Does "id" appear as a parameter in "space"?
+ */
+isl_bool isl_space_has_param_id(__isl_keep isl_space *space,
+	__isl_keep isl_id *id)
+{
+	if (!space || !id)
+		return isl_bool_error;
+
+	return isl_space_find_dim_by_id(space, isl_dim_param, id) >= 0;
+}
+
 /* Add a parameter with identifier "id" to "space", provided
  * it does not already appear in "space".
  */
