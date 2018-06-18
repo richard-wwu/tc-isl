@@ -179,36 +179,6 @@ enum class dim_type {
   all = isl_dim_all
 };
 
-enum class ast_op_type {
-	error = isl_ast_op_error,
-	_and = isl_ast_op_and,
-	and_then = isl_ast_op_and_then,
-	_or = isl_ast_op_or,
-	or_else = isl_ast_op_or_else,
-	max = isl_ast_op_max,
-	min = isl_ast_op_min,
-	minus = isl_ast_op_minus,
-	add = isl_ast_op_add,
-	sub = isl_ast_op_sub,
-	mul = isl_ast_op_mul,
-	div = isl_ast_op_div,
-	fdiv_q = isl_ast_op_fdiv_q,	/* Round towards -infty */
-	pdiv_q = isl_ast_op_pdiv_q,	/* Dividend is non-negative */
-	pdiv_r = isl_ast_op_pdiv_r,	/* Dividend is non-negative */
-	zdiv_r = isl_ast_op_zdiv_r,	/* Result only compared against zero */
-	cond = isl_ast_op_cond,
-	select = isl_ast_op_select,
-	eq = isl_ast_op_eq,
-	le = isl_ast_op_le,
-	lt = isl_ast_op_lt,
-	ge = isl_ast_op_ge,
-	gt = isl_ast_op_gt,
-	call = isl_ast_op_call,
-	access = isl_ast_op_access,
-	member = isl_ast_op_member,
-	address_of = isl_ast_op_address_of
-};
-
 enum class ast_loop_type {
 	error = isl_ast_loop_error,
 	_default = isl_ast_loop_default,
