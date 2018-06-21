@@ -2117,14 +2117,17 @@ or a list of affine expressions
 (See L</"Functions">), provided these affine expressions do not
 involve any NaN.
 
+	#include <isl/set.h>
+	__isl_give isl_basic_set *isl_basic_set_from_multi_aff(
+		__isl_take isl_multi_aff *ma);
+	__isl_give isl_set *isl_set_from_multi_aff(
+		__isl_take isl_multi_aff *ma);
+
+	#include <isl/map.h>
 	__isl_give isl_basic_map *isl_basic_map_from_aff(
 		__isl_take isl_aff *aff);
 	__isl_give isl_map *isl_map_from_aff(
 		__isl_take isl_aff *aff);
-	__isl_give isl_set *isl_set_from_pw_aff(
-		__isl_take isl_pw_aff *pwaff);
-	__isl_give isl_map *isl_map_from_pw_aff(
-		__isl_take isl_pw_aff *pwaff);
 	__isl_give isl_basic_map *isl_basic_map_from_aff_list(
 		__isl_take isl_space *domain_space,
 		__isl_take isl_aff_list *list);
@@ -2132,6 +2135,12 @@ involve any NaN.
 		__isl_take isl_multi_aff *maff)
 	__isl_give isl_map *isl_map_from_multi_aff(
 		__isl_take isl_multi_aff *maff)
+
+	#include <isl/aff.h>
+	__isl_give isl_set *isl_set_from_pw_aff(
+		__isl_take isl_pw_aff *pwaff);
+	__isl_give isl_map *isl_map_from_pw_aff(
+		__isl_take isl_pw_aff *pwaff);
 	__isl_give isl_set *isl_set_from_pw_multi_aff(
 		__isl_take isl_pw_multi_aff *pma);
 	__isl_give isl_map *isl_map_from_pw_multi_aff(
@@ -4503,6 +4512,11 @@ return true if the objects are not the same.
 	isl_bool isl_multi_id_plain_is_equal(
 		__isl_keep isl_multi_id *mi1,
 		__isl_keep isl_multi_id *mi2);
+
+	#include <isl/val.h>
+	isl_bool isl_multi_val_plain_is_equal(
+		__isl_keep isl_multi_val *mv1,
+		__isl_keep isl_multi_val *mv2);
 
 	#include <isl/aff.h>
 	isl_bool isl_aff_plain_is_equal(
@@ -7171,7 +7185,7 @@ instead.
 	#include <isl/val.h>
 	__isl_give isl_multi_val *isl_multi_val_flat_range_product(
 		__isl_take isl_multi_val *mv1,
-		__isl_take isl_multi_aff *mv2);
+		__isl_take isl_multi_val *mv2);
 
 	#include <isl/aff.h>
 	__isl_give isl_multi_aff *isl_multi_aff_flat_range_product(
