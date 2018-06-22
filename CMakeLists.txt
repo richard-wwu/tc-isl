@@ -228,6 +228,7 @@ configure_file("isl_srcdir.c.cmake" "${ISL_BINARY_DIR}/isl_srcdir.c")
 set (libisl_common_sources
     ${ISL_SOURCE_DIR}/basis_reduction_tab.c
     ${ISL_SOURCE_DIR}/isl_aff.c
+    ${ISL_SOURCE_DIR}/isl_aff_map.c
     ${ISL_SOURCE_DIR}/isl_affine_hull.c
     ${ISL_SOURCE_DIR}/isl_arg.c
     ${ISL_SOURCE_DIR}/isl_ast_build.c
