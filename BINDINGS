@@ -1,8 +1,0 @@
-# Build bindings with:
-mkdir -p build && cd build
-export INSTALL_PREFIX=$(pwd)/../../../third-party-install
-export CLANG_DIR=${HOME}/clang+llvm-tapir5.0/
-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DISL_INT=gmp  -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCLANG_PREFIX=${CLANG_DIR} -DWITH_BINDINGS=1 ..
-make -j 32
-make install
-cd ..
