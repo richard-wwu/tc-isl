@@ -1012,13 +1012,16 @@ static int parse_str_list_option(struct isl_arg *decl, char **arg,
 }
 
 /* Set the option described by "decl" inside the options structure
- * at "opt" to "val".
+ * at "opt" to "val" and call the user-specified setter (if there
+ * is one).
  */
 static void set_int_option(struct isl_arg *decl, void *opt, int val)
 {
 	int *p = (int *)(((char *)opt) + decl->offset);
 
 	*p = val;
+	if (decl->u.i.set)
+		decl->u.i.set(opt, val);
 }
 
 static int parse_int_option(struct isl_arg *decl, char **arg,
