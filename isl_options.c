@@ -73,6 +73,20 @@ static struct isl_arg_choice convex[] = {
 	{0}
 };
 
+/* Callback for setting the "schedule-max-coefficient" option.
+ * This option was split up into the "schedule-max-var-coefficient" and
+ * "schedule-max-param-coefficient" options.  Set these two options as well.
+ */
+static int set_max_coefficient(void *opt, int val)
+{
+	struct isl_options *options = opt;
+
+	options->schedule_max_var_coefficient = val;
+	options->schedule_max_param_coefficient = val;
+
+	return 0;
+}
+
 #define		ISL_SCHEDULE_FUSE_MAX			0
 #define		ISL_SCHEDULE_FUSE_MIN			1
 
@@ -135,8 +149,18 @@ ISL_ARG_CHOICE(struct isl_options, convex, 0, "convex-hull", \
 	convex,	ISL_CONVEX_HULL_WRAP, "convex hull algorithm to use")
 ISL_ARG_BOOL(struct isl_options, coalesce_bounded_wrapping, 0,
 	"coalesce-bounded-wrapping", 1, "bound wrapping during coalescing")
-ISL_ARG_INT(struct isl_options, schedule_max_coefficient, 0,
-	"schedule-max-coefficient", "limit", -1, "Only consider schedules "
+ISL_ARG_INT(struct isl_options, schedule_max_var_coefficient, 0,
+	"schedule-max-var-coefficient", "limit", -1, "Only consider schedules "
+	"where the coefficients of the variable dimensions "
+        "do not exceed <limit>. A value of -1 allows arbitrary coefficients.")
+ISL_ARG_INT(struct isl_options, schedule_max_param_coefficient, 0,
+	"schedule-max-param-coefficient", "limit", -1,
+	"Only consider schedules "
+	"where the coefficients of the parameter dimensions "
+        "do not exceed <limit>. A value of -1 allows arbitrary coefficients.")
+ISL_ARG_USER_INT(struct isl_options, schedule_max_coefficient, 0,
+	"schedule-max-coefficient", "limit", &set_max_coefficient, -1,
+	"Only consider schedules "
 	"where the coefficients of the variable and parameter dimensions "
         "do not exceed <limit>. A value of -1 allows arbitrary coefficients.")
 ISL_ARG_BOOL(struct isl_options, schedule_unit_max_var_coefficient_sum, 0,
@@ -251,10 +275,34 @@ ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 ISL_CTX_GET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	gbr_only_first)
 
-ISL_CTX_SET_INT_DEF(isl_options, struct isl_options, isl_options_args,
-	schedule_max_coefficient)
+/* Set the schedule_max_coefficient option to "val" and
+ * call set_max_coefficient to set schedule_max_var_coefficient and
+ * schedule_max_param_coefficient as well.
+ */
+isl_stat isl_options_set_schedule_max_coefficient(isl_ctx *ctx, int val)
+{
+	struct isl_options *options;
+
+	options = isl_ctx_options(ctx);
+	if (!options)
+		return isl_stat_error;
+	options->schedule_max_coefficient = val;
+	if (set_max_coefficient(options, val) < 0)
+		return isl_stat_error;
+	return isl_stat_ok;
+}
 ISL_CTX_GET_INT_DEF(isl_options, struct isl_options, isl_options_args,
 	schedule_max_coefficient)
+
+ISL_CTX_SET_INT_DEF(isl_options, struct isl_options, isl_options_args,
+	schedule_max_var_coefficient)
+ISL_CTX_GET_INT_DEF(isl_options, struct isl_options, isl_options_args,
+	schedule_max_var_coefficient)
+
+ISL_CTX_SET_INT_DEF(isl_options, struct isl_options, isl_options_args,
+	schedule_max_param_coefficient)
+ISL_CTX_GET_INT_DEF(isl_options, struct isl_options, isl_options_args,
+	schedule_max_param_coefficient)
 
 ISL_CTX_SET_BOOL_DEF(isl_options, struct isl_options, isl_options_args,
 	schedule_unit_max_var_coefficient_sum)

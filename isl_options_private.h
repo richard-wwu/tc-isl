@@ -36,6 +36,8 @@ struct isl_options {
 	int			coalesce_bounded_wrapping;
 
 	int			schedule_max_coefficient;
+	int			schedule_max_var_coefficient;
+	int			schedule_max_param_coefficient;
 	int			schedule_unit_max_var_coefficient_sum;
 	int			schedule_max_constant_term;
 	int			schedule_parametric;

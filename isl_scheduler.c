@@ -126,7 +126,7 @@ error:
  * "sizes" contains the sizes of the (compressed) instance set
  * in each direction.  If there is no fixed size in a given direction,
  * then the corresponding size value is set to infinity.
- * If the schedule_treat_coalescing option or the schedule_max_coefficient
+ * If the schedule_treat_coalescing option or the schedule_max_var_coefficient
  * option is set, then "max" contains the maximal values for
  * schedule coefficients of the (compressed) variables.  If no bound
  * needs to be imposed on a particular variable, then the corresponding
@@ -868,14 +868,14 @@ static isl_bool has_any_defining_equality(__isl_keep isl_basic_set *bset)
 	return isl_bool_false;
 }
 
-/* Set the entries of node->max to the value of the schedule_max_coefficient
+/* Set the entries of node->max to the value of the schedule_max_var_coefficient
  * option, if set.
  */
 static isl_stat set_max_coefficient(isl_ctx *ctx, struct isl_sched_node *node)
 {
 	int max;
 
-	max = isl_options_get_schedule_max_coefficient(ctx);
+	max = isl_options_get_schedule_max_var_coefficient(ctx);
 	if (max == -1)
 		return isl_stat_ok;
 
@@ -887,13 +887,14 @@ static isl_stat set_max_coefficient(isl_ctx *ctx, struct isl_sched_node *node)
 	return isl_stat_ok;
 }
 
-/* Set the entries of node->max to the minimum of the schedule_max_coefficient
+/* Set the entries of node->max to the minimum of
+ * the schedule_max_var_coefficient
  * option (if set) and half of the minimum of the sizes in the other
  * dimensions.  Round up when computing the half such that
  * if the minimum of the sizes is one, half of the size is taken to be one
  * rather than zero.
  * If the global minimum is unbounded (i.e., if both
- * the schedule_max_coefficient is not set and the sizes in the other
+ * the schedule_max_var_coefficient is not set and the sizes in the other
  * dimensions are unbounded), then store a negative value.
  * If the schedule coefficient is close to the size of the instance set
  * in another dimension, then the schedule may represent a loop
@@ -909,7 +910,7 @@ static isl_stat compute_max_coefficient(isl_ctx *ctx,
 	int i, j;
 	isl_vec *v;
 
-	max = isl_options_get_schedule_max_coefficient(ctx);
+	max = isl_options_get_schedule_max_var_coefficient(ctx);
 	v = isl_vec_alloc(ctx, node->nvar);
 	if (!v)
 		return isl_stat_error;
@@ -991,7 +992,7 @@ static __isl_give isl_val *compute_size(__isl_take isl_set *set, int dim)
  *
  * The sizes are needed when the schedule_treat_coalescing option is set.
  * The bounds are needed when the schedule_treat_coalescing option or
- * the schedule_max_coefficient option is set.
+ * the schedule_max_var_coefficient option is set.
  *
  * If the schedule_treat_coalescing option is not set, then at most
  * the bounds need to be set and this is done in set_max_coefficient.
@@ -1002,7 +1003,7 @@ static __isl_give isl_val *compute_size(__isl_take isl_set *set, int dim)
  * that are valid for the individual disjuncts, but not for
  * the domain as a whole.
  * Finally, set the bounds on the coefficients based on the sizes
- * and the schedule_max_coefficient option in compute_max_coefficient.
+ * and the schedule_max_var_coefficient option in compute_max_coefficient.
  */
 static isl_stat compute_sizes_and_max(isl_ctx *ctx, struct isl_sched_node *node,
 	__isl_take isl_set *set)
@@ -2810,7 +2811,7 @@ static isl_stat add_bound_constant_constraints(isl_ctx *ctx,
  * accordingly.
  *
  * In practice, add_bound_param_coefficient_constraints only adds inequalities.
- * A negative value for the "schedule_max_coefficient" option
+ * A negative value for the "schedule_max_param_coefficient" option
  * means that no bound needs to be imposed.
  */
 static isl_stat count_bound_param_coefficient_constraints(isl_ctx *ctx,
@@ -2818,7 +2819,7 @@ static isl_stat count_bound_param_coefficient_constraints(isl_ctx *ctx,
 {
 	int i;
 
-	if (isl_options_get_schedule_max_coefficient(ctx) < 0)
+	if (isl_options_get_schedule_max_param_coefficient(ctx) < 0)
 		return isl_stat_ok;
 
 	for (i = 0; i < graph->n; ++i)
@@ -2838,7 +2839,7 @@ static isl_stat count_bound_var_coefficient_constraints(isl_ctx *ctx,
 {
 	int i;
 
-	if (isl_options_get_schedule_max_coefficient(ctx) == -1 &&
+	if (isl_options_get_schedule_max_var_coefficient(ctx) == -1 &&
 	    !isl_options_get_schedule_treat_coalescing(ctx))
 		return isl_stat_ok;
 
@@ -2967,7 +2968,7 @@ error:
  * coefficients of the schedule.
  *
  * The maximal value of the coefficients is defined by the option
- * 'schedule_max_coefficient'.
+ * 'schedule_max_param_coefficient'.
  * A negative value means that no bound needs to be imposed.
  */
 static isl_stat add_bound_param_coefficient_constraints(isl_ctx *ctx,
@@ -2976,7 +2977,7 @@ static isl_stat add_bound_param_coefficient_constraints(isl_ctx *ctx,
 	int i;
 	int max;
 
-	max = isl_options_get_schedule_max_coefficient(ctx);
+	max = isl_options_get_schedule_max_param_coefficient(ctx);
 
 	if (max < 0)
 		return isl_stat_ok;
@@ -2996,7 +2997,7 @@ static isl_stat add_bound_param_coefficient_constraints(isl_ctx *ctx,
  * coefficients of the schedule.
  *
  * The maximal value of the coefficients is defined by the entries in node->max.
- * These entries are only set if either the schedule_max_coefficient
+ * These entries are only set if either the schedule_max_var_coefficient
  * option or the schedule_treat_coalescing option is set.
  */
 static isl_stat add_bound_var_coefficient_constraints(isl_ctx *ctx,
@@ -3005,7 +3006,7 @@ static isl_stat add_bound_var_coefficient_constraints(isl_ctx *ctx,
 	int i;
 	int max;
 
-	max = isl_options_get_schedule_max_coefficient(ctx);
+	max = isl_options_get_schedule_max_var_coefficient(ctx);
 
 	if (max == -1 && !isl_options_get_schedule_treat_coalescing(ctx))
 		return isl_stat_ok;

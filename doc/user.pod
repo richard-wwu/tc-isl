@@ -10146,6 +10146,14 @@ L</"Schedule Trees">.
 =head3 Options
 
 	#include <isl/schedule.h>
+	isl_stat isl_options_set_schedule_max_var_coefficient(
+		isl_ctx *ctx, int val);
+	int isl_options_get_schedule_max_var_coefficient(
+		isl_ctx *ctx);
+	isl_stat isl_options_set_schedule_max_param_coefficient(
+		isl_ctx *ctx, int val);
+	int isl_options_get_schedule_max_param_coefficient(
+		isl_ctx *ctx);
 	isl_stat isl_options_set_schedule_max_coefficient(
 		isl_ctx *ctx, int val);
 	int isl_options_get_schedule_max_coefficient(
@@ -10201,13 +10209,13 @@ L</"Schedule Trees">.
 
 =over
 
-=item * schedule_max_coefficient
+=item * schedule_max_var_coefficient
 
-This option enforces that the coefficients for variable and parameter
+This option enforces that the coefficients for variable
 dimensions in the calculated schedule are not larger than the specified value.
 This option can significantly increase the speed of the scheduling calculation
 and may also prevent fusing of unrelated dimensions. A value of -1 means that
-this option does not introduce bounds on the variable or parameter
+this option does not introduce bounds on the variable
 coefficients.
 If the C<schedule_whole_component> option is turned off,
 then the bound gets applied to both the schedules
@@ -10215,6 +10223,25 @@ of the individual strongly connected components and their combinations.
 The coefficients can accumulate during this process and
 may therefore end up being (much) larger than the bound.
 This option has no effect on the Feautrier style scheduler.
+
+=item * schedule_max_param_coefficient
+
+This option enforces that the coefficients for parameter
+dimensions in the calculated schedule are not larger than the specified value.
+A value of -1 means that
+this option does not introduce bounds on the parameter
+coefficients.
+If the C<schedule_whole_component> option is turned off,
+then the bound gets applied to both the schedules
+of the individual strongly connected components and their combinations.
+The coefficients can accumulate during this process and
+may therefore end up being (much) larger than the bound.
+This option has no effect on the Feautrier style scheduler.
+
+=item * schedule_max_coefficient
+
+Setting this option sets both the C<schedule_max_var_coefficient> and
+the C<schedule_max_param_coefficient> option to the (same) specified value.
 
 =item * schedule_unit_max_var_coefficient_sum
 
