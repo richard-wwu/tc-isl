@@ -2811,19 +2811,19 @@ static isl_stat add_bound_constant_constraints(isl_ctx *ctx,
  *
  * In practice, add_bound_coefficient_constraints only adds inequalities.
  */
-static int count_bound_coefficient_constraints(isl_ctx *ctx,
+static isl_stat count_bound_coefficient_constraints(isl_ctx *ctx,
 	struct isl_sched_graph *graph, int *n_eq, int *n_ineq)
 {
 	int i;
 
 	if (isl_options_get_schedule_max_coefficient(ctx) == -1 &&
 	    !isl_options_get_schedule_treat_coalescing(ctx))
-		return 0;
+		return isl_stat_ok;
 
 	for (i = 0; i < graph->n; ++i)
 		*n_ineq += graph->node[i].nparam + 2 * graph->node[i].nvar;
 
-	return 0;
+	return isl_stat_ok;
 }
 
 /* Add constraints to graph->lp that bound the values of
