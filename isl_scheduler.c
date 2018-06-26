@@ -2806,12 +2806,34 @@ static isl_stat add_bound_constant_constraints(isl_ctx *ctx,
 }
 
 /* Count the number of constraints that will be added by
- * add_bound_coefficient_constraints and increment *n_eq and *n_ineq
+ * add_bound_param_coefficient_constraints and increment *n_eq and *n_ineq
  * accordingly.
  *
- * In practice, add_bound_coefficient_constraints only adds inequalities.
+ * In practice, add_bound_param_coefficient_constraints only adds inequalities.
+ * A negative value for the "schedule_max_coefficient" option
+ * means that no bound needs to be imposed.
  */
-static isl_stat count_bound_coefficient_constraints(isl_ctx *ctx,
+static isl_stat count_bound_param_coefficient_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph, int *n_eq, int *n_ineq)
+{
+	int i;
+
+	if (isl_options_get_schedule_max_coefficient(ctx) < 0)
+		return isl_stat_ok;
+
+	for (i = 0; i < graph->n; ++i)
+		*n_ineq += graph->node[i].nparam;
+
+	return isl_stat_ok;
+}
+
+/* Count the number of constraints that will be added by
+ * add_bound_var_coefficient_constraints and increment *n_eq and *n_ineq
+ * accordingly.
+ *
+ * In practice, add_bound_var_coefficient_constraints only adds inequalities.
+ */
+static isl_stat count_bound_var_coefficient_constraints(isl_ctx *ctx,
 	struct isl_sched_graph *graph, int *n_eq, int *n_ineq)
 {
 	int i;
@@ -2821,26 +2843,67 @@ static isl_stat count_bound_coefficient_constraints(isl_ctx *ctx,
 		return isl_stat_ok;
 
 	for (i = 0; i < graph->n; ++i)
-		*n_ineq += graph->node[i].nparam + 2 * graph->node[i].nvar;
+		*n_ineq += 2 * graph->node[i].nvar;
 
 	return isl_stat_ok;
 }
 
+/* Count the number of constraints that will be added by
+ * add_bound_coefficient_constraints and increment *n_eq and *n_ineq
+ * accordingly.
+ */
+static isl_stat count_bound_coefficient_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph, int *n_eq, int *n_ineq)
+{
+	if (count_bound_param_coefficient_constraints(ctx, graph,
+							n_eq, n_ineq) < 0)
+		return isl_stat_error;
+	if (count_bound_var_coefficient_constraints(ctx, graph,
+							n_eq, n_ineq) < 0)
+		return isl_stat_error;
+	return isl_stat_ok;
+}
+
 /* Add constraints to graph->lp that bound the values of
- * the parameter schedule coefficients of "node" to "max" and
- * the variable schedule coefficients to the corresponding entry
- * in node->max.
- * In either case, a negative value means that no bound needs to be imposed.
+ * the parameter schedule coefficients of "node" to "max".
  *
- * For parameter coefficients, this amounts to adding a constraint
+ * This amounts to adding a constraint
  *
  *	c_n <= max
  *
  * i.e.,
  *
  *	-c_n + max >= 0
+ */
+static isl_stat node_add_param_coefficient_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph, struct isl_sched_node *node, int max)
+{
+	int j, k;
+	int total;
+
+	total = isl_basic_set_dim(graph->lp, isl_dim_set);
+
+	for (j = 0; j < node->nparam; ++j) {
+		int dim;
+
+		k = isl_basic_set_alloc_inequality(graph->lp);
+		if (k < 0)
+			return isl_stat_error;
+		dim = 1 + node_par_coef_offset(node) + j;
+		isl_seq_clr(graph->lp->ineq[k], 1 + total);
+		isl_int_set_si(graph->lp->ineq[k][dim], -1);
+		isl_int_set_si(graph->lp->ineq[k][0], max);
+	}
+
+	return isl_stat_ok;
+}
+
+/* Add constraints to graph->lp that bound the values of
+ * the variable schedule coefficients to the corresponding entry
+ * in node->max.
+ * A negative value means that no bound needs to be imposed.
  *
- * The variables coefficients are, however, not represented directly.
+ * The variables coefficients are not represented directly.
  * Instead, the variable coefficients c_x are written as differences
  * c_x = c_x^+ - c_x^-.
  * That is,
@@ -2856,29 +2919,14 @@ static isl_stat count_bound_coefficient_constraints(isl_ctx *ctx,
  *	-(c_x_i^+ - c_x_i^-) + max_i >= 0
  *	c_x_i^+ - c_x_i^- + max_i >= 0
  */
-static isl_stat node_add_coefficient_constraints(isl_ctx *ctx,
-	struct isl_sched_graph *graph, struct isl_sched_node *node, int max)
+static isl_stat node_add_var_coefficient_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph, struct isl_sched_node *node)
 {
-	int i, j, k;
+	int i, k;
 	int total;
 	isl_vec *ineq;
 
 	total = isl_basic_set_dim(graph->lp, isl_dim_set);
-
-	for (j = 0; j < node->nparam; ++j) {
-		int dim;
-
-		if (max < 0)
-			continue;
-
-		k = isl_basic_set_alloc_inequality(graph->lp);
-		if (k < 0)
-			return isl_stat_error;
-		dim = 1 + node_par_coef_offset(node) + j;
-		isl_seq_clr(graph->lp->ineq[k], 1 + total);
-		isl_int_set_si(graph->lp->ineq[k][dim], -1);
-		isl_int_set_si(graph->lp->ineq[k][0], max);
-	}
 
 	ineq = isl_vec_alloc(ctx, 1 + total);
 	ineq = isl_vec_clr(ineq);
@@ -2915,15 +2963,43 @@ error:
 	return isl_stat_error;
 }
 
-/* Add constraints that bound the values of the variable and parameter
+/* Add constraints that bound the values of the parameter
  * coefficients of the schedule.
  *
  * The maximal value of the coefficients is defined by the option
- * 'schedule_max_coefficient' and the entries in node->max.
- * These latter entries are only set if either the schedule_max_coefficient
+ * 'schedule_max_coefficient'.
+ * A negative value means that no bound needs to be imposed.
+ */
+static isl_stat add_bound_param_coefficient_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph)
+{
+	int i;
+	int max;
+
+	max = isl_options_get_schedule_max_coefficient(ctx);
+
+	if (max < 0)
+		return isl_stat_ok;
+
+	for (i = 0; i < graph->n; ++i) {
+		struct isl_sched_node *node = &graph->node[i];
+
+		if (node_add_param_coefficient_constraints(ctx, graph,
+								node, max) < 0)
+			return isl_stat_error;
+	}
+
+	return isl_stat_ok;
+}
+
+/* Add constraints that bound the values of the variable
+ * coefficients of the schedule.
+ *
+ * The maximal value of the coefficients is defined by the entries in node->max.
+ * These entries are only set if either the schedule_max_coefficient
  * option or the schedule_treat_coalescing option is set.
  */
-static isl_stat add_bound_coefficient_constraints(isl_ctx *ctx,
+static isl_stat add_bound_var_coefficient_constraints(isl_ctx *ctx,
 	struct isl_sched_graph *graph)
 {
 	int i;
@@ -2937,10 +3013,23 @@ static isl_stat add_bound_coefficient_constraints(isl_ctx *ctx,
 	for (i = 0; i < graph->n; ++i) {
 		struct isl_sched_node *node = &graph->node[i];
 
-		if (node_add_coefficient_constraints(ctx, graph, node, max) < 0)
+		if (node_add_var_coefficient_constraints(ctx, graph, node) < 0)
 			return isl_stat_error;
 	}
 
+	return isl_stat_ok;
+}
+
+/* Add constraints that bound the values of the variable and parameter
+ * coefficients of the schedule.
+ */
+static isl_stat add_bound_coefficient_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph)
+{
+	if (add_bound_param_coefficient_constraints(ctx, graph) < 0)
+		return isl_stat_error;
+	if (add_bound_var_coefficient_constraints(ctx, graph) < 0)
+		return isl_stat_error;
 	return isl_stat_ok;
 }
 
