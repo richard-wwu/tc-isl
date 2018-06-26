@@ -39,6 +39,7 @@
 #include <isl_morph.h>
 #include <isl/ilp.h>
 #include <isl_val_private.h>
+#include <isl_system_private.h>
 
 /*
  * The scheduling algorithm implemented in this file was inspired by
@@ -112,6 +113,9 @@ error:
  * decompress map the original space to the compressed space and
  * vice versa.
  *
+ * If not NULL, then "coef" contains additional constraints
+ * on the coefficients of the variables.
+ *
  * scc is the index of SCC (or WCC) this node belongs to
  *
  * "cluster" is only used inside extract_clusters and identifies
@@ -148,6 +152,7 @@ struct isl_sched_node {
 	int	 start;
 	int	 nvar;
 	int	 nparam;
+	isl_basic_set *coef;
 
 	int	 scc;
 	int	 cluster;
@@ -760,6 +765,7 @@ static void clear_node(struct isl_sched_graph *graph,
 		free(node->coincident);
 	isl_multi_val_free(node->sizes);
 	isl_basic_set_free(node->bounds);
+	isl_basic_set_free(node->coef);
 	isl_vec_free(node->max);
 }
 
@@ -3088,6 +3094,52 @@ static isl_stat add_bound_coefficient_sum_constraints(isl_ctx *ctx,
 	return isl_stat_ok;
 }
 
+/* Count the number of constraints that will be added by
+ * add_node_coef_constraints and increment *n_eq and *n_ineq
+ * accordingly.
+ */
+static isl_stat count_node_coef_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph, int *n_eq, int *n_ineq)
+{
+	int i;
+
+	for (i = 0; i < graph->n; ++i) {
+		struct isl_sched_node *node = &graph->node[i];
+
+		if (!node->coef)
+			continue;
+		*n_eq += isl_basic_set_n_equality(node->coef);
+		*n_ineq += isl_basic_set_n_inequality(node->coef);
+	}
+
+	return isl_stat_ok;
+}
+
+/* Add constraints to graph->lp corresponding to the additional
+ * per-node constraints on variable coefficients, if any.
+ */
+static isl_stat add_node_coef_constraints(isl_ctx *ctx,
+	struct isl_sched_graph *graph)
+{
+	int i;
+
+	for (i = 0; i < graph->n; ++i) {
+		struct isl_sched_node *node = &graph->node[i];
+		isl_dim_map *dim_map;
+		isl_basic_set *coef;
+		unsigned offset;
+
+		if (!node->coef)
+			continue;
+		coef = isl_basic_set_copy(node->coef);
+		offset = isl_basic_set_offset(coef, isl_dim_set) - 1;
+		dim_map = intra_dim_map(ctx, graph, node, offset, 1);
+		graph->lp = add_constraints_dim_map(graph->lp, coef, dim_map);
+	}
+
+	return isl_stat_ok;
+}
+
 /* Add a constraint to graph->lp that equates the value at position
  * "sum_pos" to the sum of the "n" values starting at "first".
  */
@@ -3225,6 +3277,8 @@ static isl_stat setup_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 	if (count_bound_coefficient_sum_constraints(ctx, graph,
 							    &n_eq, &n_ineq) < 0)
 		return isl_stat_error;
+	if (count_node_coef_constraints(ctx, graph, &n_eq, &n_ineq) < 0)
+		return isl_stat_error;
 
 	space = isl_space_set_alloc(ctx, 0, total);
 	isl_basic_set_free(graph->lp);
@@ -3243,6 +3297,8 @@ static isl_stat setup_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 	if (add_bound_coefficient_constraints(ctx, graph) < 0)
 		return isl_stat_error;
 	if (add_bound_coefficient_sum_constraints(ctx, graph) < 0)
+		return isl_stat_error;
+	if (add_node_coef_constraints(ctx, graph) < 0)
 		return isl_stat_error;
 	if (add_all_validity_constraints(graph, use_coincidence) < 0)
 		return isl_stat_error;
@@ -6737,6 +6793,210 @@ static __isl_give isl_schedule_constraints *collect_constraints(
 	return sc;
 }
 
+/* Construct a set of dimension "nvar" with values in the closed interval
+ * ["min", "max"].
+ */
+static __isl_give isl_system *box(isl_ctx *ctx, unsigned nvar, int min, int max)
+{
+	int i;
+	isl_system *sys;
+
+	sys = isl_system_alloc(ctx, nvar, 0, 0, 2 * nvar);
+
+	for (i = 0; i < nvar; ++i) {
+		sys = isl_system_lower_bound_si(sys, i, min);
+		sys = isl_system_upper_bound_si(sys, i, max);
+	}
+
+	return sys;
+}
+
+/* Translate constraints that the variable coefficients
+ * of the nodes in "scc" need to be smaller than "max" in absolute value
+ * to constraints on the variable coefficients of the corresponding
+ * merge node and return the result.
+ *
+ * A schedule row for a particular cluster in the merge graph is of the form
+ *
+ *	f_0 + \sum_i f_i r_i + \sum_j g_j n_j
+ *
+ * with r_i the schedule rows of the nodes in that cluster.
+ * For each of these nodes, each r_i is itself an affine combination
+ *
+ *	r_i = ... + \sum_j c_ij x_j + ...
+ *
+ * The linear part of the schedule row is therefore of the form
+ *
+ *	            [c_11 ... c_1d] [x_1]
+ *	[f_1...f_t] [...      ....] [...]
+ *	            [c_t1 ... c_td] [x_d]
+ *
+ *	= f^T C x
+ *
+ * With C the linear part of the schedule rows of a particular node.
+ * Each of the elements in the row vector (f C) needs to be bounded by "max".
+ * In terms of the elements in f, this means
+ *
+ *	-max <= C^T f <= max
+ *
+ * Construct constraints
+ *
+ *	-max <= f' <= max
+ *
+ * and then plug in
+ *
+ *	f' = C^T f
+ *
+ * Collect the resulting constraints over all nodes in "scc".
+ *
+ * Note that this function ignores any compression that may
+ * have taken place on the original graph.  That is, it considers bounds on
+ * the compressed space rather than on the original space.
+ *
+ * Note that isl_basic_set_preimage is an internal function
+ * that may actually return an object living in a map space
+ * (with zero input dimensions).  The space therefore needs to be adjusted.
+ */
+static __isl_give isl_basic_set *collect_coefficient_constraints(
+	isl_ctx *ctx, struct isl_sched_graph *scc, int max)
+{
+	int i;
+	int start, n;
+	isl_space *space;
+	isl_basic_set *bset;
+
+	start = scc->band_start;
+	n = scc->n_total_row - start;
+
+	space = isl_space_set_alloc(ctx, 0, n);
+	bset = isl_basic_set_universe(isl_space_copy(space));
+	for (i = 0; i < scc->n; ++i) {
+		struct isl_sched_node *node = &scc->node[i];
+		isl_mat *sched;
+		isl_system *sys;
+		isl_basic_set *bset_i;
+
+		sys = box(ctx, node->nvar, -max, max);
+		bset_i = isl_basic_set_from_system(sys);
+		sched = isl_mat_sub_alloc(node->sched, start, n,
+					1 + node->nparam, node->nvar);
+		sched = isl_mat_transpose(sched);
+		sched = isl_mat_lin_to_aff(sched);
+		bset_i = isl_basic_set_preimage(bset_i, sched);
+		bset_i = isl_basic_set_reset_space(bset_i,
+						    isl_space_copy(space));
+		bset = isl_basic_set_intersect(bset, bset_i);
+	}
+	isl_space_free(space);
+
+	return bset;
+}
+
+/* Intersect the restriction of "uset" to the space of "set" with "set",
+ * without affecting any other spaces.
+ */
+static __isl_give isl_union_set *local_intersect(__isl_take isl_union_set *uset,
+	__isl_take isl_set *set)
+{
+	isl_set *extract;
+
+	extract = isl_union_set_extract_set(uset, isl_set_get_space(set));
+	set = isl_set_intersect(set, isl_set_copy(extract));
+	uset = isl_union_set_subtract(uset, isl_union_set_from_set(extract));
+	uset = isl_union_set_add_set(uset, set);
+
+	return uset;
+}
+
+/* Extract constraints on the variable coefficients of the merge nodes
+ * from "coef" and store them in the merge nodes.
+ * Each merge node is identified in "coef" by the identifier
+ * of the node.
+ */
+static isl_stat set_node_coef(struct isl_sched_graph *merge_graph,
+	__isl_keep isl_union_set *coef)
+{
+	int i;
+
+	for (i = 0; i < merge_graph->n; ++i) {
+		struct isl_sched_node *node = &merge_graph->node[i];
+		isl_space *space;
+		isl_set *set;
+
+		space = isl_space_copy(node->space);
+		set = isl_union_set_extract_set(coef, space);
+		node->coef = isl_set_simple_hull(set);
+		if (!node->coef)
+			return isl_stat_error;
+	}
+
+	return isl_stat_ok;
+}
+
+/* Add per-node constraints on the variable coefficients
+ * to the nodes of "merge_graph" based on the clustering "c".
+ *
+ * In particular, if a maximum has been imposed on the size
+ * of the variable coefficients in the original graph,
+ * then translate this constraint to constraints
+ * on the variable coefficients of the merge graph.
+ *
+ * Start by setting up a union set describing (initially empty)
+ * constraints on the merge node variable coefficients.
+ * Each merge node is identified in this union set by the identifier
+ * of the node, which is equal to the cluster identifier
+ * of all the original nodes in "c" that correspond to the merge node.
+ * Note that this is a slight abuse of notation because the union set
+ * describes constraints on the coefficients and not on the variables
+ * themselves.
+ *
+ * Then run over all SCCs in the original graph that are involved
+ * in the merge and update the constraints on the coefficients
+ * of the corresponding merge node.
+ *
+ * Finally, extract the constraints and store them in the merge nodes
+ * for use in setup_lp.
+ */
+static isl_stat set_merge_graph_node_coef(isl_ctx *ctx,
+	struct isl_clustering *c, struct isl_sched_graph *merge_graph)
+{
+	int i;
+	int max;
+	isl_union_set *coef;
+	isl_stat r;
+
+	max = isl_options_get_schedule_max_var_coefficient(ctx);
+	if (max < 0)
+		return isl_stat_ok;
+
+	coef = isl_union_set_empty(isl_space_params_alloc(ctx, 0));
+	for (i = 0; i < merge_graph->n; ++i) {
+		isl_space *space;
+		space = isl_space_copy(merge_graph->node[i].space);
+		space = isl_space_drop_all_params(space);
+		coef = isl_union_set_add_set(coef, isl_set_universe(space));
+	}
+
+	for (i = 0; i < c->n; ++i) {
+		struct isl_sched_graph *scc;
+		isl_id *id;
+		isl_basic_set *bset;
+
+		if (!c->scc_in_merge[i])
+			continue;
+		scc = &c->scc[i];
+		bset = collect_coefficient_constraints(ctx, scc, max);
+		id = cluster_id(ctx, c->scc_cluster[i]);
+		bset = isl_basic_set_set_tuple_id(bset, id);
+		coef = local_intersect(coef, isl_set_from_basic_set(bset));
+	}
+
+	r = set_node_coef(merge_graph, coef);
+	isl_union_set_free(coef);
+
+	return r;
+}
+
 /* Construct a dependence graph for scheduling clusters with respect
  * to each other and store the result in "merge_graph".
  * In particular, the nodes of the graph correspond to the schedule
@@ -6747,6 +7007,8 @@ static __isl_give isl_schedule_constraints *collect_constraints(
  * by transforming the edges in "graph" to the domain.
  * Then initialize a dependence graph for scheduling from these
  * constraints.
+ * Finally, add additional constraints on the variable coefficients
+ * of the merge nodes, if needed.
  */
 static isl_stat init_merge_graph(isl_ctx *ctx, struct isl_sched_graph *graph,
 	struct isl_clustering *c, struct isl_sched_graph *merge_graph)
@@ -6767,6 +7029,9 @@ static isl_stat init_merge_graph(isl_ctx *ctx, struct isl_sched_graph *graph,
 	r = graph_init(merge_graph, sc);
 
 	isl_schedule_constraints_free(sc);
+
+	if (r >= 0)
+		r = set_merge_graph_node_coef(ctx, c, merge_graph);
 
 	return r;
 }
@@ -7384,6 +7649,10 @@ static isl_stat merge(isl_ctx *ctx, struct isl_clustering *c,
  * to the minimal such non-maximal current schedule dimension.
  * Do this by adjusting merge_graph.maxvar.
  *
+ * If a bound is set on the size of the schedule coefficients
+ * in the original graph, then replace this by constraints
+ * on the schedule coefficients in the merge graph (in init_merge_graph).
+ *
  * Return isl_bool_true if the clusters have effectively been merged
  * into a single cluster.
  *
@@ -7402,9 +7671,14 @@ static isl_bool try_merge(isl_ctx *ctx, struct isl_sched_graph *graph,
 {
 	struct isl_sched_graph merge_graph = { 0 };
 	isl_bool merged;
+	int save_max;
+
+	save_max = isl_options_get_schedule_max_var_coefficient(ctx);
 
 	if (init_merge_graph(ctx, graph, c, &merge_graph) < 0)
 		goto error;
+
+	isl_options_set_schedule_max_var_coefficient(ctx, -1);
 
 	if (compute_maxvar(&merge_graph) < 0)
 		goto error;
@@ -7417,9 +7691,11 @@ static isl_bool try_merge(isl_ctx *ctx, struct isl_sched_graph *graph,
 		goto error;
 
 	graph_free(ctx, &merge_graph);
+	isl_options_set_schedule_max_var_coefficient(ctx, save_max);
 	return merged;
 error:
 	graph_free(ctx, &merge_graph);
+	isl_options_set_schedule_max_var_coefficient(ctx, save_max);
 	return isl_bool_error;
 }
 

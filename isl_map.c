@@ -13776,3 +13776,11 @@ __isl_give isl_basic_set *isl_basic_set_transform_dims(
 {
 	return isl_basic_map_transform_dims(bset, type, first, trans);
 }
+
+/* Construct a basic set from a system of constraints,
+ * without local variables and without specifying a space.
+ */
+__isl_give isl_basic_set *isl_basic_set_from_system(__isl_take isl_system *sys)
+{
+	return bset_from_bmap(bmap_from_sys(sys));
+}
