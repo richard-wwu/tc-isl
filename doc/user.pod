@@ -10153,6 +10153,10 @@ L</"Schedule Trees">.
 =head3 Options
 
 	#include <isl/schedule.h>
+	isl_stat isl_options_set_schedule_nonneg_var_coefficient(
+		isl_ctx *ctx, int val);
+	int isl_options_get_schedule_nonneg_var_coefficient(
+		isl_ctx *ctx);
 	isl_stat isl_options_set_schedule_max_var_coefficient(
 		isl_ctx *ctx, int val);
 	int isl_options_get_schedule_max_var_coefficient(
@@ -10215,6 +10219,12 @@ L</"Schedule Trees">.
 		isl_ctx *ctx);
 
 =over
+
+=item * schedule_nonneg_var_coefficient
+
+If this options is set, then all schedule coefficients of the variables
+will be non-negative.
+This option has no effect on the Feautrier style scheduler.
 
 =item * schedule_max_var_coefficient
 

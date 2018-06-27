@@ -18,6 +18,9 @@ extern "C" {
 struct __isl_export isl_schedule_constraints;
 typedef struct isl_schedule_constraints isl_schedule_constraints;
 
+isl_stat isl_options_set_schedule_nonneg_var_coefficient(isl_ctx *ctx, int val);
+int isl_options_get_schedule_nonneg_var_coefficient(isl_ctx *ctx);
+
 isl_stat isl_options_set_schedule_max_var_coefficient(isl_ctx *ctx, int val);
 int isl_options_get_schedule_max_var_coefficient(isl_ctx *ctx);
 

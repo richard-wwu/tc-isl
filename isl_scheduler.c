@@ -107,6 +107,7 @@ error:
  * nvar is the dimension of the (compressed) domain
  * nparam is the number of parameters or 0 if we are not constructing
  *	a parametric schedule
+ * nonneg is set if the coefficients of the variables should be non-negative
  *
  * If compressed is set, then hull represents the constraints
  * that were used to derive the compression, while compress and
@@ -152,6 +153,7 @@ struct isl_sched_node {
 	int	 start;
 	int	 nvar;
 	int	 nparam;
+	int	 nonneg;
 	isl_basic_set *coef;
 
 	int	 scc;
@@ -2058,11 +2060,12 @@ static int coef_var_offset(__isl_keep isl_basic_set *coef)
 /* Return the number of variables needed in the (I)LP
  * for encoding a single variable coefficient of "node".
  * Each coefficient is encoded as a difference between two non-negative
- * variables.
+ * variables (if the coefficients of "node" are allowed to take on
+ * negative values) or directly as a single non-negative variable.
  */
 static int coef_per_var(struct isl_sched_node *node)
 {
-	return 2;
+	return node->nonneg ? 1 : 2;
 }
 
 /* Return the number of variables needed for "node" within the (I)LP.
@@ -2149,6 +2152,9 @@ static int node_var_coef_pos(struct isl_sched_node *node, int i)
  * In the LP, the c_i_x^- appear before their c_i_x^+ counterpart.
  * Furthermore, the order of these pairs is the opposite of that
  * of the corresponding coefficients.
+ *
+ * If the coefficients are expected to be non-negative, then
+ * only a single variable is used in the encoding (c_i_x^- = 0 is omitted).
  */
 static __isl_give isl_dim_map *node_var_dim_map(struct isl_sched_node *node,
 	int offset, int s, __isl_take isl_dim_map *dim_map)
@@ -2156,8 +2162,13 @@ static __isl_give isl_dim_map *node_var_dim_map(struct isl_sched_node *node,
 	int pos;
 
 	pos = node_var_coef_pos(node, 0);
-	isl_dim_map_range(dim_map, pos, -2, offset, 1, node->nvar, -s);
-	isl_dim_map_range(dim_map, pos + 1, -2, offset, 1, node->nvar, s);
+	if (node->nonneg) {
+		isl_dim_map_range(dim_map, pos, -1, offset, 1, node->nvar, s);
+	} else {
+		isl_dim_map_range(dim_map, pos, -2, offset, 1, node->nvar, -s);
+		isl_dim_map_range(dim_map, pos + 1, -2,
+					offset, 1, node->nvar, s);
+	}
 
 	return dim_map;
 }
@@ -2880,12 +2891,13 @@ static isl_stat count_bound_param_coefficient_constraints(isl_ctx *ctx,
  * node_add_var_coefficient_constraints for "node".
  *
  * For each entry in node->max that is not negative,
- * two constraints get added.
+ * one or two constraints get added, depending on whether
+ * the coefficients are already forced to be non-negative.
  */
 static int node_max_bound_var_coefficient_constraints(
 	struct isl_sched_node *node)
 {
-	return 2 * node->nvar;
+	return (node->nonneg ? 1 : 2) * node->nvar;
 }
 
 /* Count the number of constraints that will be added by
@@ -2972,6 +2984,8 @@ static isl_stat node_add_param_coefficient_constraints(isl_ctx *ctx,
  *	-max_i <= c_x_i <= max_i
  *
  * locally and then map them to LP constraints.
+ * If the coefficients of "node" are forced to be non-negative,
+ * then the "-max_i <= c_x_i" constraint is omitted.
  */
 static isl_stat node_add_var_coefficient_constraints(isl_ctx *ctx,
 	struct isl_sched_graph *graph, struct isl_sched_node *node)
@@ -2989,6 +3003,9 @@ static isl_stat node_add_var_coefficient_constraints(isl_ctx *ctx,
 			continue;
 
 		sys = isl_system_upper_bound(sys, i, node->max->el[i]);
+
+		if (node->nonneg)
+			continue;
 
 		isl_int_neg(node->max->el[i], node->max->el[i]);
 		sys = isl_system_lower_bound(sys, i, node->max->el[i]);
@@ -3097,6 +3114,8 @@ static isl_stat count_bound_coefficient_sum_constraints(isl_ctx *ctx,
  * When a coefficient is encoded as a difference between two non-negative
  * variables, this means that the absolute values of the coefficients
  * are bounded by one.
+ * A non-negative coefficient is encoded as itself, in which case
+ * it is the coefficient itself that is bounded by one.
  */
 static isl_stat add_bound_coefficient_sum_constraints(isl_ctx *ctx,
 	struct isl_sched_graph *graph)
@@ -3424,6 +3443,8 @@ static int needs_row(struct isl_sched_graph *graph, struct isl_sched_node *node)
  * while the triviality directions are expressed in terms of
  * pairs of non-negative variables c^+_i - c^-_i, with c^-_i appearing
  * before c^+_i.
+ * If the coefficients are forced to be non-negative,
+ * then c^-_i = 0 is omitted from the encoding.
  */
 static __isl_give isl_mat *construct_trivial(struct isl_sched_node *node,
 	__isl_keep isl_mat *indep)
@@ -3444,8 +3465,13 @@ static __isl_give isl_mat *construct_trivial(struct isl_sched_node *node,
 	for (i = 0; i < n; ++i) {
 		for (j = 0; j < n_var; ++j) {
 			int pos = node_local_var_coef_pos(node, j);
-			isl_int_neg(mat->row[i][pos], indep->row[i][j]);
-			isl_int_set(mat->row[i][pos + 1], indep->row[i][j]);
+			if (node->nonneg) {
+				isl_int_set(mat->row[i][pos], indep->row[i][j]);
+			} else {
+				isl_int_neg(mat->row[i][pos], indep->row[i][j]);
+				isl_int_set(mat->row[i][pos + 1],
+					    indep->row[i][j]);
+			}
 		}
 	}
 
@@ -3490,6 +3516,9 @@ static __isl_give isl_vec *solve_lp(isl_ctx *ctx, struct isl_sched_graph *graph)
  * between two non-negative variables c_i_x^+ - c_i_x^-.
  * The c_i_x^- appear before their c_i_x^+ counterpart.
  *
+ * If the coefficients are forced to be non-negative,
+ * then the c_i_x^- = 0 are omitted from the encoding.
+ *
  * Return c_i_x = c_i_x^+ - c_i_x^-
  */
 static __isl_give isl_vec *extract_var_coef(struct isl_sched_node *node,
@@ -3507,7 +3536,11 @@ static __isl_give isl_vec *extract_var_coef(struct isl_sched_node *node,
 
 	for (i = 0; i < node->nvar; ++i) {
 		pos = 1 + node_var_coef_pos(node, i);
-		isl_int_sub(csol->el[i], sol->el[pos + 1], sol->el[pos]);
+		if (node->nonneg)
+			isl_int_set(csol->el[i], sol->el[pos]);
+		else
+			isl_int_sub(csol->el[i],
+				    sol->el[pos + 1], sol->el[pos]);
 	}
 
 	return csol;
@@ -6250,7 +6283,7 @@ static __isl_give isl_schedule_node *compute_schedule_finish_band(
  * Since there are only a finite number of dependences,
  * there will only be a finite number of iterations.
  */
-static isl_stat compute_schedule_wcc_band(isl_ctx *ctx,
+static isl_stat compute_schedule_wcc_band_core(isl_ctx *ctx,
 	struct isl_sched_graph *graph)
 {
 	int has_coincidence;
@@ -6309,6 +6342,95 @@ static isl_stat compute_schedule_wcc_band(isl_ctx *ctx,
 	}
 
 	return isl_stat_ok;
+}
+
+/* Set the nonneg field of "node" based on the additional constraints
+ * on the coefficients of the variables, if any.
+ *
+ * In particular, set the field if the additional constraints
+ * imply that all variable coefficients are non-negative.
+ */
+static isl_stat node_set_nonneg(struct isl_sched_node *node)
+{
+	isl_space *space;
+	isl_basic_set *nonneg;
+	isl_bool is_nonneg;
+
+	if (!node->coef)
+		return isl_stat_ok;
+	space = isl_basic_set_get_space(node->coef);
+	nonneg = isl_basic_set_nat_universe(space);
+	is_nonneg = isl_basic_set_is_subset(node->coef, nonneg);
+	isl_basic_set_free(nonneg);
+
+	if (is_nonneg < 0)
+		return isl_stat_error;
+	if (is_nonneg)
+		node->nonneg = 1;
+
+	return isl_stat_ok;
+}
+
+/* Set the nonneg fields of the nodes in "graph".
+ *
+ * If the "schedule_nonneg_var_coefficient" option is set,
+ * then all nodes have their nonneg fields set.
+ * Otherwise, it is set based on the additional constraints
+ * on the coefficients of the variables, if any.
+ */
+static isl_stat graph_set_nonneg(isl_ctx *ctx, struct isl_sched_graph *graph)
+{
+	int i;
+	int nonneg;
+
+	nonneg = isl_options_get_schedule_nonneg_var_coefficient(ctx);
+	for (i = 0; i < graph->n; ++i) {
+		struct isl_sched_node *node = &graph->node[i];
+
+		if (nonneg)
+			node->nonneg = 1;
+		else if (node_set_nonneg(node) < 0)
+			return isl_stat_error;
+	}
+
+	return isl_stat_ok;
+}
+
+/* Clear the nonneg fields of the nodes in "graph".
+ */
+static isl_stat graph_clear_nonneg(isl_ctx *ctx, struct isl_sched_graph *graph)
+{
+	int i;
+
+	for (i = 0; i < graph->n; ++i) {
+		struct isl_sched_node *node = &graph->node[i];
+
+		node->nonneg = 0;
+	}
+
+	return isl_stat_ok;
+}
+
+/* Construct a band of schedule rows for a connected dependence graph.
+ * The caller is responsible for determining the strongly connected
+ * components and calling compute_maxvar first.
+ *
+ * Locally set the nonneg fields of the nodes for use in the LP encoding.
+ * The markings are cleared afterwards in case the graph is reused
+ * to carry dependences.
+ */
+static isl_stat compute_schedule_wcc_band(isl_ctx *ctx,
+	struct isl_sched_graph *graph)
+{
+	isl_stat r;
+
+	r = graph_set_nonneg(ctx, graph);
+	if (r >= 0)
+		r = compute_schedule_wcc_band_core(ctx, graph);
+	if (r >= 0)
+		r = graph_clear_nonneg(ctx, graph);
+
+	return r;
 }
 
 /* Compute a schedule for a connected dependence graph by considering
@@ -6855,6 +6977,8 @@ static __isl_give isl_system *box(isl_ctx *ctx, unsigned nvar, int min, int max)
 
 /* Translate constraints that the variable coefficients
  * of the nodes in "scc" need to be smaller than "max" in absolute value
+ * (if "max" is non-negative) and/or
+ * that the coefficients should be non-negative (if "nonneg" is set)
  * to constraints on the variable coefficients of the corresponding
  * merge node and return the result.
  *
@@ -6876,14 +7000,17 @@ static __isl_give isl_system *box(isl_ctx *ctx, unsigned nvar, int min, int max)
  *	= f^T C x
  *
  * With C the linear part of the schedule rows of a particular node.
- * Each of the elements in the row vector (f C) needs to be bounded by "max".
+ * Each of the elements in the row vector (f C) needs to be bounded by "max"
+ * and/or made non-negative.
  * In terms of the elements in f, this means
  *
- *	-max <= C^T f <= max
+ *	-max <= C^T f <= max	and/or
+ *	   0 <= C^T f
  *
  * Construct constraints
  *
- *	-max <= f' <= max
+ *	-max <= f' <= max	and/or
+ *	   0 <= f'
  *
  * and then plug in
  *
@@ -6900,7 +7027,7 @@ static __isl_give isl_system *box(isl_ctx *ctx, unsigned nvar, int min, int max)
  * (with zero input dimensions).  The space therefore needs to be adjusted.
  */
 static __isl_give isl_basic_set *collect_coefficient_constraints(
-	isl_ctx *ctx, struct isl_sched_graph *scc, int max)
+	isl_ctx *ctx, struct isl_sched_graph *scc, int nonneg, int max)
 {
 	int i;
 	int start, n;
@@ -6918,7 +7045,12 @@ static __isl_give isl_basic_set *collect_coefficient_constraints(
 		isl_system *sys;
 		isl_basic_set *bset_i;
 
-		sys = box(ctx, node->nvar, -max, max);
+		if (nonneg && max >= 0)
+			sys = box(ctx, node->nvar, 0, max);
+		else if (max >= 0)
+			sys = box(ctx, node->nvar, -max, max);
+		else
+			sys = isl_system_nonneg(ctx, node->nvar, 0, node->nvar);
 		bset_i = isl_basic_set_from_system(sys);
 		sched = isl_mat_sub_alloc(node->sched, start, n,
 					1 + node->nparam, node->nvar);
@@ -6979,8 +7111,9 @@ static isl_stat set_node_coef(struct isl_sched_graph *merge_graph,
  * to the nodes of "merge_graph" based on the clustering "c".
  *
  * In particular, if a maximum has been imposed on the size
- * of the variable coefficients in the original graph,
- * then translate this constraint to constraints
+ * of the variable coefficients in the original graph and/or
+ * if these variable coefficients are required to be non-negative,
+ * then translate these constraints to constraints
  * on the variable coefficients of the merge graph.
  *
  * Start by setting up a union set describing (initially empty)
@@ -7003,12 +7136,13 @@ static isl_stat set_merge_graph_node_coef(isl_ctx *ctx,
 	struct isl_clustering *c, struct isl_sched_graph *merge_graph)
 {
 	int i;
-	int max;
+	int max, nonneg;
 	isl_union_set *coef;
 	isl_stat r;
 
 	max = isl_options_get_schedule_max_var_coefficient(ctx);
-	if (max < 0)
+	nonneg = isl_options_get_schedule_nonneg_var_coefficient(ctx);
+	if (max < 0 && !nonneg)
 		return isl_stat_ok;
 
 	coef = isl_union_set_empty(isl_space_params_alloc(ctx, 0));
@@ -7027,7 +7161,7 @@ static isl_stat set_merge_graph_node_coef(isl_ctx *ctx,
 		if (!c->scc_in_merge[i])
 			continue;
 		scc = &c->scc[i];
-		bset = collect_coefficient_constraints(ctx, scc, max);
+		bset = collect_coefficient_constraints(ctx, scc, nonneg, max);
 		id = cluster_id(ctx, c->scc_cluster[i]);
 		bset = isl_basic_set_set_tuple_id(bset, id);
 		coef = local_intersect(coef, isl_set_from_basic_set(bset));
@@ -7691,8 +7825,9 @@ static isl_stat merge(isl_ctx *ctx, struct isl_clustering *c,
  * to the minimal such non-maximal current schedule dimension.
  * Do this by adjusting merge_graph.maxvar.
  *
- * If a bound is set on the size of the schedule coefficients
- * in the original graph, then replace this by constraints
+ * If a bound is set on the size of the schedule coefficients and/or
+ * if the schedule coefficients are required to be non-negative
+ * in the original graph, then replace these by constraints
  * on the schedule coefficients in the merge graph (in init_merge_graph).
  *
  * Return isl_bool_true if the clusters have effectively been merged
@@ -7714,13 +7849,16 @@ static isl_bool try_merge(isl_ctx *ctx, struct isl_sched_graph *graph,
 	struct isl_sched_graph merge_graph = { 0 };
 	isl_bool merged;
 	int save_max;
+	int save_nonneg;
 
 	save_max = isl_options_get_schedule_max_var_coefficient(ctx);
+	save_nonneg = isl_options_get_schedule_nonneg_var_coefficient(ctx);
 
 	if (init_merge_graph(ctx, graph, c, &merge_graph) < 0)
 		goto error;
 
 	isl_options_set_schedule_max_var_coefficient(ctx, -1);
+	isl_options_set_schedule_nonneg_var_coefficient(ctx, 0);
 
 	if (compute_maxvar(&merge_graph) < 0)
 		goto error;
@@ -7734,10 +7872,12 @@ static isl_bool try_merge(isl_ctx *ctx, struct isl_sched_graph *graph,
 
 	graph_free(ctx, &merge_graph);
 	isl_options_set_schedule_max_var_coefficient(ctx, save_max);
+	isl_options_set_schedule_nonneg_var_coefficient(ctx, save_nonneg);
 	return merged;
 error:
 	graph_free(ctx, &merge_graph);
 	isl_options_set_schedule_max_var_coefficient(ctx, save_max);
+	isl_options_set_schedule_nonneg_var_coefficient(ctx, save_nonneg);
 	return isl_bool_error;
 }
 
