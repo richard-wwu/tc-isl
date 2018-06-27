@@ -44,7 +44,6 @@ __isl_overload
 __isl_give isl_space *isl_space_add_param_id(__isl_take isl_space *space,
 	__isl_take isl_id *id);
 
-__isl_export
 __isl_give isl_space *isl_space_set_tuple_name(__isl_take isl_space *dim,
 	enum isl_dim_type type, const char *s);
 isl_bool isl_space_has_tuple_name(__isl_keep isl_space *space,
