@@ -2055,6 +2055,18 @@ static int coef_var_offset(__isl_keep isl_basic_set *coef)
 	return offset;
 }
 
+/* Return the number of variables needed for "node" within the (I)LP.
+ *
+ * Within each node, the coefficients have the following order:
+ *	- positive and negative parts of c_i_x
+ *	- c_i_n (if parametric)
+ *	- c_i_0
+ */
+static int node_coef_size(struct isl_sched_node *node)
+{
+	return 2 * node->nvar + node->nparam + 1;
+}
+
 /* Return the offset of the coefficient of the constant term of "node"
  * within the (I)LP.
  *
@@ -3264,7 +3276,7 @@ static isl_stat setup_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 		if (node_update_vmap(node) < 0)
 			return isl_stat_error;
 		node->start = total;
-		total += 1 + node->nparam + 2 * node->nvar;
+		total += node_coef_size(node);
 	}
 
 	if (count_constraints(graph, &n_eq, &n_ineq, use_coincidence) < 0)
@@ -4742,7 +4754,7 @@ static isl_stat setup_carry_lp(isl_ctx *ctx, struct isl_sched_graph *graph,
 	for (i = 0; i < graph->n; ++i) {
 		struct isl_sched_node *node = &graph->node[graph->sorted[i]];
 		node->start = total;
-		total += 1 + node->nparam + 2 * node->nvar;
+		total += node_coef_size(node);
 	}
 
 	if (count_all_constraints(intra, inter, &n_eq, &n_ineq) < 0)
