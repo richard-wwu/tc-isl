@@ -8164,9 +8164,9 @@ C<isl_set_list_reverse> reverses the elements in the list.
 Lists can be inspected using the following functions.
 
 	#include <isl/set.h>
-	int isl_set_list_n(__isl_keep isl_set_list *list);
+	int isl_set_list_size(__isl_keep isl_set_list *list);
 	int isl_set_list_n_set(__isl_keep isl_set_list *list);
-	__isl_give isl_set *isl_set_list_get(
+	__isl_give isl_set *isl_set_list_get_at(
 		__isl_keep isl_set_list *list, int index);
 	__isl_give isl_set *isl_set_list_get_set(
 		__isl_keep isl_set_list *list, int index);
@@ -8181,9 +8181,9 @@ Lists can be inspected using the following functions.
 		isl_stat (*fn)(__isl_take isl_set *el, void *user),
 		void *fn_user);
 
-C<isl_set_list_n_set> is an alternative name for <isl_set_list_n>.
+C<isl_set_list_n_set> is an alternative name for C<isl_set_list_size>.
 Similarly,
-C<isl_set_list_get_set> is an alternative name for <Cisl_set_list_get>.
+C<isl_set_list_get_set> is an alternative name for C<isl_set_list_get_at>.
 The function C<isl_set_list_foreach_scc> calls C<fn> on each of the
 strongly connected components of the graph with as vertices the elements
 of C<list> and a directed edge from vertex C<b> to vertex C<a>
