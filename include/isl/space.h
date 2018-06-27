@@ -55,7 +55,6 @@ __isl_give isl_space *isl_space_set_tuple_id(__isl_take isl_space *dim,
 	enum isl_dim_type type, __isl_take isl_id *id);
 __isl_give isl_space *isl_space_reset_tuple_id(__isl_take isl_space *dim,
 	enum isl_dim_type type);
-__isl_export
 isl_bool isl_space_has_tuple_id(__isl_keep isl_space *dim,
 	enum isl_dim_type type);
 __isl_export
