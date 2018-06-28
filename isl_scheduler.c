@@ -2055,42 +2055,52 @@ static int coef_var_offset(__isl_keep isl_basic_set *coef)
 	return offset;
 }
 
+/* Return the number of variables needed in the (I)LP
+ * for encoding a single variable coefficient of "node".
+ * Each coefficient is encoded as a difference between two non-negative
+ * variables.
+ */
+static int coef_per_var(struct isl_sched_node *node)
+{
+	return 2;
+}
+
 /* Return the number of variables needed for "node" within the (I)LP.
  *
  * Within each node, the coefficients have the following order:
- *	- positive and negative parts of c_i_x
+ *	- c_i_x
  *	- c_i_n (if parametric)
  *	- c_i_0
  */
 static int node_coef_size(struct isl_sched_node *node)
 {
-	return 2 * node->nvar + node->nparam + 1;
+	return coef_per_var(node) * node->nvar + node->nparam + 1;
 }
 
 /* Return the offset of the coefficient of the constant term of "node"
  * within the (I)LP.
  *
  * Within each node, the coefficients have the following order:
- *	- positive and negative parts of c_i_x
+ *	- c_i_x
  *	- c_i_n (if parametric)
  *	- c_i_0
  */
 static int node_cst_coef_offset(struct isl_sched_node *node)
 {
-	return node->start + 2 * node->nvar + node->nparam;
+	return node->start + coef_per_var(node) * node->nvar + node->nparam;
 }
 
 /* Return the offset of the coefficients of the parameters of "node"
  * within the (I)LP.
  *
  * Within each node, the coefficients have the following order:
- *	- positive and negative parts of c_i_x
+ *	- c_i_x
  *	- c_i_n (if parametric)
  *	- c_i_0
  */
 static int node_par_coef_offset(struct isl_sched_node *node)
 {
-	return node->start + 2 * node->nvar;
+	return node->start + coef_per_var(node) * node->nvar;
 }
 
 /* Return the offset of the coefficients of the variables of "node"
@@ -2115,7 +2125,7 @@ static int node_var_coef_offset(struct isl_sched_node *node)
  */
 static int node_local_var_coef_pos(struct isl_sched_node *node, int i)
 {
-	return 2 * (node->nvar - 1 - i);
+	return coef_per_var(node) * (node->nvar - 1 - i);
 }
 
 /* Return the position of the pair of variables encoding
@@ -3230,7 +3240,7 @@ static isl_stat add_var_sum_constraint(struct isl_sched_graph *graph,
 		struct isl_sched_node *node = &graph->node[i];
 		int pos = 1 + node_var_coef_offset(node);
 
-		for (j = 0; j < 2 * node->nvar; ++j)
+		for (j = 0; j < coef_per_var(node) * node->nvar; ++j)
 			isl_int_set_si(graph->lp->eq[k][pos + j], 1);
 	}
 
@@ -3427,7 +3437,7 @@ static __isl_give isl_mat *construct_trivial(struct isl_sched_node *node,
 	ctx = isl_mat_get_ctx(indep);
 	n = isl_mat_rows(indep);
 	n_var = isl_mat_cols(indep);
-	mat = isl_mat_alloc(ctx, n, 2 * n_var);
+	mat = isl_mat_alloc(ctx, n, coef_per_var(node) * n_var);
 	if (!mat)
 		return NULL;
 	for (i = 0; i < n; ++i) {
