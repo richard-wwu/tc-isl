@@ -2126,6 +2126,32 @@ static int node_var_coef_pos(struct isl_sched_node *node, int i)
 	return node_var_coef_offset(node) + node_local_var_coef_pos(node, i);
 }
 
+/* Update "dim_map" for mapping the coefficients of the variables in "node"
+ * to the corresponding positions in the LP.
+ * "offset" is the offset of the coefficients for the variables
+ * in the input constraints.
+ * "s" is the sign of the mapping.
+ *
+ * This part of the mapping essentially plugs in
+ * (c_i_x^+ - c_i_x^-) if s = 1 and
+ * (-c_i_x^+ + c_i_x^-) if s = -1
+ * for the variable coefficients c_x.
+ * In the LP, the c_i_x^- appear before their c_i_x^+ counterpart.
+ * Furthermore, the order of these pairs is the opposite of that
+ * of the corresponding coefficients.
+ */
+static __isl_give isl_dim_map *node_var_dim_map(struct isl_sched_node *node,
+	int offset, int s, __isl_take isl_dim_map *dim_map)
+{
+	int pos;
+
+	pos = node_var_coef_pos(node, 0);
+	isl_dim_map_range(dim_map, pos, -2, offset, 1, node->nvar, -s);
+	isl_dim_map_range(dim_map, pos + 1, -2, offset, 1, node->nvar, s);
+
+	return dim_map;
+}
+
 /* Construct an isl_dim_map for mapping constraints on coefficients
  * for "node" to the corresponding positions in graph->lp.
  * "offset" is the offset of the coefficients for the variables
@@ -2139,9 +2165,6 @@ static int node_var_coef_pos(struct isl_sched_node *node, int i)
  * (0, -c_i_x^+ + c_i_x^-) if s = -1 or
  * (0, 0, c_i_x^+ - c_i_x^-) if s = 1 and
  * (0, 0, -c_i_x^+ + c_i_x^-) if s = -1.
- * In graph->lp, the c_i_x^- appear before their c_i_x^+ counterpart.
- * Furthermore, the order of these pairs is the opposite of that
- * of the corresponding coefficients.
  *
  * The caller can extend the mapping to also map the other coefficients
  * (and therefore not plug in 0).
@@ -2150,7 +2173,6 @@ static __isl_give isl_dim_map *intra_dim_map(isl_ctx *ctx,
 	struct isl_sched_graph *graph, struct isl_sched_node *node,
 	int offset, int s)
 {
-	int pos;
 	unsigned total;
 	isl_dim_map *dim_map;
 
@@ -2158,10 +2180,8 @@ static __isl_give isl_dim_map *intra_dim_map(isl_ctx *ctx,
 		return NULL;
 
 	total = isl_basic_set_total_dim(graph->lp);
-	pos = node_var_coef_pos(node, 0);
 	dim_map = isl_dim_map_alloc(ctx, total);
-	isl_dim_map_range(dim_map, pos, -2, offset, 1, node->nvar, -s);
-	isl_dim_map_range(dim_map, pos + 1, -2, offset, 1, node->nvar, s);
+	dim_map = node_var_dim_map(node, offset, s, dim_map);
 
 	return dim_map;
 }
@@ -2180,9 +2200,6 @@ static __isl_give isl_dim_map *intra_dim_map(isl_ctx *ctx,
  *  -(c_i_x^+ - c_i_x^-), c_j_x^+ - c_j_x^-) if s = 1 and
  * (-c_j_0 + c_i_0, -c_j_n + c_i_n,
  *  c_i_x^+ - c_i_x^-, -(c_j_x^+ - c_j_x^-)) if s = -1.
- * In graph->lp, the c_*^- appear before their c_*^+ counterpart.
- * Furthermore, the order of these pairs is the opposite of that
- * of the corresponding coefficients.
  *
  * The caller can further extend the mapping.
  */
@@ -2204,19 +2221,13 @@ static __isl_give isl_dim_map *inter_dim_map(isl_ctx *ctx,
 	isl_dim_map_range(dim_map, pos, 0, 0, 0, 1, s);
 	pos = node_par_coef_offset(dst);
 	isl_dim_map_range(dim_map, pos, 1, 1, 1, dst->nparam, s);
-	pos = node_var_coef_pos(dst, 0);
-	isl_dim_map_range(dim_map, pos, -2, offset + src->nvar, 1,
-			  dst->nvar, -s);
-	isl_dim_map_range(dim_map, pos + 1, -2, offset + src->nvar, 1,
-			  dst->nvar, s);
+	dim_map = node_var_dim_map(dst, offset + src->nvar, s, dim_map);
 
 	pos = node_cst_coef_offset(src);
 	isl_dim_map_range(dim_map, pos, 0, 0, 0, 1, -s);
 	pos = node_par_coef_offset(src);
 	isl_dim_map_range(dim_map, pos, 1, 1, 1, src->nparam, -s);
-	pos = node_var_coef_pos(src, 0);
-	isl_dim_map_range(dim_map, pos, -2, offset, 1, src->nvar, s);
-	isl_dim_map_range(dim_map, pos + 1, -2, offset, 1, src->nvar, -s);
+	dim_map = node_var_dim_map(src, offset, -s, dim_map);
 
 	return dim_map;
 }
