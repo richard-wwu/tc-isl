@@ -3092,8 +3092,11 @@ static isl_stat count_bound_coefficient_sum_constraints(isl_ctx *ctx,
 
 /* If the schedule_unit_max_var_coefficient_sum option is set,
  * then add a constraint for each node that ensures that
- * the sum of the absolute values of the coefficients of
+ * the sum of the variables used in the encoding of the coefficients of
  * the variables of the node is bounded by one.
+ * When a coefficient is encoded as a difference between two non-negative
+ * variables, this means that the absolute values of the coefficients
+ * are bounded by one.
  */
 static isl_stat add_bound_coefficient_sum_constraints(isl_ctx *ctx,
 	struct isl_sched_graph *graph)
@@ -3108,18 +3111,16 @@ static isl_stat add_bound_coefficient_sum_constraints(isl_ctx *ctx,
 
 	for (i = 0; i < graph->n; ++i) {
 		int j, k;
+		int pos;
 		struct isl_sched_node *node = &graph->node[i];
 
 		k = isl_basic_set_alloc_inequality(graph->lp);
 		if (k < 0)
 			return isl_stat_error;
 		isl_seq_clr(graph->lp->ineq[k], 1 + total);
-		for (j = 0; j < node->nvar; ++j) {
-			int pos = 1 + node_var_coef_pos(node, j);
-
-			isl_int_set_si(graph->lp->ineq[k][pos], -1);
-			isl_int_set_si(graph->lp->ineq[k][pos + 1], -1);
-		}
+		pos = 1 + node_var_coef_offset(node);
+		for (j = 0; j < coef_per_var(node) * node->nvar; ++j)
+			isl_int_set_si(graph->lp->ineq[k][pos + j], -1);
 		isl_int_set_si(graph->lp->ineq[k][0], 1);
 	}
 
