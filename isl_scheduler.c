@@ -3385,14 +3385,14 @@ static int needs_row(struct isl_sched_graph *graph, struct isl_sched_node *node)
 
 /* Construct a non-triviality region with triviality directions
  * corresponding to the rows of "indep".
- * The rows of "indep" are expressed in terms of the schedule coefficients c_i,
+ * The rows of "indep" are expressed in terms of the schedule coefficients c_i
+ * of "node",
  * while the triviality directions are expressed in terms of
  * pairs of non-negative variables c^+_i - c^-_i, with c^-_i appearing
- * before c^+_i.  Furthermore,
- * the pairs of non-negative variables representing the coefficients
- * are stored in the opposite order.
+ * before c^+_i.
  */
-static __isl_give isl_mat *construct_trivial(__isl_keep isl_mat *indep)
+static __isl_give isl_mat *construct_trivial(struct isl_sched_node *node,
+	__isl_keep isl_mat *indep)
 {
 	isl_ctx *ctx;
 	isl_mat *mat;
@@ -3409,9 +3409,9 @@ static __isl_give isl_mat *construct_trivial(__isl_keep isl_mat *indep)
 		return NULL;
 	for (i = 0; i < n; ++i) {
 		for (j = 0; j < n_var; ++j) {
-			int nj = n_var - 1 - j;
-			isl_int_neg(mat->row[i][2 * nj], indep->row[i][j]);
-			isl_int_set(mat->row[i][2 * nj + 1], indep->row[i][j]);
+			int pos = node_local_var_coef_pos(node, j);
+			isl_int_neg(mat->row[i][pos], indep->row[i][j]);
+			isl_int_set(mat->row[i][pos + 1], indep->row[i][j]);
 		}
 	}
 
@@ -3437,7 +3437,7 @@ static __isl_give isl_vec *solve_lp(isl_ctx *ctx, struct isl_sched_graph *graph)
 
 		graph->region[i].pos = node_var_coef_offset(node);
 		if (needs_row(graph, node))
-			trivial = construct_trivial(node->indep);
+			trivial = construct_trivial(node, node->indep);
 		else
 			trivial = isl_mat_zero(ctx, 0, 0);
 		graph->region[i].trivial = trivial;
