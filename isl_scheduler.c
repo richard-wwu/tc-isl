@@ -2095,14 +2095,23 @@ static int node_var_coef_offset(struct isl_sched_node *node)
 }
 
 /* Return the position of the pair of variables encoding
- * coefficient "i" of "node".
+ * coefficient "i" of "node", within the sequence of coefficients
+ * of the variables of "node".
  *
  * The order of these variable pairs is the opposite of
  * that of the coefficients, with 2 variables per coefficient.
  */
+static int node_local_var_coef_pos(struct isl_sched_node *node, int i)
+{
+	return 2 * (node->nvar - 1 - i);
+}
+
+/* Return the position of the pair of variables encoding
+ * coefficient "i" of "node".
+ */
 static int node_var_coef_pos(struct isl_sched_node *node, int i)
 {
-	return node_var_coef_offset(node) + 2 * (node->nvar - 1 - i);
+	return node_var_coef_offset(node) + node_local_var_coef_pos(node, i);
 }
 
 /* Construct an isl_dim_map for mapping constraints on coefficients
