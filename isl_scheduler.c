@@ -2925,64 +2925,39 @@ static isl_stat node_add_param_coefficient_constraints(isl_ctx *ctx,
  * in node->max.
  * A negative value means that no bound needs to be imposed.
  *
- * The variables coefficients are not represented directly.
- * Instead, the variable coefficients c_x are written as differences
- * c_x = c_x^+ - c_x^-.
- * That is,
+ * Construct the constraints
  *
  *	-max_i <= c_x_i <= max_i
  *
- * is encoded as
- *
- *	-max_i <= c_x_i^+ - c_x_i^- <= max_i
- *
- * or
- *
- *	-(c_x_i^+ - c_x_i^-) + max_i >= 0
- *	c_x_i^+ - c_x_i^- + max_i >= 0
+ * locally and then map them to LP constraints.
  */
 static isl_stat node_add_var_coefficient_constraints(isl_ctx *ctx,
 	struct isl_sched_graph *graph, struct isl_sched_node *node)
 {
-	int i, k;
-	int total;
-	isl_vec *ineq;
+	int i, n_ineq;
+	isl_system *sys;
+	isl_basic_set *bset;
+	isl_dim_map *dim_map;
 
-	total = isl_basic_set_dim(graph->lp, isl_dim_set);
+	n_ineq = node_max_bound_var_coefficient_constraints(node);
+	sys = isl_system_alloc(ctx, node->nvar, 0, 0, n_ineq);
 
-	ineq = isl_vec_alloc(ctx, 1 + total);
-	ineq = isl_vec_clr(ineq);
-	if (!ineq)
-		return isl_stat_error;
 	for (i = 0; i < node->nvar; ++i) {
-		int pos = 1 + node_var_coef_pos(node, i);
-
 		if (isl_int_is_neg(node->max->el[i]))
 			continue;
 
-		isl_int_set_si(ineq->el[pos], 1);
-		isl_int_set_si(ineq->el[pos + 1], -1);
-		isl_int_set(ineq->el[0], node->max->el[i]);
+		sys = isl_system_upper_bound(sys, i, node->max->el[i]);
 
-		k = isl_basic_set_alloc_inequality(graph->lp);
-		if (k < 0)
-			goto error;
-		isl_seq_cpy(graph->lp->ineq[k], ineq->el, 1 + total);
-
-		isl_seq_neg(ineq->el + pos, ineq->el + pos, 2);
-		k = isl_basic_set_alloc_inequality(graph->lp);
-		if (k < 0)
-			goto error;
-		isl_seq_cpy(graph->lp->ineq[k], ineq->el, 1 + total);
-
-		isl_seq_clr(ineq->el + pos, 2);
+		isl_int_neg(node->max->el[i], node->max->el[i]);
+		sys = isl_system_lower_bound(sys, i, node->max->el[i]);
+		isl_int_neg(node->max->el[i], node->max->el[i]);
 	}
-	isl_vec_free(ineq);
+
+	dim_map = intra_dim_map(ctx, graph, node, 0, 1);
+	bset = isl_basic_set_from_system(sys);
+	graph->lp = add_constraints_dim_map(graph->lp, bset, dim_map);
 
 	return isl_stat_ok;
-error:
-	isl_vec_free(ineq);
-	return isl_stat_error;
 }
 
 /* Add constraints that bound the values of the parameter
