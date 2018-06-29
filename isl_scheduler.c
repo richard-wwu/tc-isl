@@ -3446,8 +3446,6 @@ static __isl_give isl_vec *solve_lp(isl_ctx *ctx, struct isl_sched_graph *graph)
  * Each schedule coefficient c_i_x is represented as the difference
  * between two non-negative variables c_i_x^+ - c_i_x^-.
  * The c_i_x^- appear before their c_i_x^+ counterpart.
- * Furthermore, the order of these pairs is the opposite of that
- * of the corresponding coefficients.
  *
  * Return c_i_x = c_i_x^+ - c_i_x^-
  */
@@ -3464,10 +3462,10 @@ static __isl_give isl_vec *extract_var_coef(struct isl_sched_node *node,
 	if (!csol)
 		return NULL;
 
-	pos = 1 + node_var_coef_offset(node);
-	for (i = 0; i < node->nvar; ++i)
-		isl_int_sub(csol->el[node->nvar - 1 - i],
-			    sol->el[pos + 2 * i + 1], sol->el[pos + 2 * i]);
+	for (i = 0; i < node->nvar; ++i) {
+		pos = 1 + node_var_coef_pos(node, i);
+		isl_int_sub(csol->el[i], sol->el[pos + 1], sol->el[pos]);
+	}
 
 	return csol;
 }
