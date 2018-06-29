@@ -4978,32 +4978,42 @@ error:
 
 /* Force the schedule coefficient at position "pos" of "node" to be zero
  * in "tl".
- * The coefficient is encoded as the difference between two non-negative
- * variables.  Force these two variables to have the same value.
+ * Construct a linear expression equal to the coefficient and
+ * map that to a constraint on graph->lp, assigning the expression
+ * the value zero.
  */
 static __isl_give isl_tab_lexmin *zero_out_node_coef(
-	__isl_take isl_tab_lexmin *tl, struct isl_sched_node *node, int pos)
+	__isl_take isl_tab_lexmin *tl, struct isl_sched_graph *graph,
+	struct isl_sched_node *node, int pos)
 {
 	int dim;
 	isl_ctx *ctx;
-	isl_vec *eq;
+	isl_dim_map *dim_map;
+	isl_vec *coef, *eq;
 
 	ctx = isl_space_get_ctx(node->space);
 	dim = isl_tab_lexmin_dim(tl);
 	if (dim < 0)
 		return isl_tab_lexmin_free(tl);
 	eq = isl_vec_alloc(ctx, 1 + dim);
-	eq = isl_vec_clr(eq);
-	if (!eq)
-		return isl_tab_lexmin_free(tl);
+	coef = isl_vec_zero(ctx, node->nvar);
+	if (!eq || !coef)
+		goto error;
 
-	pos = 1 + node_var_coef_pos(node, pos);
-	isl_int_set_si(eq->el[pos], 1);
-	isl_int_set_si(eq->el[pos + 1], -1);
+	isl_int_set_si(coef->el[pos], 1);
+	dim_map = intra_dim_map(ctx, graph, node, 0, 1);
+	isl_int_set_si(eq->el[0], 0);
+	isl_dim_map_cpy_lin(dim_map, eq->el + 1, coef->el);
 	tl = isl_tab_lexmin_add_eq(tl, eq->el);
+	free(dim_map);
+	isl_vec_free(coef);
 	isl_vec_free(eq);
 
 	return tl;
+error:
+	isl_vec_free(eq);
+	isl_vec_free(coef);
+	return isl_tab_lexmin_free(tl);
 }
 
 /* Return the lexicographically smallest rational point in the basic set
@@ -5137,7 +5147,8 @@ static __isl_give isl_vec *non_neg_lexmin(struct isl_sched_graph *graph,
 		}
 		if (i < graph->n) {
 			try_again = 1;
-			tl = zero_out_node_coef(tl, &graph->node[i], pos);
+			tl = zero_out_node_coef(tl, graph,
+						&graph->node[i], pos);
 			cut = 0;
 		}
 	} while (try_again);
