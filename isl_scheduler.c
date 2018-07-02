@@ -2834,6 +2834,18 @@ static isl_stat count_bound_param_coefficient_constraints(isl_ctx *ctx,
 	return isl_stat_ok;
 }
 
+/* Return the maximal number of constraints added by
+ * node_add_var_coefficient_constraints for "node".
+ *
+ * For each entry in node->max that is not negative,
+ * two constraints get added.
+ */
+static int node_max_bound_var_coefficient_constraints(
+	struct isl_sched_node *node)
+{
+	return 2 * node->nvar;
+}
+
 /* Count the number of constraints that will be added by
  * add_bound_var_coefficient_constraints and increment *n_eq and *n_ineq
  * accordingly.
@@ -2849,8 +2861,11 @@ static isl_stat count_bound_var_coefficient_constraints(isl_ctx *ctx,
 	    !isl_options_get_schedule_treat_coalescing(ctx))
 		return isl_stat_ok;
 
-	for (i = 0; i < graph->n; ++i)
-		*n_ineq += 2 * graph->node[i].nvar;
+	for (i = 0; i < graph->n; ++i) {
+		struct isl_sched_node *node = &graph->node[i];
+
+		*n_ineq += node_max_bound_var_coefficient_constraints(node);
+	}
 
 	return isl_stat_ok;
 }
