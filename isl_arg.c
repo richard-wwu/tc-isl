@@ -1011,27 +1011,36 @@ static int parse_str_list_option(struct isl_arg *decl, char **arg,
 	return 0;
 }
 
+/* Set the option described by "decl" inside the options structure
+ * at "opt" to "val".
+ */
+static void set_int_option(struct isl_arg *decl, void *opt, int val)
+{
+	int *p = (int *)(((char *)opt) + decl->offset);
+
+	*p = val;
+}
+
 static int parse_int_option(struct isl_arg *decl, char **arg,
 	struct isl_prefixes *prefixes, void *opt)
 {
 	int has_argument;
 	const char *val;
 	char *endptr;
-	int *p = (int *)(((char *)opt) + decl->offset);
 
 	val = skip_name(decl, arg[0], prefixes, 0, &has_argument);
 	if (!val)
 		return 0;
 
 	if (has_argument) {
-		*p = atoi(val);
+		set_int_option(decl, opt, atoi(val));
 		return 1;
 	}
 
 	if (arg[1]) {
 		int i = strtol(arg[1], &endptr, 0);
 		if (*endptr == '\0') {
-			*p = i;
+			set_int_option(decl, opt, i);
 			return 2;
 		}
 	}
