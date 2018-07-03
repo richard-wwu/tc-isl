@@ -37,7 +37,6 @@ __isl_export
 unsigned isl_set_n_dim(__isl_keep isl_set *set);
 __isl_export
 unsigned isl_set_n_param(__isl_keep isl_set *set);
-__isl_export
 unsigned isl_set_dim(__isl_keep isl_set *set, enum isl_dim_type type);
 
 isl_ctx *isl_basic_set_get_ctx(__isl_keep isl_basic_set *bset);
@@ -352,7 +351,6 @@ __isl_give isl_set *isl_set_insert_dims(__isl_take isl_set *set,
 		enum isl_dim_type type, unsigned pos, unsigned n);
 __isl_give isl_basic_set *isl_basic_set_add_dims(__isl_take isl_basic_set *bset,
 		enum isl_dim_type type, unsigned n);
-__isl_export
 __isl_give isl_set *isl_set_add_dims(__isl_take isl_set *set,
 		enum isl_dim_type type, unsigned n);
 __isl_give isl_basic_set *isl_basic_set_move_dims(__isl_take isl_basic_set *bset,
@@ -449,7 +447,6 @@ __isl_give isl_set *isl_set_compute_divs(__isl_take isl_set *set);
 ISL_DEPRECATED
 __isl_give isl_set *isl_set_align_divs(__isl_take isl_set *set);
 
-__isl_export
 __isl_give isl_val *isl_set_plain_get_val_if_fixed(__isl_keep isl_set *set,
 	enum isl_dim_type type, unsigned pos);
 isl_bool isl_set_dim_is_bounded(__isl_keep isl_set *set,

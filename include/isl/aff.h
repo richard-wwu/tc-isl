@@ -23,7 +23,6 @@ __isl_give isl_aff *isl_aff_zero_on_domain(__isl_take isl_local_space *ls);
 __isl_constructor
 __isl_give isl_aff *isl_aff_val_on_domain(__isl_take isl_local_space *ls,
 	__isl_take isl_val *val);
-__isl_constructor
 __isl_give isl_aff *isl_aff_var_on_domain(__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
 __isl_give isl_aff *isl_aff_nan_on_domain(__isl_take isl_local_space *ls);
@@ -219,7 +218,6 @@ __isl_give isl_pw_aff *isl_pw_aff_alloc(__isl_take isl_set *set,
 __isl_constructor
 __isl_give isl_pw_aff *isl_pw_aff_zero_on_domain(
 	__isl_take isl_local_space *ls);
-__isl_constructor
 __isl_give isl_pw_aff *isl_pw_aff_var_on_domain(__isl_take isl_local_space *ls,
 	enum isl_dim_type type, unsigned pos);
 __isl_give isl_pw_aff *isl_pw_aff_nan_on_domain(__isl_take isl_local_space *ls);
@@ -266,7 +264,6 @@ __isl_null isl_pw_aff *isl_pw_aff_free(__isl_take isl_pw_aff *pwaff);
 unsigned isl_pw_aff_dim(__isl_keep isl_pw_aff *pwaff, enum isl_dim_type type);
 isl_bool isl_pw_aff_involves_param_id(__isl_keep isl_pw_aff *pa,
 	__isl_keep isl_id *id);
-__isl_export
 isl_bool isl_pw_aff_involves_dims(__isl_keep isl_pw_aff *pwaff,
 	enum isl_dim_type type, unsigned first, unsigned n);
 
