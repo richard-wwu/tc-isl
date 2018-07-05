@@ -391,6 +391,25 @@ bool generator::first_arg_is_isl_ctx(FunctionDecl *fd)
 	return is_isl_ctx(param->getOriginalType());
 }
 
+namespace {
+
+struct ClangAPI {
+	/* Return the first location in the range returned by
+	 * clang::SourceManager::getImmediateExpansionRange.
+	 * Older versions of clang return a pair of SourceLocation objects.
+	 * More recent versions return a CharSourceRange.
+	 */
+	static SourceLocation range_begin(
+			const std::pair<SourceLocation,SourceLocation> &p) {
+		return p.first;
+	}
+	static SourceLocation range_begin(const CharSourceRange &range) {
+		return range.getBegin();
+	}
+};
+
+}
+
 /* Does the callback argument "param" take its argument at position "pos"?
  *
  * The memory management annotations of arguments to function pointers
@@ -416,7 +435,7 @@ bool generator::callback_takes_argument(ParmVarDecl *param,
 
 	loc = param->getSourceRange().getBegin();
 	if (!SM.getFileEntryForID(SM.getFileID(SM.getSpellingLoc(loc))))
-		loc = SM.getImmediateExpansionRange(loc).first;
+		loc = ClangAPI::range_begin(SM.getImmediateExpansionRange(loc));
 	s = SM.getCharacterData(loc);
 	if (!s)
 		die("No character data");
