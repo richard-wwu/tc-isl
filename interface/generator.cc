@@ -403,7 +403,7 @@ bool generator::first_arg_is_isl_ctx(FunctionDecl *fd)
  * If the return value of the function has a memory management annotation,
  * then the spelling of "param" will point to the spelling
  * of this memory management annotation.  Since the macro is defined
- * on the command line (in main), this location does not have a filename.
+ * on the command line (in main), this location does not have a file entry.
  * In this case, move up one level in the macro expansion to the location
  * where the memory management annotation is used.
  */
@@ -415,8 +415,8 @@ bool generator::callback_takes_argument(ParmVarDecl *param,
 	bool takes, keeps;
 
 	loc = param->getSourceRange().getBegin();
-	if (!SM.getFilename(SM.getSpellingLoc(loc)).data())
-		loc = SM.getImmediateMacroCallerLoc(loc);
+	if (!SM.getFileEntryForID(SM.getFileID(SM.getSpellingLoc(loc))))
+		loc = SM.getImmediateExpansionRange(loc).first;
 	s = SM.getCharacterData(loc);
 	if (!s)
 		die("No character data");
