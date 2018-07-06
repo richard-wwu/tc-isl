@@ -132,10 +132,10 @@ static void test_exception(isl::ctx ctx)
 	try {
 		auto umap = isl::union_map::from(mupa);
 	} catch (const isl::exception &error) {
-		assert(strstr(error.what(), "cannot determine domain"));
+		assert(strstr(error.what(), "without explicit domain"));
 		copy = error;
 	}
-	assert(strstr(copy.what(), "cannot determine domain"));
+	assert(strstr(copy.what(), "without explicit domain"));
 }
 
 /* Test basic schedule tree functionality.
