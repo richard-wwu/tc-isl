@@ -110,7 +110,7 @@ void isl_dim_map_dump(struct isl_dim_map *dim_map)
 }
 
 static void copy_constraint_dim_map(isl_int *dst, isl_int *src,
-					struct isl_dim_map *dim_map)
+	__isl_keep isl_dim_map *dim_map)
 {
 	int i;
 
@@ -125,7 +125,7 @@ static void copy_constraint_dim_map(isl_int *dst, isl_int *src,
 }
 
 static void copy_div_dim_map(isl_int *dst, isl_int *src,
-					struct isl_dim_map *dim_map)
+	__isl_keep isl_dim_map *dim_map)
 {
 	isl_int_set(dst[0], src[0]);
 	copy_constraint_dim_map(dst+1, src+1, dim_map);
