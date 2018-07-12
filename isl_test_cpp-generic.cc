@@ -240,12 +240,43 @@ static isl::schedule_node test_schedule_tree_generic(isl::ctx ctx)
 	return root;
 }
 
+/* Test marking band members for unrolling.
+ * "schedule" is the schedule created by construct_schedule_tree.
+ * It schedules two statements, with 10 and 20 instances, respectively.
+ * Unrolling all band members therefore results in 30 at-domain calls
+ * by the AST generator.
+ */
+static void test_ast_build_unroll(isl::schedule schedule)
+{
+	auto root = schedule.get_root();
+	auto mark_unroll = [](isl::schedule_node node) {
+		if (auto band = node.as<isl::schedule_node_band>()) {
+			node = band.member_set_ast_loop_unroll(0);
+		}
+		return node;
+	};
+	root = root.map_descendant_bottom_up(mark_unroll);
+	schedule = root.get_schedule();
+
+	int count_ast = 0;
+	auto inc_count_ast =
+	    [&count_ast](isl::ast_node node, isl::ast_build build) {
+		count_ast++;
+		return node;
+	};
+	auto build = isl::ast_build(schedule.get_ctx());
+	build = build.set_at_each_domain(inc_count_ast);
+	auto ast = build.node_from(schedule);
+	assert(count_ast == 30);
+}
+
 /* Test basic AST generation from a schedule tree that is independent
  * of the availability of exceptions.
  *
  * In particular, create a simple schedule tree and
  * - generate an AST from the schedule tree
  * - test at_each_domain in the successful case
+ * - test unrolling
  */
 static isl::schedule test_ast_build_generic(isl::ctx ctx)
 {
@@ -268,6 +299,8 @@ static isl::schedule test_ast_build_generic(isl::ctx ctx)
 	count_ast = 0;
 	ast = build.node_from(schedule);
 	assert(count_ast == 2);
+
+	test_ast_build_unroll(schedule);
 
 	return schedule;
 }
