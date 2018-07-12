@@ -4911,11 +4911,10 @@ A set space of a given dimension and with an optional name
 can be created from a parameter space using the following functions.
 
 	#include <isl/space.h>
-	__isl_give isl_space *
-	isl_space_unnamed_set_from_params(
+	__isl_give isl_space *isl_space_add_unnamed_tuple_ui(
 		__isl_take isl_space *space, unsigned dim);
 	__isl_give isl_space *
-	isl_space_named_set_from_params_id(
+	isl_space_add_named_tuple_id_ui(
 		__isl_take isl_space *space,
 		__isl_take isl_id *tuple_id, unsigned dim);
 
@@ -4949,6 +4948,11 @@ on a given parameter domain using the following functions.
 		__isl_take isl_set *set);
 
 =item * Constructing a relation from one or two sets
+
+A map space with a range of a given dimension and with an optional name
+can be created from a domain space using the functions
+C<isl_space_add_unnamed_tuple_ui> and C<isl_space_add_named_tuple_id_ui>
+described above.
 
 A relation with a given domain tuple can be created from a set
 that will become the range of the relation
