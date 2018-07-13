@@ -170,6 +170,7 @@ const char *isl_multi_##BASE##_get_tuple_name(				\
 	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
 isl_bool isl_multi_##BASE##_has_tuple_id(				\
 	__isl_keep isl_multi_##BASE *multi, enum isl_dim_type type);	\
+__isl_export								\
 __isl_give isl_id *isl_multi_##BASE##_get_range_tuple_id(		\
 	__isl_keep isl_multi_##BASE *multi);				\
 __isl_export                                                            \
