@@ -4044,6 +4044,34 @@ error:
 	return NULL;
 }
 
+/* Given the space of a wrapped map of the form A[B -> C],
+ * return the map A[B -> C] -> C.
+ */
+__isl_give isl_multi_aff *isl_multi_aff_wrapped_range_map(
+	__isl_take isl_space *space)
+{
+	isl_bool has_id;
+	isl_id *id;
+	isl_multi_aff *ma;
+
+	if (check_space_is_set(space) < 0)
+		goto error;
+	has_id = isl_space_has_tuple_id(space, isl_dim_set);
+	if (has_id < 0)
+		goto error;
+	if (!has_id)
+		return isl_multi_aff_range_map(isl_space_unwrap(space));
+
+	id = isl_space_get_tuple_id(space, isl_dim_set);
+	ma = isl_multi_aff_range_map(isl_space_unwrap(space));
+	ma = isl_multi_aff_set_tuple_id(ma, isl_dim_in, id);
+
+	return ma;
+error:
+	isl_space_free(space);
+	return NULL;
+}
+
 /* Given a map space, return an isl_pw_multi_aff that maps a wrapped copy
  * of the space to its range.
  */
