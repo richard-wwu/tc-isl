@@ -76,6 +76,22 @@ isl_bool isl_space_is_set(__isl_keep isl_space *space)
 	return isl_bool_true;
 }
 
+/* Check that "space" is the space of a set, printing "msg" if it is not.
+ */
+static isl_stat isl_space_check_is_set(__isl_keep isl_space *space,
+	const char *msg)
+{
+	isl_bool is_space;
+
+	is_space = isl_space_is_set(space);
+	if (is_space < 0)
+		return isl_stat_error;
+	if (!is_space)
+		isl_die(isl_space_get_ctx(space), isl_error_invalid, msg,
+			return isl_stat_error);
+	return isl_stat_ok;
+}
+
 /* Is the given space that of a map?
  */
 isl_bool isl_space_is_map(__isl_keep isl_space *space)
@@ -1671,11 +1687,9 @@ __isl_give isl_space *isl_space_map_from_set(__isl_take isl_space *space)
 	isl_id **ids = NULL;
 	int n_id;
 
-	if (!space)
-		return NULL;
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		return isl_space_free(space);
 	ctx = isl_space_get_ctx(space);
-	if (!isl_space_is_set(space))
-		isl_die(ctx, isl_error_invalid, "not a set space", goto error);
 	space = isl_space_cow(space);
 	if (!space)
 		return NULL;
@@ -1708,14 +1722,10 @@ error:
 __isl_give isl_space *isl_space_map_from_domain_and_range(
 	__isl_take isl_space *domain, __isl_take isl_space *range)
 {
-	if (!domain || !range)
+	if (isl_space_check_is_set(domain, "domain is not a set space") < 0)
 		goto error;
-	if (!isl_space_is_set(domain))
-		isl_die(isl_space_get_ctx(domain), isl_error_invalid,
-			"domain is not a set space", goto error);
-	if (!isl_space_is_set(range))
-		isl_die(isl_space_get_ctx(range), isl_error_invalid,
-			"range is not a set space", goto error);
+	if (isl_space_check_is_set(range, "range is not a set space") < 0)
+		goto error;
 	return isl_space_join(isl_space_reverse(domain), range);
 error:
 	isl_space_free(domain);
@@ -1877,17 +1887,11 @@ __isl_give isl_space *isl_space_domain(__isl_take isl_space *space)
 
 __isl_give isl_space *isl_space_from_domain(__isl_take isl_space *space)
 {
-	if (!space)
-		return NULL;
-	if (!isl_space_is_set(space))
-		isl_die(isl_space_get_ctx(space), isl_error_invalid,
-			"not a set space", goto error);
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		return isl_space_free(space);
 	space = isl_space_reverse(space);
 	space = isl_space_reset(space, isl_dim_out);
 	return space;
-error:
-	isl_space_free(space);
-	return NULL;
 }
 
 __isl_give isl_space *isl_space_range(__isl_take isl_space *space)
@@ -1901,15 +1905,9 @@ __isl_give isl_space *isl_space_range(__isl_take isl_space *space)
 
 __isl_give isl_space *isl_space_from_range(__isl_take isl_space *space)
 {
-	if (!space)
-		return NULL;
-	if (!isl_space_is_set(space))
-		isl_die(isl_space_get_ctx(space), isl_error_invalid,
-			"not a set space", goto error);
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		return isl_space_free(space);
 	return isl_space_reset(space, isl_dim_in);
-error:
-	isl_space_free(space);
-	return NULL;
 }
 
 /* Given a map space A -> B, return the map space [A -> B] -> A.
