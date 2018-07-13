@@ -503,6 +503,20 @@ error:
 	return NULL;
 }
 
+/* Replace the tuple identifier of the set space "space" by "id".
+ */
+__isl_give isl_space *isl_space_set_set_tuple_id(__isl_take isl_space *space,
+	__isl_take isl_id *id)
+{
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		goto error;
+	return isl_space_set_tuple_id(space, isl_dim_set, id);
+error:
+	isl_space_free(space);
+	isl_id_free(id);
+	return NULL;
+}
+
 __isl_give isl_space *isl_space_reset_tuple_id(__isl_take isl_space *dim,
 	enum isl_dim_type type)
 {
