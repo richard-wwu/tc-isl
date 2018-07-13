@@ -1632,6 +1632,8 @@ using the following functions.
 	isl_bool isl_multi_val_has_tuple_id(
 		__isl_keep isl_multi_val *mv,
 		enum isl_dim_type type);
+	__isl_give isl_id *isl_multi_val_get_range_tuple_id(
+		__isl_keep isl_multi_val *mv);
 	__isl_give isl_id *isl_multi_val_get_tuple_id(
 		__isl_keep isl_multi_val *mv,
 		enum isl_dim_type type);
@@ -1680,6 +1682,8 @@ using the following functions.
 	isl_bool isl_multi_aff_has_tuple_id(
 		__isl_keep isl_multi_aff *ma,
 		enum isl_dim_type type);
+	__isl_give isl_id *isl_multi_aff_get_range_tuple_id(
+		__isl_keep isl_multi_aff *ma);
 	__isl_give isl_id *isl_multi_aff_get_tuple_id(
 		__isl_keep isl_multi_aff *ma,
 		enum isl_dim_type type);
@@ -1701,12 +1705,17 @@ using the following functions.
 	isl_bool isl_multi_pw_aff_has_tuple_id(
 		__isl_keep isl_multi_pw_aff *mpa,
 		enum isl_dim_type type);
+	__isl_give isl_id *isl_multi_pw_aff_get_range_tuple_id(
+		__isl_keep isl_multi_pw_aff *mpa);
 	__isl_give isl_id *isl_multi_pw_aff_get_tuple_id(
 		__isl_keep isl_multi_pw_aff *mpa,
 		enum isl_dim_type type);
 	isl_bool isl_multi_union_pw_aff_has_tuple_id(
 		__isl_keep isl_multi_union_pw_aff *mupa,
 		enum isl_dim_type type);
+	__isl_give isl_id *
+	isl_multi_union_pw_aff_get_range_tuple_id(
+		__isl_keep isl_multi_union_pw_aff *mupa);
 	__isl_give isl_id *isl_multi_union_pw_aff_get_tuple_id(
 		__isl_keep isl_multi_union_pw_aff *mupa,
 		enum isl_dim_type type);
