@@ -86,6 +86,21 @@ isl_bool isl_space_is_map(__isl_keep isl_space *space)
 		space->tuple_id[1] != &isl_id_none;
 }
 
+/* Check that "space" is the space of a map.
+ */
+static isl_stat isl_space_check_is_map(__isl_keep isl_space *space)
+{
+	isl_bool is_space;
+
+	is_space = isl_space_is_map(space);
+	if (is_space < 0)
+		return isl_stat_error;
+	if (!is_space)
+		isl_die(isl_space_get_ctx(space), isl_error_invalid,
+			"expecting map space", return isl_stat_error);
+	return isl_stat_ok;
+}
+
 __isl_give isl_space *isl_space_set_alloc(isl_ctx *ctx,
 			unsigned nparam, unsigned dim)
 {
@@ -427,6 +442,28 @@ __isl_give isl_id *isl_space_get_tuple_id(__isl_keep isl_space *dim,
 		isl_die(dim->ctx, isl_error_invalid,
 			"tuple has no id", return NULL);
 	return isl_id_copy(dim->tuple_id[type - isl_dim_in]);
+}
+
+/* Return the identifier of the domain tuple of the map space "space",
+ * assuming it has one.
+ */
+__isl_give isl_id *isl_space_get_map_domain_tuple_id(
+	__isl_keep isl_space *space)
+{
+	if (isl_space_check_is_map(space) < 0)
+		return NULL;
+	return isl_space_get_tuple_id(space, isl_dim_in);
+}
+
+/* Return the identifier of the range tuple of the map space "space",
+ * assuming it has one.
+ */
+__isl_give isl_id *isl_space_get_map_range_tuple_id(
+	__isl_keep isl_space *space)
+{
+	if (isl_space_check_is_map(space) < 0)
+		return NULL;
+	return isl_space_get_tuple_id(space, isl_dim_out);
 }
 
 __isl_give isl_space *isl_space_set_tuple_id(__isl_take isl_space *dim,
