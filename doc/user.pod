@@ -1681,12 +1681,16 @@ using the following functions.
 		enum isl_dim_type type);
 	isl_bool isl_pw_aff_has_tuple_id(__isl_keep isl_pw_aff *pa,
 		enum isl_dim_type type);
+	__isl_give isl_id *isl_pw_aff_get_range_tuple_id(
+		__isl_keep isl_pw_aff *pa);
 	__isl_give isl_id *isl_pw_aff_get_tuple_id(
 		__isl_keep isl_pw_aff *pa,
 		enum isl_dim_type type);
 	isl_bool isl_pw_multi_aff_has_tuple_id(
 		__isl_keep isl_pw_multi_aff *pma,
 		enum isl_dim_type type);
+	__isl_give isl_id *isl_pw_multi_aff_get_range_tuple_id(
+		__isl_keep isl_pw_multi_aff *pma);
 	__isl_give isl_id *isl_pw_multi_aff_get_tuple_id(
 		__isl_keep isl_pw_multi_aff *pma,
 		enum isl_dim_type type);
@@ -1725,6 +1729,13 @@ using the following functions.
 	const char *isl_multi_union_pw_aff_get_tuple_name(
 		__isl_keep isl_multi_union_pw_aff *mupa,
 		enum isl_dim_type type);
+
+	#include <isl/polynomial.h>
+	__isl_give isl_id *isl_pw_qpolynomial_get_range_tuple_id(
+		__isl_keep isl_pw_qpolynomial *pwqp);
+	__isl_give isl_id *
+	isl_pw_qpolynomial_fold_get_range_tuple_id(
+		__isl_keep isl_pw_qpolynomial_fold *pwf);
 
 The C<type> argument needs to be one of C<isl_dim_in>, C<isl_dim_out>
 or C<isl_dim_set>.  As with C<isl_space_get_name>,

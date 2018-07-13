@@ -261,6 +261,13 @@ __isl_give isl_id *FN(PW,get_tuple_id)(__isl_keep PW *pw, enum isl_dim_type type
 	return pw ? isl_space_get_tuple_id(pw->dim, type) : NULL;
 }
 
+/* Return the identifier of the (range) tuple of "pw", assuming it has one.
+ */
+__isl_give isl_id *FN(PW,get_range_tuple_id)(__isl_keep PW *pw)
+{
+	return FN(PW,get_tuple_id)(pw, isl_dim_out);
+}
+
 isl_bool FN(PW,IS_ZERO)(__isl_keep PW *pw)
 {
 	if (!pw)
