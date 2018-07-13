@@ -1531,7 +1531,6 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	int num_params = method->getNumParams();
 	QualType return_type = method->getReturnType();
 	string rettype_str = get_return_type(clazz, method);
-	bool has_callback = false;
 	bool returns_super = is_subclass_mutator(clazz, method);
 
 	print_method_header(os, clazz, method, false, kind);
@@ -1543,7 +1542,6 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	for (int i = 0; i < num_params; ++i) {
 		ParmVarDecl *param = method->getParamDecl(i);
 		if (is_callback(param->getType())) {
-			has_callback = true;
 			num_params -= 1;
 			print_callback_local(os, param);
 		}
@@ -1577,7 +1575,7 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 		if (returns_super)
 			osprintf(os, ".as<%s>()", rettype_str.c_str());
 		osprintf(os, ";\n");
-	} else if (has_callback) {
+	} else if (is_isl_bool(return_type) || is_isl_stat(return_type)) {
 		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
 	} else if (is_string(return_type)) {
 		osprintf(os, "  std::string tmp(res);\n");
