@@ -1477,16 +1477,10 @@ void cpp_generator::print_set_persistent_callback(ostream &os,
 	osprintf(os, "}\n\n");
 }
 
-/* Print definition for "method" in class "clazz" to "os".
+/* Print the return statement of the C++ method corresponding
+ * to the C function "method" in class "clazz" to "os".
  *
- * "kind" specifies the kind of method that should be generated.
- *
- * This method distinguishes three kinds of methods: member methods, static
- * methods, and constructors.
- *
- * Member methods call "method" by passing to the underlying isl function the
- * isl object belonging to "this" as first argument and the remaining arguments
- * as subsequent arguments. The result of the isl function is returned as a new
+ * The result of the isl function is returned as a new
  * object if the underlying isl function returns an isl_* ptr, as a bool
  * if the isl function returns an isl_bool, as void if the isl functions
  * returns an isl_stat,
@@ -1502,6 +1496,45 @@ void cpp_generator::print_set_persistent_callback(ostream &os,
  * If "clazz" is a subclass that is based on a type function and
  * if the return type corresponds to the superclass data type,
  * then it is replaced by the subclass data type.
+ */
+void cpp_generator::print_method_return(ostream &os, const isl_class &clazz,
+	FunctionDecl *method)
+{
+	QualType return_type = method->getReturnType();
+	string rettype_str = get_return_type(clazz, method);
+	bool returns_super = is_subclass_mutator(clazz, method);
+
+	if (is_isl_type(return_type) ||
+		    (noexceptions && is_isl_bool(return_type))) {
+		osprintf(os, "  return manage(res)");
+		if (is_mutator(clazz, method) &&
+		    clazz.has_persistent_callbacks())
+			osprintf(os, ".copy_callbacks(*this)");
+		if (returns_super)
+			osprintf(os, ".as<%s>()", rettype_str.c_str());
+		osprintf(os, ";\n");
+	} else if (is_isl_bool(return_type) || is_isl_stat(return_type)) {
+		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
+	} else if (is_string(return_type)) {
+		osprintf(os, "  std::string tmp(res);\n");
+		if (gives(method))
+			osprintf(os, "  free(res);\n");
+		osprintf(os, "  return tmp;\n");
+	} else {
+		osprintf(os, "  return res;\n");
+	}
+}
+
+/* Print definition for "method" in class "clazz" to "os".
+ *
+ * "kind" specifies the kind of method that should be generated.
+ *
+ * This method distinguishes three kinds of methods: member methods, static
+ * methods, and constructors.
+ *
+ * Member methods call "method" by passing to the underlying isl function the
+ * isl object belonging to "this" as first argument and the remaining arguments
+ * as subsequent arguments.
  *
  * Static methods call "method" by passing all arguments to the underlying isl
  * function, as no this-pointer is available. The result is a newly managed
@@ -1529,9 +1562,6 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 {
 	string methodname = method->getName();
 	int num_params = method->getNumParams();
-	QualType return_type = method->getReturnType();
-	string rettype_str = get_return_type(clazz, method);
-	bool returns_super = is_subclass_mutator(clazz, method);
 
 	print_method_header(os, clazz, method, false, kind);
 	osprintf(os, "{\n");
@@ -1566,24 +1596,8 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	print_exceptional_execution_check(os, clazz, method, kind);
 	if (kind == function_kind_constructor) {
 		osprintf(os, "  ptr = res;\n");
-	} else if (is_isl_type(return_type) ||
-		    (noexceptions && is_isl_bool(return_type))) {
-		osprintf(os, "  return manage(res)");
-		if (is_mutator(clazz, method) &&
-		    clazz.has_persistent_callbacks())
-			osprintf(os, ".copy_callbacks(*this)");
-		if (returns_super)
-			osprintf(os, ".as<%s>()", rettype_str.c_str());
-		osprintf(os, ";\n");
-	} else if (is_isl_bool(return_type) || is_isl_stat(return_type)) {
-		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
-	} else if (is_string(return_type)) {
-		osprintf(os, "  std::string tmp(res);\n");
-		if (gives(method))
-			osprintf(os, "  free(res);\n");
-		osprintf(os, "  return tmp;\n");
 	} else {
-		osprintf(os, "  return res;\n");
+		print_method_return(os, clazz, method);
 	}
 
 	osprintf(os, "}\n");

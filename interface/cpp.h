@@ -99,6 +99,8 @@ private:
 		function_kind kind);
 	void print_set_persistent_callback(ostream &os, const isl_class &clazz,
 		FunctionDecl *method, function_kind kind);
+	void print_method_return(ostream &os, const isl_class &clazz,
+		FunctionDecl *method);
 	void print_method_impl(ostream &os, const isl_class &clazz,
 		FunctionDecl *method, function_kind kind);
 	void print_method_param_use(ostream &os, ParmVarDecl *param,
