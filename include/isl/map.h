@@ -98,6 +98,7 @@ __isl_give isl_id *isl_map_get_dim_id(__isl_keep isl_map *map,
 	enum isl_dim_type type, unsigned pos);
 __isl_give isl_map *isl_map_set_domain_tuple_id(__isl_take isl_map *map,
 	__isl_take isl_id *id);
+__isl_export
 __isl_give isl_map *isl_map_set_range_tuple_id(__isl_take isl_map *map,
 	__isl_take isl_id *id);
 __isl_export
