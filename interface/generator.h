@@ -106,7 +106,6 @@ public:
 	static bool is_isl_bool(QualType type);
 	static bool is_isl_stat(QualType type);
 	static bool is_long(QualType type);
-	static bool is_isl_enum(QualType type);
 	static bool is_callback(QualType type);
 	static bool is_string(QualType type);
 	static bool is_static(const isl_class &clazz, FunctionDecl *method);

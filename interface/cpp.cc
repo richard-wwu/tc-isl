@@ -1168,14 +1168,6 @@ void cpp_generator::print_method_param_use(ostream &os, ParmVarDecl *param,
 	const char *name_str = name.c_str();
 	QualType type = param->getOriginalType();
 
-        if (extensions) {
-          if (type->isEnumeralType()) {
-            string typestr = type.getAsString();
-            osprintf(os, "static_cast<%s>(%s)", typestr.c_str(), name_str);
-            return;
-          }
-        }
-
 	if (type->isIntegerType()) {
 		osprintf(os, "%s", name_str);
 		return;
@@ -1592,11 +1584,6 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 		if (gives(method))
 			osprintf(os, "  free(res);\n");
 		osprintf(os, "  return tmp;\n");
-	} else if (is_isl_enum(return_type)) {
-		string typestr = return_type.getAsString();
-		typestr = typestr.replace(typestr.find("isl_"), sizeof("isl_")-1, "isl::");
-		osprintf(os, "  return static_cast<%s>(res);\n", typestr.c_str());
-
 	} else {
 		osprintf(os, "  return res;\n");
 	}
@@ -2106,17 +2093,6 @@ string cpp_generator::type2cpp(QualType type)
 
 	if (is_isl_stat(type))
 		return noexceptions ? "isl::stat" : "void";
-
-        if (extensions) {
-          if (type->isEnumeralType()) {
-            string typestr = type.getAsString();
-            return typestr.replace(
-                typestr.find("isl_"), sizeof("isl_")-1, "isl::");
-          }
-          else if (is_isl_ctx(type)) {
-            return "isl::ctx";
-          }
-        }
 
 	if (type->isIntegerType())
 		return type.getAsString();
