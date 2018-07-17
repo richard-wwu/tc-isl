@@ -56,6 +56,21 @@
 
 #include <isl_list_templ.c>
 
+/* Check that "space" is a set space.
+ */
+static isl_stat check_space_is_set(__isl_keep isl_space *space)
+{
+	isl_bool is_set;
+
+	is_set = isl_space_is_set(space);
+	if (is_set < 0)
+		return isl_stat_error;
+	if (!is_set)
+		isl_die(isl_space_get_ctx(space), isl_error_invalid,
+			"expecting set space", return isl_stat_error);
+	return isl_stat_ok;
+}
+
 __isl_give isl_aff *isl_aff_alloc_vec(__isl_take isl_local_space *ls,
 	__isl_take isl_vec *v)
 {
@@ -4029,6 +4044,34 @@ error:
 	return NULL;
 }
 
+/* Given the space of a wrapped map of the form A[B -> C],
+ * return the map A[B -> C] -> C.
+ */
+__isl_give isl_multi_aff *isl_multi_aff_wrapped_range_map(
+	__isl_take isl_space *space)
+{
+	isl_bool has_id;
+	isl_id *id;
+	isl_multi_aff *ma;
+
+	if (check_space_is_set(space) < 0)
+		goto error;
+	has_id = isl_space_has_tuple_id(space, isl_dim_set);
+	if (has_id < 0)
+		goto error;
+	if (!has_id)
+		return isl_multi_aff_range_map(isl_space_unwrap(space));
+
+	id = isl_space_get_tuple_id(space, isl_dim_set);
+	ma = isl_multi_aff_range_map(isl_space_unwrap(space));
+	ma = isl_multi_aff_set_tuple_id(ma, isl_dim_in, id);
+
+	return ma;
+error:
+	isl_space_free(space);
+	return NULL;
+}
+
 /* Given a map space, return an isl_pw_multi_aff that maps a wrapped copy
  * of the space to its range.
  */
@@ -4049,11 +4092,8 @@ __isl_give isl_multi_aff *isl_multi_aff_project_out_map(
 	isl_local_space *ls;
 	isl_multi_aff *ma;
 
-	if (!space)
-		return NULL;
-	if (!isl_space_is_set(space))
-		isl_die(isl_space_get_ctx(space), isl_error_unsupported,
-			"expecting set space", goto error);
+	if (check_space_is_set(space) < 0)
+		goto error;
 	if (type != isl_dim_set)
 		isl_die(isl_space_get_ctx(space), isl_error_invalid,
 			"only set dimensions can be projected out", goto error);
@@ -7494,12 +7534,8 @@ static isl_stat isl_union_pw_aff_check_match_domain_space(
 	if (!upa || !space)
 		return isl_stat_error;
 
-	match = isl_space_is_set(space);
-	if (match < 0)
+	if (check_space_is_set(space) < 0)
 		return isl_stat_error;
-	if (!match)
-		isl_die(isl_space_get_ctx(space), isl_error_invalid,
-			"expecting set space", return isl_stat_error);
 
 	upa_space = isl_union_pw_aff_get_space(upa);
 	match = isl_space_has_equal_params(space, upa_space);
@@ -8097,9 +8133,8 @@ __isl_give isl_multi_union_pw_aff *isl_multi_union_pw_aff_zero(
 	if (params)
 		isl_die(isl_space_get_ctx(space), isl_error_invalid,
 			"expecting proper set space", goto error);
-	if (!isl_space_is_set(space))
-		isl_die(isl_space_get_ctx(space), isl_error_invalid,
-			"expecting set space", goto error);
+	if (check_space_is_set(space) < 0)
+		goto error;
 	if (isl_space_dim(space , isl_dim_out) != 0)
 		isl_die(isl_space_get_ctx(space), isl_error_invalid,
 			"expecting 0D space", goto error);

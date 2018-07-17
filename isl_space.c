@@ -76,6 +76,22 @@ isl_bool isl_space_is_set(__isl_keep isl_space *space)
 	return isl_bool_true;
 }
 
+/* Check that "space" is the space of a set, printing "msg" if it is not.
+ */
+static isl_stat isl_space_check_is_set(__isl_keep isl_space *space,
+	const char *msg)
+{
+	isl_bool is_space;
+
+	is_space = isl_space_is_set(space);
+	if (is_space < 0)
+		return isl_stat_error;
+	if (!is_space)
+		isl_die(isl_space_get_ctx(space), isl_error_invalid, msg,
+			return isl_stat_error);
+	return isl_stat_ok;
+}
+
 /* Is the given space that of a map?
  */
 isl_bool isl_space_is_map(__isl_keep isl_space *space)
@@ -84,6 +100,21 @@ isl_bool isl_space_is_map(__isl_keep isl_space *space)
 		return isl_bool_error;
 	return space->tuple_id[0] != &isl_id_none &&
 		space->tuple_id[1] != &isl_id_none;
+}
+
+/* Check that "space" is the space of a map.
+ */
+static isl_stat isl_space_check_is_map(__isl_keep isl_space *space)
+{
+	isl_bool is_space;
+
+	is_space = isl_space_is_map(space);
+	if (is_space < 0)
+		return isl_stat_error;
+	if (!is_space)
+		isl_die(isl_space_get_ctx(space), isl_error_invalid,
+			"expecting map space", return isl_stat_error);
+	return isl_stat_ok;
 }
 
 __isl_give isl_space *isl_space_set_alloc(isl_ctx *ctx,
@@ -429,6 +460,28 @@ __isl_give isl_id *isl_space_get_tuple_id(__isl_keep isl_space *dim,
 	return isl_id_copy(dim->tuple_id[type - isl_dim_in]);
 }
 
+/* Return the identifier of the domain tuple of the map space "space",
+ * assuming it has one.
+ */
+__isl_give isl_id *isl_space_get_map_domain_tuple_id(
+	__isl_keep isl_space *space)
+{
+	if (isl_space_check_is_map(space) < 0)
+		return NULL;
+	return isl_space_get_tuple_id(space, isl_dim_in);
+}
+
+/* Return the identifier of the range tuple of the map space "space",
+ * assuming it has one.
+ */
+__isl_give isl_id *isl_space_get_map_range_tuple_id(
+	__isl_keep isl_space *space)
+{
+	if (isl_space_check_is_map(space) < 0)
+		return NULL;
+	return isl_space_get_tuple_id(space, isl_dim_out);
+}
+
 __isl_give isl_space *isl_space_set_tuple_id(__isl_take isl_space *dim,
 	enum isl_dim_type type, __isl_take isl_id *id)
 {
@@ -447,6 +500,20 @@ __isl_give isl_space *isl_space_set_tuple_id(__isl_take isl_space *dim,
 error:
 	isl_id_free(id);
 	isl_space_free(dim);
+	return NULL;
+}
+
+/* Replace the tuple identifier of the set space "space" by "id".
+ */
+__isl_give isl_space *isl_space_set_set_tuple_id(__isl_take isl_space *space,
+	__isl_take isl_id *id)
+{
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		goto error;
+	return isl_space_set_tuple_id(space, isl_dim_set, id);
+error:
+	isl_space_free(space);
+	isl_id_free(id);
 	return NULL;
 }
 
@@ -1634,11 +1701,9 @@ __isl_give isl_space *isl_space_map_from_set(__isl_take isl_space *space)
 	isl_id **ids = NULL;
 	int n_id;
 
-	if (!space)
-		return NULL;
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		return isl_space_free(space);
 	ctx = isl_space_get_ctx(space);
-	if (!isl_space_is_set(space))
-		isl_die(ctx, isl_error_invalid, "not a set space", goto error);
 	space = isl_space_cow(space);
 	if (!space)
 		return NULL;
@@ -1671,14 +1736,10 @@ error:
 __isl_give isl_space *isl_space_map_from_domain_and_range(
 	__isl_take isl_space *domain, __isl_take isl_space *range)
 {
-	if (!domain || !range)
+	if (isl_space_check_is_set(domain, "domain is not a set space") < 0)
 		goto error;
-	if (!isl_space_is_set(domain))
-		isl_die(isl_space_get_ctx(domain), isl_error_invalid,
-			"domain is not a set space", goto error);
-	if (!isl_space_is_set(range))
-		isl_die(isl_space_get_ctx(range), isl_error_invalid,
-			"range is not a set space", goto error);
+	if (isl_space_check_is_set(range, "range is not a set space") < 0)
+		goto error;
 	return isl_space_join(isl_space_reverse(domain), range);
 error:
 	isl_space_free(domain);
@@ -1838,19 +1899,13 @@ __isl_give isl_space *isl_space_domain(__isl_take isl_space *space)
 	return space;
 }
 
-__isl_give isl_space *isl_space_from_domain(__isl_take isl_space *dim)
+__isl_give isl_space *isl_space_from_domain(__isl_take isl_space *space)
 {
-	if (!dim)
-		return NULL;
-	if (!isl_space_is_set(dim))
-		isl_die(isl_space_get_ctx(dim), isl_error_invalid,
-			"not a set space", goto error);
-	dim = isl_space_reverse(dim);
-	dim = isl_space_reset(dim, isl_dim_out);
-	return dim;
-error:
-	isl_space_free(dim);
-	return NULL;
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		return isl_space_free(space);
+	space = isl_space_reverse(space);
+	space = isl_space_reset(space, isl_dim_out);
+	return space;
 }
 
 __isl_give isl_space *isl_space_range(__isl_take isl_space *space)
@@ -1862,17 +1917,11 @@ __isl_give isl_space *isl_space_range(__isl_take isl_space *space)
 	return space;
 }
 
-__isl_give isl_space *isl_space_from_range(__isl_take isl_space *dim)
+__isl_give isl_space *isl_space_from_range(__isl_take isl_space *space)
 {
-	if (!dim)
-		return NULL;
-	if (!isl_space_is_set(dim))
-		isl_die(isl_space_get_ctx(dim), isl_error_invalid,
-			"not a set space", goto error);
-	return isl_space_reset(dim, isl_dim_in);
-error:
-	isl_space_free(dim);
-	return NULL;
+	if (isl_space_check_is_set(space, "not a set space") < 0)
+		return isl_space_free(space);
+	return isl_space_reset(space, isl_dim_in);
 }
 
 /* Given a map space A -> B, return the map space [A -> B] -> A.

@@ -626,6 +626,22 @@ error:
 	return NULL;
 }
 
+/* Replace the identifier of the domain tuple of "map" by "id".
+ */
+__isl_give isl_map *isl_map_set_domain_tuple_id(__isl_take isl_map *map,
+	__isl_take isl_id *id)
+{
+	return isl_map_set_tuple_id(map, isl_dim_in, id);
+}
+
+/* Replace the identifier of the range tuple of "map" by "id".
+ */
+__isl_give isl_map *isl_map_set_range_tuple_id(__isl_take isl_map *map,
+	__isl_take isl_id *id)
+{
+	return isl_map_set_tuple_id(map, isl_dim_out, id);
+}
+
 __isl_give isl_set *isl_set_set_tuple_id(__isl_take isl_set *set,
 	__isl_take isl_id *id)
 {
@@ -658,6 +674,20 @@ __isl_give isl_id *isl_map_get_tuple_id(__isl_keep isl_map *map,
 	enum isl_dim_type type)
 {
 	return map ? isl_space_get_tuple_id(map->dim, type) : NULL;
+}
+
+/* Return the identifier of the domain tuple of "map", assuming it has one.
+ */
+__isl_give isl_id *isl_map_get_domain_tuple_id(__isl_keep isl_map *map)
+{
+	return isl_map_get_tuple_id(map, isl_dim_in);
+}
+
+/* Return the identifier of the range tuple of "map", assuming it has one.
+ */
+__isl_give isl_id *isl_map_get_range_tuple_id(__isl_keep isl_map *map)
+{
+	return isl_map_get_tuple_id(map, isl_dim_out);
 }
 
 isl_bool isl_set_has_tuple_id(__isl_keep isl_set *set)

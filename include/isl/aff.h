@@ -281,6 +281,7 @@ __isl_give isl_pw_aff *isl_pw_aff_drop_unused_params(
 
 isl_bool isl_pw_aff_has_tuple_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type);
+__isl_give isl_id *isl_pw_aff_get_range_tuple_id(__isl_keep isl_pw_aff *pa);
 __isl_give isl_id *isl_pw_aff_get_tuple_id(__isl_keep isl_pw_aff *pa,
 	enum isl_dim_type type);
 __isl_give isl_pw_aff *isl_pw_aff_set_tuple_id(__isl_take isl_pw_aff *pwaff,
@@ -463,6 +464,9 @@ __isl_export
 __isl_give isl_multi_aff *isl_multi_aff_domain_map(__isl_take isl_space *space);
 __isl_export
 __isl_give isl_multi_aff *isl_multi_aff_range_map(__isl_take isl_space *space);
+__isl_export
+__isl_give isl_multi_aff *isl_multi_aff_wrapped_range_map(
+	__isl_take isl_space *space);
 __isl_give isl_multi_aff *isl_multi_aff_project_out_map(
 	__isl_take isl_space *space, enum isl_dim_type type,
 	unsigned first, unsigned n);
@@ -565,6 +569,9 @@ isl_bool isl_pw_multi_aff_has_tuple_name(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
 const char *isl_pw_multi_aff_get_tuple_name(__isl_keep isl_pw_multi_aff *pma,
 	enum isl_dim_type type);
+__isl_export
+__isl_give isl_id *isl_pw_multi_aff_get_range_tuple_id(
+	__isl_keep isl_pw_multi_aff *pma);
 __isl_export
 __isl_give isl_id *isl_pw_multi_aff_get_tuple_id(
 	__isl_keep isl_pw_multi_aff *pma, enum isl_dim_type type);

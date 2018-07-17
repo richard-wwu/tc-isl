@@ -36,6 +36,14 @@ __isl_give isl_id *FN(MULTI(BASE),get_tuple_id)(__isl_keep MULTI(BASE) *multi,
 	return multi ? isl_space_get_tuple_id(multi->space, type) : NULL;
 }
 
+/* Return the identifier of the (range) tuple of "multi", assuming it has one.
+ */
+__isl_give isl_id *FN(MULTI(BASE),get_range_tuple_id)(
+	__isl_keep MULTI(BASE) *multi)
+{
+	return FN(MULTI(BASE),get_tuple_id)(multi, isl_dim_out);
+}
+
 __isl_give MULTI(BASE) *FN(MULTI(BASE),set_tuple_name)(
 	__isl_keep MULTI(BASE) *multi, enum isl_dim_type type,
 	const char *s)
@@ -69,6 +77,14 @@ __isl_give MULTI(BASE) *FN(MULTI(BASE),set_tuple_id)(
 error:
 	isl_id_free(id);
 	return NULL;
+}
+
+/* Replace the identifier of the (range) tuple of "multi" by "id".
+ */
+__isl_give MULTI(BASE) *FN(MULTI(BASE),set_range_tuple_id)(
+	__isl_take MULTI(BASE) *multi, __isl_take isl_id *id)
+{
+	return FN(MULTI(BASE),set_tuple_id)(multi, isl_dim_out, id);
 }
 
 /* Drop the id on the specified tuple.
