@@ -16,9 +16,7 @@ jobs:
             ./autogen.sh
             mkdir -p build
             cd build
-            # Python bindings generation not yet supported in this repo
-            # ../configure --with-clang-prefix=/clang+llvm-4.0
-            ../configure
+            ../configure --with-clang-prefix=/clang+llvm-4.0
             make -j 16
 
       - run:
@@ -43,9 +41,7 @@ jobs:
             ./autogen.sh
             mkdir -p build
             cd build
-            # Python bindings generation not yet supported in this repo
-            # ../configure --with-clang-prefix=/clang+llvm-4.0
-            ../configure
+            ../configure --with-clang-prefix=/clang+llvm-4.0
             make -j 16
 
       - run:
