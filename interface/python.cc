@@ -445,7 +445,6 @@ void python_generator::print_method_overload(const isl_class &clazz,
 	string fullname = method->getName();
 	int num_params = method->getNumParams();
 	int first;
-	string type;
 
 	first = is_static(clazz, method) ? 0 : 1;
 
@@ -470,7 +469,6 @@ void python_generator::print_method_overload(const isl_class &clazz,
 		print_arg_in_call(method, i, 0);
 	}
 	printf(")\n");
-	type = type2python(extract_type(method->getReturnType()));
 	printf("            ctx = arg0.ctx\n");
 	print_method_return(12, clazz, method);
 }
