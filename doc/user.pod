@@ -10209,6 +10209,11 @@ This option can significantly increase the speed of the scheduling calculation
 and may also prevent fusing of unrelated dimensions. A value of -1 means that
 this option does not introduce bounds on the variable or parameter
 coefficients.
+If the C<schedule_whole_component> option is turned off,
+then the bound gets applied to both the schedules
+of the individual strongly connected components and their combinations.
+The coefficients can accumulate during this process and
+may therefore end up being (much) larger than the bound.
 This option has no effect on the Feautrier style scheduler.
 
 =item * schedule_unit_max_var_coefficient_sum
