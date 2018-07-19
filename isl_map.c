@@ -44,7 +44,10 @@
 #include <isl_options_private.h>
 #include <isl_morph.h>
 #include <isl_val_private.h>
+#include <isl_system.h>
 
+#include <bmap_to_sys_inl.c>
+#include <bmap_from_sys_inl.c>
 #include <bset_to_bmap.c>
 #include <bset_from_bmap.c>
 #include <set_to_map.c>
@@ -6524,29 +6527,16 @@ static __isl_give isl_basic_map *basic_map_bound_si(
 	__isl_take isl_basic_map *bmap,
 	enum isl_dim_type type, unsigned pos, int value, int upper)
 {
-	int j;
+	isl_system *sys;
 
 	if (isl_basic_map_check_range(bmap, type, pos, 1) < 0)
 		return isl_basic_map_free(bmap);
-	pos += isl_basic_map_offset(bmap, type);
-	bmap = isl_basic_map_cow(bmap);
-	bmap = isl_basic_map_extend_constraints(bmap, 0, 1);
-	j = isl_basic_map_alloc_inequality(bmap);
-	if (j < 0)
-		goto error;
-	isl_seq_clr(bmap->ineq[j], 1 + isl_basic_map_total_dim(bmap));
-	if (upper) {
-		isl_int_set_si(bmap->ineq[j][pos], -1);
-		isl_int_set_si(bmap->ineq[j][0], value);
-	} else {
-		isl_int_set_si(bmap->ineq[j][pos], 1);
-		isl_int_set_si(bmap->ineq[j][0], -value);
-	}
+	pos += isl_basic_map_offset(bmap, type) - 1;
+	sys = bmap_to_sys(bmap);
+	sys = isl_system_bound_si(sys, pos, value, upper);
+	bmap = bmap_from_sys(sys);
 	bmap = isl_basic_map_simplify(bmap);
 	return isl_basic_map_finalize(bmap);
-error:
-	isl_basic_map_free(bmap);
-	return NULL;
 }
 
 __isl_give isl_basic_map *isl_basic_map_lower_bound_si(
@@ -6620,29 +6610,16 @@ static __isl_give isl_basic_map *basic_map_bound(
 	__isl_take isl_basic_map *bmap,
 	enum isl_dim_type type, unsigned pos, isl_int value, int upper)
 {
-	int j;
+	isl_system *sys;
 
 	if (isl_basic_map_check_range(bmap, type, pos, 1) < 0)
 		return isl_basic_map_free(bmap);
-	pos += isl_basic_map_offset(bmap, type);
-	bmap = isl_basic_map_cow(bmap);
-	bmap = isl_basic_map_extend_constraints(bmap, 0, 1);
-	j = isl_basic_map_alloc_inequality(bmap);
-	if (j < 0)
-		goto error;
-	isl_seq_clr(bmap->ineq[j], 1 + isl_basic_map_total_dim(bmap));
-	if (upper) {
-		isl_int_set_si(bmap->ineq[j][pos], -1);
-		isl_int_set(bmap->ineq[j][0], value);
-	} else {
-		isl_int_set_si(bmap->ineq[j][pos], 1);
-		isl_int_neg(bmap->ineq[j][0], value);
-	}
+	pos += isl_basic_map_offset(bmap, type) - 1;
+	sys = bmap_to_sys(bmap);
+	sys = isl_system_bound(sys, pos, value, upper);
+	bmap = bmap_from_sys(sys);
 	bmap = isl_basic_map_simplify(bmap);
 	return isl_basic_map_finalize(bmap);
-error:
-	isl_basic_map_free(bmap);
-	return NULL;
 }
 
 /* Bound the given variable of "map" from below (or above is "upper"
@@ -8406,29 +8383,22 @@ __isl_give isl_map *isl_set_identity(__isl_take isl_set *set)
 __isl_give isl_basic_set *isl_basic_set_positive_orthant(
 	__isl_take isl_space *space)
 {
-	int i;
 	unsigned nparam;
 	unsigned dim;
+	unsigned total;
+	isl_ctx *ctx;
+	isl_system *sys;
 	struct isl_basic_set *bset;
 
 	if (!space)
 		return NULL;
 	nparam = space->nparam;
 	dim = space->n_out;
-	bset = isl_basic_set_alloc_space(space, 0, 0, dim);
-	if (!bset)
-		return NULL;
-	for (i = 0; i < dim; ++i) {
-		int k = isl_basic_set_alloc_inequality(bset);
-		if (k < 0)
-			goto error;
-		isl_seq_clr(bset->ineq[k], 1 + isl_basic_set_total_dim(bset));
-		isl_int_set_si(bset->ineq[k][1 + nparam + i], 1);
-	}
+	total = isl_space_dim(space, isl_dim_all);
+	ctx = isl_space_get_ctx(space);
+	sys = isl_system_nonneg(ctx, total, nparam, dim);
+	bset = isl_basic_set_from_space_and_system(space, sys);
 	return bset;
-error:
-	isl_basic_set_free(bset);
-	return NULL;
 }
 
 /* Construct the half-space x_pos >= 0.
@@ -13798,4 +13768,25 @@ __isl_give isl_basic_set *isl_basic_set_transform_dims(
 	__isl_take isl_mat *trans)
 {
 	return isl_basic_map_transform_dims(bset, type, first, trans);
+}
+
+/* Construct a basic set from a system of constraints
+ * (without local variables) within the given space.
+ */
+__isl_give isl_basic_set *isl_basic_set_from_space_and_system(
+	__isl_take isl_space *space, __isl_take isl_system *sys)
+{
+	isl_basic_set *bset;
+
+	bset = isl_basic_set_from_system(sys);
+	bset = isl_basic_set_reset_space(bset, space);
+	return bset;
+}
+
+/* Construct a basic set from a system of constraints,
+ * without local variables and without specifying a space.
+ */
+__isl_give isl_basic_set *isl_basic_set_from_system(__isl_take isl_system *sys)
+{
+	return bset_from_bmap(bmap_from_sys(sys));
 }

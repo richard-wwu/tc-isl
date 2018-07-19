@@ -76,6 +76,7 @@ struct isl_arg {
 	} b;
 	struct {
 		int			default_value;
+		int (*set)(void *opt, int val);
 	} i;
 	struct {
 		long		 	default_value;
@@ -184,7 +185,7 @@ struct isl_args {
 	_ISL_ARG_BOOL_F(-1,s,l,setter,0,h,fl)
 #define ISL_ARG_PHANTOM_BOOL(s,l,setter,h)				\
 	ISL_ARG_PHANTOM_BOOL_F(s,l,setter,h,0)
-#define ISL_ARG_INT_F(st,f,s,l,a,d,h,fl)	{			\
+#define ISL_ARG_USER_INT_F(st,f,s,l,a,setter,d,h,fl)	{		\
 	.type = isl_arg_int,						\
 	.short_name = s,						\
 	.long_name = l,							\
@@ -192,10 +193,14 @@ struct isl_args {
 	.offset = offsetof(st, f),					\
 	.help_msg = h,							\
 	.flags = fl,							\
-	.u = { .ul = { .default_value = d } }				\
+	.u = { .i = { .default_value = d, .set = setter } }		\
 },
+#define ISL_ARG_INT_F(st,f,s,l,a,d,h,fl)				\
+	ISL_ARG_USER_INT_F(st,f,s,l,a,NULL,d,h,fl)
 #define ISL_ARG_INT(st,f,s,l,a,d,h)					\
 	ISL_ARG_INT_F(st,f,s,l,a,d,h,0)
+#define ISL_ARG_USER_INT(st,f,s,l,a,setter,d,h)				\
+	ISL_ARG_USER_INT_F(st,f,s,l,a,setter,d,h,0)
 #define ISL_ARG_LONG(st,f,s,lo,d,h)	{				\
 	.type = isl_arg_long,						\
 	.short_name = s,						\

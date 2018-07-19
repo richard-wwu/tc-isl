@@ -198,6 +198,10 @@ libisl_la_SOURCES = \
 	isl_seq.c \
 	isl_seq.h \
 	isl_stride.c \
+	isl_system.c \
+	isl_system.h \
+	isl_system_type.h \
+	isl_system_private.h \
 	isl_tab.c \
 	isl_tab.h \
 	isl_tab_pip.c \
@@ -419,6 +423,8 @@ EXTRA_DIST = \
 	LICENSE \
 	isl_config_post.h \
 	basis_reduction_templ.c \
+	bmap_to_sys_inl.c \
+	bmap_from_sys_inl.c \
 	bset_to_bmap.c \
 	bset_from_bmap.c \
 	extract_key.c \
@@ -474,6 +480,7 @@ EXTRA_DIST = \
 	set_to_map.c \
 	set_from_map.c \
 	set_list_from_map_list_inl.c \
+	isl_system_bound_templ.c \
 	isl_tab_lexopt_templ.c \
 	uset_to_umap.c \
 	uset_from_umap.c \
