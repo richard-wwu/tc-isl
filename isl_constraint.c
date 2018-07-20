@@ -309,15 +309,15 @@ __isl_give isl_constraint_list *isl_basic_set_get_constraint_list(
 	return isl_basic_map_get_constraint_list(bset);
 }
 
-isl_bool isl_constraint_is_equal(__isl_keep isl_constraint *constraint1,
-	__isl_keep isl_constraint *constraint2)
+int isl_constraint_is_equal(struct isl_constraint *constraint1,
+	struct isl_constraint *constraint2)
 {
-	isl_bool equal;
+	int equal;
 
 	if (!constraint1 || !constraint2)
-		return isl_bool_error;
+		return 0;
 	if (constraint1->eq != constraint2->eq)
-		return isl_bool_false;
+		return 0;
 	equal = isl_local_space_is_equal(constraint1->ls, constraint2->ls);
 	if (equal < 0 || !equal)
 		return equal;
