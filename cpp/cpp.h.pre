@@ -169,12 +169,4 @@ public:
 	}
 };
 
-enum class ast_loop_type {
-	error = isl_ast_loop_error,
-	_default = isl_ast_loop_default,
-	atomic = isl_ast_loop_atomic,
-	unroll = isl_ast_loop_unroll,
-	separate = isl_ast_loop_separate
-};
-
 } // namespace isl

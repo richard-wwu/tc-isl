@@ -256,6 +256,7 @@ void cpp_generator::print_class(ostream &os, const isl_class &clazz)
 	osprintf(os, "\n");
 	print_persistent_callbacks_decl(os, clazz);
 	print_methods_decl(os, clazz);
+	print_set_enums_decl(os, clazz);
 
 	osprintf(os, "  typedef %s* isl_ptr_t;\n", name);
 	osprintf(os, "};\n");
@@ -626,6 +627,48 @@ void cpp_generator::print_methods_decl(ostream &os, const isl_class &clazz)
 		print_method_group_decl(os, clazz, it->second);
 }
 
+/* Print a declaration for a method "name" in "clazz" derived
+ * from "fd", which sets an enum, to "os".
+ *
+ * The last argument is removed because it is replaced by
+ * a break-up into several methods.
+ */
+void cpp_generator::print_set_enum_decl(ostream &os, const isl_class &clazz,
+	FunctionDecl *fd, const string &name)
+{
+	int n = fd->getNumParams();
+
+	print_method_header(os, clazz, fd, name, n - 1, true,
+				function_kind_member_method);
+}
+
+/* Print declarations for the methods in "clazz" derived from "fd",
+ * which sets an enum, to "os".
+ *
+ * A method is generated for each value in the enum, setting
+ * the enum to that value.
+ */
+void cpp_generator::print_set_enums_decl(ostream &os, const isl_class &clazz,
+	FunctionDecl *fd)
+{
+	vector<set_enum>::const_iterator it;
+	const vector<set_enum> &set_enums = clazz.set_enums.at(fd);
+
+	for (it = set_enums.begin(); it != set_enums.end(); ++it)
+		print_set_enum_decl(os, clazz, fd, it->method_name);
+}
+
+/* Print declarations for methods in "clazz" derived from functions
+ * that set an enum, to "os".
+ */
+void cpp_generator::print_set_enums_decl(ostream &os, const isl_class &clazz)
+{
+	map<FunctionDecl *, vector<set_enum> >::const_iterator it;
+
+	for (it = clazz.set_enums.begin(); it != clazz.set_enums.end(); ++it)
+		print_set_enums_decl(os, clazz, it->first);
+}
+
 /* Print declarations for methods "methods" in class "clazz" to "os".
  */
 void cpp_generator::print_method_group_decl(ostream &os, const isl_class &clazz,
@@ -684,6 +727,7 @@ void cpp_generator::print_class_impl(ostream &os, const isl_class &clazz)
 	osprintf(os, "\n");
 	print_persistent_callbacks_impl(os, clazz);
 	print_methods_impl(os, clazz);
+	print_set_enums_impl(os, clazz);
 }
 
 /* Print code with the given indentation
@@ -1122,6 +1166,77 @@ void cpp_generator::print_methods_impl(ostream &os, const isl_class &clazz)
 	}
 }
 
+/* Print the definition for a method "method_name" in "clazz" derived
+ * from "fd", which sets an enum, to "os".
+ * In particular, the method "method_name" sets the enum to "enum_name".
+ *
+ * The last argument of the C function does not appear in the method call,
+ * but is fixed to "enum_name" instead.
+ * Other than that, the method printed here is similar to one
+ * printed by cpp_generator::print_method_impl, except that
+ * some of the special cases do not occur.
+ */
+void cpp_generator::print_set_enum_impl(ostream &os, const isl_class &clazz,
+	FunctionDecl *fd, const string &enum_name, const string &method_name)
+{
+	string c_name = fd->getName();
+	int n = fd->getNumParams();
+	function_kind kind = function_kind_member_method;
+
+	print_method_header(os, clazz, fd, method_name, n - 1, false, kind);
+	osprintf(os, "{\n");
+
+	print_argument_validity_check(os, fd, kind);
+	print_save_ctx(os, fd, kind);
+	print_on_error_continue(os, fd, kind);
+
+	osprintf(os, "  auto res = %s(", c_name.c_str());
+
+	for (int i = 0; i < n - 1; ++i) {
+		ParmVarDecl *param = fd->getParamDecl(i);
+
+		if (i > 0)
+			osprintf(os, ", ");
+		print_method_param_use(os, param, i == 0);
+	}
+	osprintf(os, ", %s", enum_name.c_str());
+	osprintf(os, ");\n");
+
+	print_exceptional_execution_check(os, clazz, fd, kind);
+	print_method_return(os, clazz, fd);
+
+	osprintf(os, "}\n");
+}
+
+/* Print definitions for the methods in "clazz" derived from "fd",
+ * which sets an enum, to "os".
+ *
+ * A method is generated for each value in the enum, setting
+ * the enum to that value.
+ */
+void cpp_generator::print_set_enums_impl(ostream &os, const isl_class &clazz,
+	FunctionDecl *fd)
+{
+	vector<set_enum>::const_iterator it;
+	const vector<set_enum> &set_enums = clazz.set_enums.at(fd);
+
+	for (it = set_enums.begin(); it != set_enums.end(); ++it) {
+		osprintf(os, "\n");
+		print_set_enum_impl(os, clazz, fd, it->name, it->method_name);
+	}
+}
+
+/* Print definitions for methods in "clazz" derived from functions
+ * that set an enum, to "os".
+ */
+void cpp_generator::print_set_enums_impl(ostream &os, const isl_class &clazz)
+{
+	map<FunctionDecl *, vector<set_enum> >::const_iterator it;
+
+	for (it = clazz.set_enums.begin(); it != clazz.set_enums.end(); ++it)
+		print_set_enums_impl(os, clazz, it->first);
+}
+
 /* Print definitions for methods "methods" in class "clazz" to "os".
  *
  * "kind" specifies the kind of method that should be generated.
@@ -1167,14 +1282,6 @@ void cpp_generator::print_method_param_use(ostream &os, ParmVarDecl *param,
 	string name = param->getName().str();
 	const char *name_str = name.c_str();
 	QualType type = param->getOriginalType();
-
-        if (extensions) {
-          if (type->isEnumeralType()) {
-            string typestr = type.getAsString();
-            osprintf(os, "static_cast<%s>(%s)", typestr.c_str(), name_str);
-            return;
-          }
-        }
 
 	if (type->isIntegerType()) {
 		osprintf(os, "%s", name_str);
@@ -1485,16 +1592,10 @@ void cpp_generator::print_set_persistent_callback(ostream &os,
 	osprintf(os, "}\n\n");
 }
 
-/* Print definition for "method" in class "clazz" to "os".
+/* Print the return statement of the C++ method corresponding
+ * to the C function "method" in class "clazz" to "os".
  *
- * "kind" specifies the kind of method that should be generated.
- *
- * This method distinguishes three kinds of methods: member methods, static
- * methods, and constructors.
- *
- * Member methods call "method" by passing to the underlying isl function the
- * isl object belonging to "this" as first argument and the remaining arguments
- * as subsequent arguments. The result of the isl function is returned as a new
+ * The result of the isl function is returned as a new
  * object if the underlying isl function returns an isl_* ptr, as a bool
  * if the isl function returns an isl_bool, as void if the isl functions
  * returns an isl_stat,
@@ -1510,6 +1611,45 @@ void cpp_generator::print_set_persistent_callback(ostream &os,
  * If "clazz" is a subclass that is based on a type function and
  * if the return type corresponds to the superclass data type,
  * then it is replaced by the subclass data type.
+ */
+void cpp_generator::print_method_return(ostream &os, const isl_class &clazz,
+	FunctionDecl *method)
+{
+	QualType return_type = method->getReturnType();
+	string rettype_str = get_return_type(clazz, method);
+	bool returns_super = is_subclass_mutator(clazz, method);
+
+	if (is_isl_type(return_type) ||
+		    (noexceptions && is_isl_bool(return_type))) {
+		osprintf(os, "  return manage(res)");
+		if (is_mutator(clazz, method) &&
+		    clazz.has_persistent_callbacks())
+			osprintf(os, ".copy_callbacks(*this)");
+		if (returns_super)
+			osprintf(os, ".as<%s>()", rettype_str.c_str());
+		osprintf(os, ";\n");
+	} else if (is_isl_bool(return_type) || is_isl_stat(return_type)) {
+		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
+	} else if (is_string(return_type)) {
+		osprintf(os, "  std::string tmp(res);\n");
+		if (gives(method))
+			osprintf(os, "  free(res);\n");
+		osprintf(os, "  return tmp;\n");
+	} else {
+		osprintf(os, "  return res;\n");
+	}
+}
+
+/* Print definition for "method" in class "clazz" to "os".
+ *
+ * "kind" specifies the kind of method that should be generated.
+ *
+ * This method distinguishes three kinds of methods: member methods, static
+ * methods, and constructors.
+ *
+ * Member methods call "method" by passing to the underlying isl function the
+ * isl object belonging to "this" as first argument and the remaining arguments
+ * as subsequent arguments.
  *
  * Static methods call "method" by passing all arguments to the underlying isl
  * function, as no this-pointer is available. The result is a newly managed
@@ -1537,10 +1677,6 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 {
 	string methodname = method->getName();
 	int num_params = method->getNumParams();
-	QualType return_type = method->getReturnType();
-	string rettype_str = get_return_type(clazz, method);
-	bool has_callback = false;
-	bool returns_super = is_subclass_mutator(clazz, method);
 
 	print_method_header(os, clazz, method, false, kind);
 	osprintf(os, "{\n");
@@ -1551,7 +1687,6 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	for (int i = 0; i < num_params; ++i) {
 		ParmVarDecl *param = method->getParamDecl(i);
 		if (is_callback(param->getType())) {
-			has_callback = true;
 			num_params -= 1;
 			print_callback_local(os, param);
 		}
@@ -1576,35 +1711,15 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
 	print_exceptional_execution_check(os, clazz, method, kind);
 	if (kind == function_kind_constructor) {
 		osprintf(os, "  ptr = res;\n");
-	} else if (is_isl_type(return_type) ||
-		    (noexceptions && is_isl_bool(return_type))) {
-		osprintf(os, "  return manage(res)");
-		if (is_mutator(clazz, method) &&
-		    clazz.has_persistent_callbacks())
-			osprintf(os, ".copy_callbacks(*this)");
-		if (returns_super)
-			osprintf(os, ".as<%s>()", rettype_str.c_str());
-		osprintf(os, ";\n");
-	} else if (has_callback) {
-		osprintf(os, "  return %s(res);\n", rettype_str.c_str());
-	} else if (is_string(return_type)) {
-		osprintf(os, "  std::string tmp(res);\n");
-		if (gives(method))
-			osprintf(os, "  free(res);\n");
-		osprintf(os, "  return tmp;\n");
-	} else if (is_isl_enum(return_type)) {
-		string typestr = return_type.getAsString();
-		typestr = typestr.replace(typestr.find("isl_"), sizeof("isl_")-1, "isl::");
-		osprintf(os, "  return static_cast<%s>(res);\n", typestr.c_str());
-
 	} else {
-		osprintf(os, "  return res;\n");
+		print_method_return(os, clazz, method);
 	}
 
 	osprintf(os, "}\n");
 }
 
-/* Print the header for "method" in class "clazz" to "os".
+/* Print the header for "method" in class "clazz", with name "cname" and
+ * "num_params" number of arguments, to "os".
  *
  * Print the header of a declaration if "is_declaration" is set, otherwise print
  * the header of a method definition.
@@ -1644,15 +1759,13 @@ void cpp_generator::print_method_impl(ostream &os, const isl_class &clazz,
  * know that implicit construction is allowed in absence of an explicit keyword.
  */
 void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
-	FunctionDecl *method, bool is_declaration, function_kind kind)
+	FunctionDecl *method, const string &cname, int num_params,
+	bool is_declaration, function_kind kind)
 {
-	string cname = clazz.method_name(method);
 	string rettype_str = get_return_type(clazz, method);
 	string classname = type2cpp(clazz);
-	int num_params = method->getNumParams();
 	int first_param = 0;
 
-	cname = rename_method(cname);
 	if (kind == function_kind_member_method)
 		first_param = 1;
 
@@ -1712,6 +1825,24 @@ void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
 	if (is_declaration)
 		osprintf(os, ";");
 	osprintf(os, "\n");
+}
+
+/* Print the header for "method" in class "clazz" to "os".
+ *
+ * Print the header of a declaration if "is_declaration" is set, otherwise print
+ * the header of a method definition.
+ *
+ * "kind" specifies the kind of method that should be generated.
+ */
+void cpp_generator::print_method_header(ostream &os, const isl_class &clazz,
+	FunctionDecl *method, bool is_declaration, function_kind kind)
+{
+	string cname = clazz.method_name(method);
+	int num_params = method->getNumParams();
+
+	cname = rename_method(cname);
+	print_method_header(os, clazz, method, cname, num_params,
+			    is_declaration, kind);
 }
 
 /* Generate the list of argument types for a callback function of
@@ -2106,17 +2237,6 @@ string cpp_generator::type2cpp(QualType type)
 
 	if (is_isl_stat(type))
 		return noexceptions ? "isl::stat" : "void";
-
-        if (extensions) {
-          if (type->isEnumeralType()) {
-            string typestr = type.getAsString();
-            return typestr.replace(
-                typestr.find("isl_"), sizeof("isl_")-1, "isl::");
-          }
-          else if (is_isl_ctx(type)) {
-            return "isl::ctx";
-          }
-        }
 
 	if (type->isIntegerType())
 		return type.getAsString();
