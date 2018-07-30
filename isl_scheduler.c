@@ -7640,7 +7640,7 @@ static isl_bool ok_to_merge(isl_ctx *ctx, struct isl_sched_graph *graph,
 		return isl_bool_false;
 
 	if (isl_options_get_schedule_maximize_coincidence(ctx) &&
-	    (n_coincident_after - n_coincident_after) < 0)
+	    (n_coincident_after - n_coincident_before) < 0)
 		return isl_bool_false;
 
 	return ok_to_merge_proximity(ctx, graph, c, merge_graph);
